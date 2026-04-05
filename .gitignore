@@ -43,3 +43,6 @@ dist/
 
 # macOS 
 .DS_Store
+
+# project specific
+src/operator_algebra/_version.py

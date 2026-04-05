@@ -15,6 +15,7 @@ def collect_terms(op: OpSum) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return OpSum(dict(op._terms), rules=op.rules)
 
@@ -31,6 +32,7 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     kept: dict[Monomial, Scalar] = {}
     for mono, coeff in op._terms.items():
@@ -64,6 +66,7 @@ def simplify_coeffs(op: OpSum) -> OpSum:
     ------
     ImportError
         If sympy is not installed.
+
     """
     import sympy
 

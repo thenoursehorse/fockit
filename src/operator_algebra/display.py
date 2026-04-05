@@ -63,6 +63,7 @@ def format_opsum(op: OpSum) -> str:
     Returns
     -------
     str
+
     """
     if not op._terms:
         return "0"
@@ -115,6 +116,7 @@ def pretty_print(op: OpSum) -> str:
     Returns
     -------
     str
+
     """
     return format_opsum(op)
 
@@ -129,6 +131,7 @@ def to_latex(op: OpSum) -> str:
     Returns
     -------
     str
+
     """
     if not op._terms:
         return "0"

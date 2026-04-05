@@ -24,6 +24,7 @@ def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     mode = labels if len(labels) > 1 else labels[0]
     return OpSum({Monomial(ops=(LadderOp(mode, True),)): 1}, rules=rules)
@@ -42,6 +43,7 @@ def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     mode = labels if len(labels) > 1 else labels[0]
     return OpSum({Monomial(ops=(LadderOp(mode, False),)): 1}, rules=rules)
@@ -60,6 +62,7 @@ def number(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return create(*labels, rules=rules) * annihilate(*labels, rules=rules)
 
@@ -75,6 +78,7 @@ def cdag(*labels: Hashable) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return create(*labels, rules=FERMION)
 
@@ -90,6 +94,7 @@ def c(*labels: Hashable) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return annihilate(*labels, rules=FERMION)
 
@@ -105,6 +110,7 @@ def n(*labels: Hashable) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return number(*labels, rules=FERMION)
 
@@ -120,6 +126,7 @@ def bdag(*labels: Hashable) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return create(*labels, rules=BOSON)
 
@@ -135,6 +142,7 @@ def b(*labels: Hashable) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return annihilate(*labels, rules=BOSON)
 
@@ -150,6 +158,7 @@ def nb(*labels: Hashable) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return number(*labels, rules=BOSON)
 
@@ -165,6 +174,7 @@ def identity(rules: AlgebraRules = FERMION) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return OpSum({Monomial(()): 1}, rules=rules)
 
@@ -180,5 +190,6 @@ def zero(rules: AlgebraRules = FERMION) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     return OpSum({}, rules=rules)

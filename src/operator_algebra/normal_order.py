@@ -27,6 +27,7 @@ def normal_order(op: OpSum) -> OpSum:
     For monomials of length n, the algorithm performs O(n²) adjacent swaps.
     Each swap can branch into multiple terms. For typical condensed matter
     Hamiltonians (monomials of length 2 or 4), this is trivially fast.
+
     """
     from operator_algebra.constructors import zero
 
@@ -52,6 +53,7 @@ def _accumulate(
     acc : dict[Monomial, Scalar]
     mono : Monomial
     coeff : Scalar
+
     """
     if mono in acc:
         acc[mono] = acc[mono] + coeff
@@ -112,6 +114,7 @@ def is_normal_ordered(op: OpSum) -> bool:
     Returns
     -------
     bool
+
     """
     for mono in op.terms:
         ops = mono.ops

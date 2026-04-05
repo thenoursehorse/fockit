@@ -24,6 +24,7 @@ def _conjugate(coeff: Scalar) -> Scalar:
     ------
     TypeError
         If the coefficient type does not support ``.conjugate()``.
+
     """
     try:
         return coeff.conjugate()
@@ -53,6 +54,7 @@ def hc(op: OpSum) -> OpSum:
     Returns
     -------
     OpSum
+
     """
     new_terms: dict[Monomial, Scalar] = {}
     for mono, coeff in op._terms.items():
@@ -76,6 +78,7 @@ def commutator(a: OpSum, b: OpSum) -> OpSum:
     -------
     OpSum
         The commutator (NOT normal ordered).
+
     """
     return a * b - b * a
 
@@ -92,6 +95,7 @@ def anticommutator(a: OpSum, b: OpSum) -> OpSum:
     -------
     OpSum
         The anticommutator (NOT normal ordered).
+
     """
     return a * b + b * a
 
@@ -117,6 +121,7 @@ def substitute_modes(
     Returns
     -------
     OpSum
+
     """
     if len(set(mapping.values())) < len(mapping) and not reorder:
         warnings.warn(

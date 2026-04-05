@@ -29,6 +29,7 @@ class SwapResult:
     For the normal ordering algorithm to terminate, implementations must
     ensure that the total number of inversions strictly decreases across
     the replacement terms. Tuples of length 0 or 2 are safe.
+
     """
 
     terms: tuple[tuple[Scalar, tuple[LadderOp, ...]], ...]
@@ -41,6 +42,7 @@ class AlgebraRules(Protocol):
     -----
     Implementations MUST define ``__eq__`` so that two instances
     representing the same algebra compare equal.
+
     """
 
     def swap(self, left: LadderOp, right: LadderOp) -> SwapResult:
@@ -54,6 +56,7 @@ class AlgebraRules(Protocol):
         Returns
         -------
         SwapResult
+
         """
         ...
 
@@ -68,6 +71,7 @@ class AlgebraRules(Protocol):
         Returns
         -------
         bool
+
         """
         ...
 
@@ -81,6 +85,7 @@ class AlgebraRules(Protocol):
         Returns
         -------
         bool
+
         """
         ...
 
@@ -104,6 +109,7 @@ def _mode_sort_key(mode: Hashable) -> tuple[Any, ...]:
     -----
     ``bool`` is a subclass of ``int``, so ``True`` and ``1`` produce
     identical sort keys. Avoid using ``bool`` values as modes.
+
     """
     match mode:
         case int():
@@ -130,6 +136,7 @@ class FermionRules:
         Returns
         -------
         SwapResult
+
         """
         swapped = ((-1, (right, left)),)
         if not left.is_creator and right.is_creator and left.mode == right.mode:
@@ -137,7 +144,9 @@ class FermionRules:
         return SwapResult(terms=swapped)
 
     def is_normal_ordered_pair(self, left: LadderOp, right: LadderOp) -> bool:
-        """Normal order: creators left, canonical mode order within blocks.
+        """Check if pairs are normal ordered.
+
+        Normal order: creators left, canonical mode order within blocks.
 
         Parameters
         ----------
@@ -147,6 +156,7 @@ class FermionRules:
         Returns
         -------
         bool
+
         """
         if left.is_creator and not right.is_creator:
             return True
@@ -168,6 +178,7 @@ class FermionRules:
         Returns
         -------
         bool
+
         """
         for i in range(len(ops) - 1):
             if ops[i] == ops[i + 1]:
@@ -198,6 +209,7 @@ class BosonRules:
         Returns
         -------
         SwapResult
+
         """
         swapped = ((+1, (right, left)),)
         if not left.is_creator and right.is_creator and left.mode == right.mode:
@@ -215,6 +227,7 @@ class BosonRules:
         Returns
         -------
         bool
+
         """
         if left.is_creator and not right.is_creator:
             return True
@@ -232,6 +245,7 @@ class BosonRules:
         Returns
         -------
         bool
+
         """
         return False
 

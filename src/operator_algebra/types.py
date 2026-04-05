@@ -26,6 +26,7 @@ def _is_zero(coeff: Scalar, tol: float = 0.0) -> bool:
     Returns
     -------
     bool
+
     """
     if coeff == 0:
         return True
@@ -45,6 +46,7 @@ def _is_scalar(obj: object) -> bool:
     Returns
     -------
     bool
+
     """
     if isinstance(obj, OpSum):
         return False
@@ -66,6 +68,7 @@ def _rules_compatible(a: AlgebraRules, b: AlgebraRules) -> bool:
     Returns
     -------
     bool
+
     """
     if a == b:
         return True
@@ -89,6 +92,7 @@ class LadderOp:
         Any hashable Python object identifying the single-particle state.
     is_creator : bool
         True for creation operator, False for annihilation operator.
+
     """
 
     mode: Hashable
@@ -107,6 +111,7 @@ class Monomial:
     ----------
     ops : tuple[LadderOp, ...]
         The ordered sequence of ladder operators in this product.
+
     """
 
     ops: tuple[LadderOp, ...]
@@ -137,6 +142,7 @@ class OpSum:
         Mapping from monomials to coefficients.
     rules : AlgebraRules | None
         Algebra rules. Default: ``FERMION``.
+
     """
 
     def __init__(
@@ -239,6 +245,7 @@ class OpSum:
         -----
         ``zero() ** 0`` returns ``identity()``. The empty product is the
         identity operator.
+
         """
         if not isinstance(n, int) or n < 0:
             raise ValueError(f"Exponent must be a non-negative integer, got {n}")

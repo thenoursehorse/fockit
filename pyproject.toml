@@ -1,28 +1,113 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "operator-algebra"
-version = "0.1.0"
-description = "Symbolic operator algebra for fermions, bosons, and beyond"
+dynamic = ["version"]
+description = "Operator algebra for fermions, bosons, and beyond"
+readme = "README.md"
 requires-python = ">=3.12"
-license = "MIT"
+license = {file = "LICENSE"}
+keywords = ["quantum", "symoblic", "operator", "algebra", "fermions", "bosons"]
+authors = [
+  {name = "Henry L. Nourse"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
 
-[project.optional-dependencies]
+[project.urls]
+Homepage = "https://github.com/thenoursehorse/operator-algebra"
+Documentation = "https://thenoursehorse.github.io/operator-algebra"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch]
+version.source = "vcs"
+build.hooks.vcs.version-file = "src/operator_algebra/_version.py"
+metadata.allow-direct-references = true
+
+[dependency-groups]
 sympy = ["sympy"]
-test = ["pytest"]
+test = [
+  "pytest>=9.0",
+  "pytest-subtests>=0.15",
+  "pytest-cov>=7",
+]
+dev = [
+  { include-group = "test" },
+  "pre-commit",
+  "ruff",
+  "mypy",
+]
+
+[tool.pytest]
+minversion = "9.0"
+addopts = ["-ra", "--showlocals"]
+strict = true
+filterwarnings = ["error"]
+log_level = "INFO"
+testpaths = [
+  "tests",
+]
 
 [tool.ruff]
+src = ["src"]
 target-version = "py312"
 line-length = 88
 
+[tool.ruff.format]
+docstring-code-format = true
+quote-style = "double"
+indent-style = "space"
+
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP"]
+extend-select = [
+  "B",           # flake8-bugbear
+  "I",           # isort
+  "E",           # pycodestyle errors
+  "F",           # pyflakes (bugs)
+  "ARG",         # flake8-unused-arguments
+  "C4",          # flake8-comprehensions
+  "EM",          # flake8-errmsg
+  "ICN",         # flake8-import-conventions
+  "PGH",         # pygrep-hooks
+  "PIE",         # flake8-pie
+  "PL",          # pylint
+  "PT",          # flake8-pytest-style
+  "PTH",         # flake8-use-pathlib
+  "RET",         # flake8-return
+  "RUF",         # Ruff-specific
+  "SIM",         # flake8-simplify
+  "TID251",      # flake8-tidy-imports.banned-api
+  "T20",         # flake8-print
+  "UP",          # pyupgrade
+  "YTT",         # flake8-2020
+  "D",           # pydocstyle
+  "D204",        # one-blank-line-after-class
+  "D301",        # escape-sequence-in-docstring
+  "D413",        # blank-line-after-last-section
+  "UP",          # pyupgrade (modern Python)
+]
+ignore = [
+  "PLR",    # Design related pylint codes
+  "RUF012", # Would require a lot of ClassVar's
+  "D417",  # remove documentation requirement for all functions
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [tool.mypy]
-strict = true
+files = "src"
 python_version = "3.12"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+strict = true
+show_error_codes = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+warn_unreachable = true

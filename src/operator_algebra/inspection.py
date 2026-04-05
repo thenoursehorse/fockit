@@ -17,6 +17,7 @@ def monomials(op: OpSum) -> Iterator[tuple[Scalar, tuple[LadderOp, ...]]]:
     Yields
     ------
     tuple[Scalar, tuple[LadderOp, ...]]
+
     """
     for mono, coeff in op.terms.items():
         yield coeff, mono.ops
@@ -32,6 +33,7 @@ def modes(op: OpSum) -> set[Hashable]:
     Returns
     -------
     set[Hashable]
+
     """
     result: set[Hashable] = set()
     for mono in op.terms:
@@ -52,6 +54,7 @@ def degree(op: OpSum) -> int:
     Returns
     -------
     int
+
     """
     if not op._terms:
         return 0
@@ -68,5 +71,6 @@ def num_terms(op: OpSum) -> int:
     Returns
     -------
     int
+
     """
     return len(op._terms)
