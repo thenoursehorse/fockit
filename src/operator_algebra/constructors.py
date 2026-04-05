@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Hashable
 
 from operator_algebra.algebra import BOSON, FERMION, AlgebraRules
-from operator_algebra.types import LadderOp, Monomial, OpSum
+from operator_algebra.operators import LadderOp, Monomial, OpSum
 
 
 def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
@@ -50,7 +50,7 @@ def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
 
 
 def number(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
-    """Number operator: create† * annihilate.
+    """Return the number operator create† * annihilate.
 
     Parameters
     ----------
@@ -161,35 +161,3 @@ def nb(*labels: Hashable) -> OpSum:
 
     """
     return number(*labels, rules=BOSON)
-
-
-def identity(rules: AlgebraRules = FERMION) -> OpSum:
-    """The identity operator (empty product with coefficient 1).
-
-    Parameters
-    ----------
-    rules : AlgebraRules, optional
-        Algebra rules. Default: ``FERMION``.
-
-    Returns
-    -------
-    OpSum
-
-    """
-    return OpSum({Monomial(()): 1}, rules=rules)
-
-
-def zero(rules: AlgebraRules = FERMION) -> OpSum:
-    """The zero operator (empty sum).
-
-    Parameters
-    ----------
-    rules : AlgebraRules, optional
-        Algebra rules. Default: ``FERMION``.
-
-    Returns
-    -------
-    OpSum
-
-    """
-    return OpSum({}, rules=rules)

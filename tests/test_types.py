@@ -12,7 +12,7 @@ from operator_algebra import (
     identity,
     zero,
 )
-from operator_algebra.types import _is_scalar, _is_zero
+from operator_algebra.operators import is_scalar, is_zero
 
 
 class TestLadderOp:
@@ -102,7 +102,7 @@ class TestOpSum:
 
     def test_mul_opsum(self):
         result = cdag(1) * c(2)
-        mono = list(result._terms.keys())[0]
+        mono = next(iter(result._terms))
         assert len(mono) == 2
 
     def test_pow(self):
@@ -134,11 +134,11 @@ class TestOpSum:
         assert cdag(1) != cdag(2)
 
     def test_mixing_rules_mul_raises(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Cannot multiply"):
             cdag(1) * bdag(2)
 
     def test_mixing_rules_add_raises(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Cannot add"):
             cdag(1) + bdag(2)
 
     def test_bool_zero_is_falsy(self):
@@ -154,35 +154,33 @@ class TestOpSum:
 
 class TestIsScalar:
     def test_int_float_complex(self):
-        assert _is_scalar(1)
-        assert _is_scalar(1.0)
-        assert _is_scalar(1j)
+        assert is_scalar(1)
+        assert is_scalar(1.0)
+        assert is_scalar(1j)
 
     def test_sympy_symbol(self):
-        pytest.importorskip("sympy")
-        import sympy
-
-        assert _is_scalar(sympy.Symbol("t"))
+        sympy = pytest.importorskip("sympy")
+        assert is_scalar(sympy.Symbol("t"))
 
     def test_opsum_not_scalar(self):
-        assert not _is_scalar(cdag(1))
+        assert not is_scalar(cdag(1))
 
     def test_list_dict_set_not_scalar(self):
-        assert not _is_scalar([1])
-        assert not _is_scalar({1: 2})
-        assert not _is_scalar({1})
+        assert not is_scalar([1])
+        assert not is_scalar({1: 2})
+        assert not is_scalar({1})
 
 
 class TestIsZero:
     def test_exact_zeros(self):
-        assert _is_zero(0)
-        assert _is_zero(0.0)
-        assert _is_zero(0j)
+        assert is_zero(0)
+        assert is_zero(0.0)
+        assert is_zero(0j)
 
     def test_nonzero(self):
-        assert not _is_zero(1)
-        assert not _is_zero(1e-10)
+        assert not is_zero(1)
+        assert not is_zero(1e-10)
 
     def test_tolerance(self):
-        assert _is_zero(1e-16, tol=1e-15)
-        assert not _is_zero(1e-14, tol=1e-15)
+        assert is_zero(1e-16, tol=1e-15)
+        assert not is_zero(1e-14, tol=1e-15)

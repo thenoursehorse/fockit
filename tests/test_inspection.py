@@ -1,6 +1,6 @@
 """Tests for inspection utilities."""
 
-from operator_algebra import c, cdag, degree, modes, monomials, num_terms
+from operator_algebra import c, cdag, degree, modes, monomials, num_terms, zero
 
 
 def test_modes():
@@ -14,8 +14,6 @@ def test_degree():
 
 
 def test_degree_zero():
-    from operator_algebra import zero
-
     assert degree(zero()) == 0
 
 

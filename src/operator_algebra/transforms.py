@@ -1,11 +1,10 @@
 """Transforms: Hermitian conjugate, commutator, anticommutator, mode substitution."""
 
-from __future__ import annotations
-
 import warnings
 from collections.abc import Hashable
 
-from operator_algebra.types import LadderOp, Monomial, OpSum, Scalar
+from operator_algebra.normal_order import normal_order
+from operator_algebra.operators import LadderOp, Monomial, OpSum, Scalar
 
 
 def _conjugate(coeff: Scalar) -> Scalar:
@@ -29,16 +28,18 @@ def _conjugate(coeff: Scalar) -> Scalar:
     try:
         return coeff.conjugate()
     except AttributeError:
+        type_name = type(coeff).__name__
         warnings.warn(
-            f"Coefficient of type {type(coeff).__name__!r} does not support "
+            f"Coefficient of type {type_name!r} does not support "
             f".conjugate(). If this type is real-valued, define a .conjugate() "
             f"method returning self. Raising TypeError.",
             stacklevel=3,
         )
-        raise TypeError(
-            f"Cannot conjugate coefficient of type {type(coeff).__name__!r}: "
+        msg = (
+            f"Cannot conjugate coefficient of type {type_name!r}: "
             f"no .conjugate() method."
         )
+        raise TypeError(msg) from None
 
 
 def hc(op: OpSum) -> OpSum:
@@ -145,7 +146,5 @@ def substitute_modes(
 
     result = OpSum(new_terms, rules=op.rules)
     if reorder:
-        from operator_algebra.normal_order import normal_order
-
         result = normal_order(result)
     return result

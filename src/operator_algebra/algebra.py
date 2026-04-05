@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from operator_algebra.types import LadderOp
+    from operator_algebra.operators import LadderOp
 
 type Scalar = Any
 
@@ -35,13 +35,15 @@ class SwapResult:
     terms: tuple[tuple[Scalar, tuple[LadderOp, ...]], ...]
 
 
+@runtime_checkable
 class AlgebraRules(Protocol):
     """Protocol defining the (anti)commutation relations for an algebra.
 
     Notes
     -----
-    Implementations MUST define ``__eq__`` so that two instances
-    representing the same algebra compare equal.
+    Implementations MUST define ``__eq__`` and ``__hash__`` so that two
+    instances representing the same algebra compare equal and are usable
+    as ``lru_cache`` keys.
 
     """
 
@@ -89,6 +91,10 @@ class AlgebraRules(Protocol):
         """
         ...
 
+    def __hash__(self) -> int:
+        """Return hash for use as ``lru_cache`` key."""
+        ...
+
 
 def _mode_sort_key(mode: Hashable) -> tuple[Any, ...]:
     """Canonical sort key for modes.
@@ -126,7 +132,7 @@ class FermionRules:
     """Canonical anticommutation relations: {c_a, c†_b} = delta_{ab}."""
 
     def swap(self, left: LadderOp, right: LadderOp) -> SwapResult:
-        """Fermion swap rules.
+        """Apply fermion swap rules.
 
         Parameters
         ----------
@@ -144,9 +150,9 @@ class FermionRules:
         return SwapResult(terms=swapped)
 
     def is_normal_ordered_pair(self, left: LadderOp, right: LadderOp) -> bool:
-        """Check if pairs are normal ordered.
+        """Check if a pair is in fermionic normal order.
 
-        Normal order: creators left, canonical mode order within blocks.
+        Creators left, canonical mode order within blocks.
 
         Parameters
         ----------
@@ -165,7 +171,7 @@ class FermionRules:
         return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
 
     def is_zero_monomial(self, ops: tuple[LadderOp, ...]) -> bool:
-        """Zero if any adjacent pair of identical LadderOps exists.
+        """Return True if any adjacent identical LadderOps exist.
 
         Only adjacent duplicates are checked because non-adjacent duplicates
         may still yield nonzero contributions after expanding commutation
@@ -180,18 +186,15 @@ class FermionRules:
         bool
 
         """
-        for i in range(len(ops) - 1):
-            if ops[i] == ops[i + 1]:
-                return True
-        return False
+        return any(ops[i] == ops[i + 1] for i in range(len(ops) - 1))
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: object) -> bool:  # noqa: D105
         return isinstance(other, FermionRules)
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # noqa: D105
         return hash(type(self))
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: D105
         return "FermionRules()"
 
 
@@ -199,7 +202,7 @@ class BosonRules:
     """Canonical commutation relations: [b_a, b†_b] = delta_{ab}."""
 
     def swap(self, left: LadderOp, right: LadderOp) -> SwapResult:
-        """Boson swap rules.
+        """Apply boson swap rules.
 
         Parameters
         ----------
@@ -235,8 +238,8 @@ class BosonRules:
             return False
         return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
 
-    def is_zero_monomial(self, ops: tuple[LadderOp, ...]) -> bool:
-        """Bosons never square to zero.
+    def is_zero_monomial(self, ops: tuple[LadderOp, ...]) -> bool:  # noqa: ARG002
+        """Return False; bosons never square to zero.
 
         Parameters
         ----------
@@ -249,13 +252,13 @@ class BosonRules:
         """
         return False
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: object) -> bool:  # noqa: D105
         return isinstance(other, BosonRules)
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # noqa: D105
         return hash(type(self))
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: D105
         return "BosonRules()"
 
 

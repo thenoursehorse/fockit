@@ -8,7 +8,7 @@ from operator_algebra.algebra import (
     FermionRules,
     _mode_sort_key,
 )
-from operator_algebra.types import LadderOp, Monomial, OpSum, _format_mode
+from operator_algebra.operators import LadderOp, Monomial, OpSum, format_mode
 
 
 def _op_symbols(rules: AlgebraRules) -> tuple[str, str]:
@@ -32,7 +32,7 @@ def _latex_symbols(rules: AlgebraRules) -> tuple[str, str]:
 def _format_op(op: LadderOp, creator_sym: str, annihilator_sym: str) -> str:
     """Format a single LadderOp with given symbols."""
     symbol = creator_sym if op.is_creator else annihilator_sym
-    return f"{symbol}({_format_mode(op.mode)})"
+    return f"{symbol}({format_mode(op.mode)})"
 
 
 def _monomial_sort_key(mono: Monomial) -> tuple:  # type: ignore[type-arg]
@@ -151,7 +151,7 @@ def to_latex(op: OpSum) -> str:
         ops_parts: list[str] = []
         for ladder_op in mono.ops:
             sym = creator_sym if ladder_op.is_creator else annihilator_sym
-            mode_str = _format_mode(ladder_op.mode)
+            mode_str = format_mode(ladder_op.mode)
             # Convert mode to LaTeX subscript
             mode_latex = mode_str.replace("up", r"\uparrow").replace(
                 "dn", r"\downarrow"

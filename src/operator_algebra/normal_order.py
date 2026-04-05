@@ -6,7 +6,7 @@ import functools
 from collections import deque
 
 from operator_algebra.algebra import AlgebraRules
-from operator_algebra.types import Monomial, OpSum, Scalar
+from operator_algebra.operators import Monomial, OpSum, Scalar, zero
 
 
 def normal_order(op: OpSum) -> OpSum:
@@ -15,54 +15,29 @@ def normal_order(op: OpSum) -> OpSum:
     Parameters
     ----------
     op : OpSum
-        The operator expression to normal-order.
+        The operator to normal-order.
 
     Returns
     -------
     OpSum
-        The normal-ordered result.
+        The normal-ordered operator.
 
     Notes
     -----
     For monomials of length n, the algorithm performs O(n²) adjacent swaps.
     Each swap can branch into multiple terms. For typical condensed matter
-    Hamiltonians (monomials of length 2 or 4), this is trivially fast.
+    Hamiltonians (monomials of length 2 or 4), this is fast.
 
     """
-    from operator_algebra.constructors import zero
-
     result = zero(op.rules)
     for mono, coeff in op.terms.items():
-        ordered = _normal_order_monomial(mono, op.rules)
+        ordered = normal_order_monomial(mono, op.rules)
         result = result + _scale(ordered, coeff)
     return result
 
 
-def _scale(op: OpSum, coeff: Scalar) -> OpSum:
-    """Multiply all coefficients in op by coeff."""
-    return OpSum({m: c * coeff for m, c in op._terms.items()}, rules=op.rules)
-
-
-def _accumulate(
-    acc: dict[Monomial, Scalar], mono: Monomial, coeff: Scalar
-) -> None:
-    """Add coeff * mono into the accumulator dict.
-
-    Parameters
-    ----------
-    acc : dict[Monomial, Scalar]
-    mono : Monomial
-    coeff : Scalar
-
-    """
-    if mono in acc:
-        acc[mono] = acc[mono] + coeff
-    else:
-        acc[mono] = coeff
-
-
 @functools.lru_cache(maxsize=4096)
-def _normal_order_monomial(mono: Monomial, rules: AlgebraRules) -> OpSum:
+def normal_order_monomial(mono: Monomial, rules: AlgebraRules) -> OpSum:
     """Normal-order a single monomial using iterative worklist."""
     worklist: deque[tuple[Monomial, Scalar]] = deque([(mono, 1)])
     accumulator: dict[Monomial, Scalar] = {}
@@ -122,3 +97,24 @@ def is_normal_ordered(op: OpSum) -> bool:
             if not op.rules.is_normal_ordered_pair(ops[i], ops[i + 1]):
                 return False
     return True
+
+
+def _scale(op: OpSum, coeff: Scalar) -> OpSum:
+    """Multiply all coefficients in op by coeff."""
+    return OpSum({m: c * coeff for m, c in op._terms.items()}, rules=op.rules)
+
+
+def _accumulate(acc: dict[Monomial, Scalar], mono: Monomial, coeff: Scalar) -> None:
+    """Add coeff * mono into the accumulator dict.
+
+    Parameters
+    ----------
+    acc : dict[Monomial, Scalar]
+    mono : Monomial
+    coeff : Scalar
+
+    """
+    if mono in acc:
+        acc[mono] = acc[mono] + coeff
+    else:
+        acc[mono] = coeff

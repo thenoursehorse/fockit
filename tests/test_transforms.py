@@ -5,6 +5,9 @@ import warnings
 import pytest
 
 from operator_algebra import (
+    LadderOp,
+    Monomial,
+    OpSum,
     c,
     cdag,
     commutator,
@@ -37,23 +40,26 @@ class TestHC:
         """Coefficient type without .conjugate() raises TypeError."""
 
         class NoConj:
-            def __mul__(self, other):
+            def __mul__(self, other: object) -> "NoConj":
                 return self
 
-            def __add__(self, other):
+            def __add__(self, other: object) -> "NoConj":
                 return self
 
-            def __neg__(self):
+            def __neg__(self) -> "NoConj":
                 return self
 
-            def __eq__(self, other):
+            def __eq__(self, other: object) -> bool:
                 return False
 
-        from operator_algebra.types import LadderOp, Monomial, OpSum
+            def __hash__(self) -> int:
+                return id(self)
 
         op = OpSum({Monomial((LadderOp(1, True),)): NoConj()})
-        with pytest.raises(TypeError, match="conjugate"):
-            hc(op)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            with pytest.raises(TypeError, match="conjugate"):
+                hc(op)
 
 
 class TestCommutator:
@@ -79,7 +85,6 @@ class TestSubstituteModes:
             result = substitute_modes(op, {1: "x", 2: "x"})
             assert len(w) == 1
             assert "Non-injective" in str(w[0].message)
-        # Structurally nonzero but algebraically zero
         assert result != zero()
         assert normal_order(result) == zero()
 

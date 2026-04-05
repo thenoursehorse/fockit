@@ -11,6 +11,7 @@ from operator_algebra import (
     cdag,
     pretty_print,
     to_latex,
+    zero,
 )
 
 
@@ -30,19 +31,19 @@ def test_custom_rules_display():
     """Custom rules get generic a†/a notation."""
 
     class CustomRules:
-        def swap(self, left, right):
+        def swap(self, left: LadderOp, right: LadderOp) -> SwapResult:
             return SwapResult(terms=((1, (right, left)),))
 
-        def is_normal_ordered_pair(self, left, right):
+        def is_normal_ordered_pair(self, _left: LadderOp, _right: LadderOp) -> bool:
             return True
 
-        def is_zero_monomial(self, ops):
+        def is_zero_monomial(self, _ops: tuple[LadderOp, ...]) -> bool:
             return False
 
-        def __eq__(self, other):
+        def __eq__(self, other: object) -> bool:
             return isinstance(other, CustomRules)
 
-        def __hash__(self):
+        def __hash__(self) -> int:
             return hash(type(self))
 
     op = OpSum({Monomial((LadderOp(1, True),)): 1}, rules=CustomRules())
@@ -61,8 +62,6 @@ def test_to_latex_boson():
 
 
 def test_zero_display():
-    from operator_algebra import zero
-
     assert repr(zero()) == "0"
 
 

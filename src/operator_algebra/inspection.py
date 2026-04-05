@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable, Iterator
 
-from operator_algebra.types import LadderOp, OpSum, Scalar
+from operator_algebra.operators import LadderOp, OpSum, Scalar
 
 
 def monomials(op: OpSum) -> Iterator[tuple[Scalar, tuple[LadderOp, ...]]]:
@@ -62,7 +62,7 @@ def degree(op: OpSum) -> int:
 
 
 def num_terms(op: OpSum) -> int:
-    """Number of nonzero terms.
+    """Return the number of nonzero terms.
 
     Parameters
     ----------
