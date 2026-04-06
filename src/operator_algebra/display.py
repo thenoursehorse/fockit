@@ -2,46 +2,27 @@
 
 from __future__ import annotations
 
-from operator_algebra.algebra import (
-    AlgebraRules,
-    BosonRules,
-    FermionRules,
-    _mode_sort_key,
-)
-from operator_algebra.operators import LadderOp, Monomial, OpSum, format_mode
+from operator_algebra.algebra import _mode_sort_key
+from operator_algebra.operators import Monomial, OpSum
 
 
-def _op_symbols(rules: AlgebraRules) -> tuple[str, str]:
-    """Return (creator_symbol, annihilator_symbol) for the given rules."""
-    if isinstance(rules, FermionRules):
-        return ("c†", "c")
-    if isinstance(rules, BosonRules):
-        return ("b†", "b")
-    return ("a†", "a")
-
-
-def _latex_symbols(rules: AlgebraRules) -> tuple[str, str]:
-    """Return (creator_symbol, annihilator_symbol) in LaTeX."""
-    if isinstance(rules, FermionRules):
-        return (r"c^{\dagger}", "c")
-    if isinstance(rules, BosonRules):
-        return (r"b^{\dagger}", "b")
-    return (r"a^{\dagger}", "a")
-
-
-def _format_op(op: LadderOp, creator_sym: str, annihilator_sym: str) -> str:
-    """Format a single LadderOp with given symbols."""
-    symbol = creator_sym if op.is_creator else annihilator_sym
-    return f"{symbol}({format_mode(op.mode)})"
-
-
-def _monomial_sort_key(mono: Monomial) -> tuple:  # type: ignore[type-arg]
+def _monomial_sort_key(mono: Monomial) -> tuple[object, ...]:
     """Sort key for deterministic term ordering in display."""
-    # Sort by: number of ops (ascending), then mode sort keys
     keys = []
     for op in mono.ops:
-        keys.append((0 if op.is_creator else 1, _mode_sort_key(op.mode)))
+        keys.append((_kind_sort_key(op.kind), _mode_sort_key(op.mode)))
     return (len(mono.ops), tuple(keys))
+
+
+def _kind_sort_key(kind: object) -> tuple[object, ...]:
+    """Sort key for operator kind within display ordering."""
+    if kind is True:
+        return (0,)
+    if kind is False:
+        return (1,)
+    if isinstance(kind, str):
+        return (2, kind)
+    return (3, repr(kind))
 
 
 def _format_coeff(coeff: object) -> str:
@@ -68,8 +49,6 @@ def to_text(op: OpSum) -> str:
     if not op._terms:
         return "0"
 
-    creator_sym, annihilator_sym = _op_symbols(op.rules)
-
     sorted_terms = sorted(
         op._terms.items(), key=lambda item: _monomial_sort_key(item[0])
     )
@@ -77,14 +56,10 @@ def to_text(op: OpSum) -> str:
     parts: list[str] = []
     for mono, coeff in sorted_terms:
         if not mono.ops:
-            # Identity term
             parts.append(str(coeff))
             continue
 
-        ops_str = " ".join(
-            _format_op(ladder_op, creator_sym, annihilator_sym)
-            for ladder_op in mono.ops
-        )
+        ops_str = " ".join(op.rules.format_op_text(ladder_op) for ladder_op in mono.ops)
 
         coeff_str = _format_coeff(coeff)
         if coeff_str == "":
@@ -121,8 +96,6 @@ def to_latex(op: OpSum) -> str:
     if not op._terms:
         return "0"
 
-    creator_sym, annihilator_sym = _latex_symbols(op.rules)
-
     sorted_terms = sorted(
         op._terms.items(), key=lambda item: _monomial_sort_key(item[0])
     )
@@ -133,17 +106,9 @@ def to_latex(op: OpSum) -> str:
             parts.append(str(coeff))
             continue
 
-        ops_parts: list[str] = []
-        for ladder_op in mono.ops:
-            sym = creator_sym if ladder_op.is_creator else annihilator_sym
-            mode_str = format_mode(ladder_op.mode)
-            # Convert mode to LaTeX subscript
-            mode_latex = mode_str.replace("up", r"\uparrow").replace(
-                "dn", r"\downarrow"
-            )
-            ops_parts.append(f"{sym}_{{{mode_latex}}}")
-
-        ops_str = " ".join(ops_parts)
+        ops_str = " ".join(
+            op.rules.format_op_latex(ladder_op) for ladder_op in mono.ops
+        )
 
         coeff_str = _format_coeff(coeff)
         if coeff_str == "":

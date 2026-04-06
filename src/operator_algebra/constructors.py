@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from operator_algebra.algebra import BOSON, FERMION, AlgebraRules
-from operator_algebra.operators import LadderOp, Monomial, OpSum
+from operator_algebra.algebra import BOSON, FERMION, PAULI, AlgebraRules
+from operator_algebra.operators import Monomial, Op, OpSum
+
+
+def _mode(*labels: Hashable) -> Hashable:
+    return labels if len(labels) > 1 else labels[0]
 
 
 def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
@@ -26,8 +30,7 @@ def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     OpSum
 
     """
-    mode = labels if len(labels) > 1 else labels[0]
-    return OpSum({Monomial(ops=(LadderOp(mode, True),)): 1}, rules=rules)
+    return OpSum({Monomial(ops=(Op(_mode(*labels), True),)): 1}, rules=rules)
 
 
 def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
@@ -45,8 +48,7 @@ def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     OpSum
 
     """
-    mode = labels if len(labels) > 1 else labels[0]
-    return OpSum({Monomial(ops=(LadderOp(mode, False),)): 1}, rules=rules)
+    return OpSum({Monomial(ops=(Op(_mode(*labels), False),)): 1}, rules=rules)
 
 
 def number(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
@@ -161,3 +163,127 @@ def nb(*labels: Hashable) -> OpSum:
 
     """
     return number(*labels, rules=BOSON)
+
+
+def sp(*labels: Hashable) -> OpSum:
+    """Pauli raising operator σ+.
+
+    Parameters
+    ----------
+    *labels : Hashable
+        Mode label components.
+
+    Returns
+    -------
+    OpSum
+
+    """
+    return create(*labels, rules=PAULI)
+
+
+def sm(*labels: Hashable) -> OpSum:
+    """Pauli lowering operator σ-.
+
+    Parameters
+    ----------
+    *labels : Hashable
+        Mode label components.
+
+    Returns
+    -------
+    OpSum
+
+    """
+    return annihilate(*labels, rules=PAULI)
+
+
+def sigma_plus(*labels: Hashable) -> OpSum:
+    """Pauli raising operator σ+.
+
+    Parameters
+    ----------
+    *labels : Hashable
+        Mode label components.
+
+    Returns
+    -------
+    OpSum
+
+    """
+    return sp(*labels)
+
+
+def sigma_minus(*labels: Hashable) -> OpSum:
+    """Pauli lowering operator σ-.
+
+    Parameters
+    ----------
+    *labels : Hashable
+        Mode label components.
+
+    Returns
+    -------
+    OpSum
+
+    """
+    return sm(*labels)
+
+
+def sigma_x(*labels: Hashable) -> OpSum:
+    """Pauli σ_x operator.
+
+    Parameters
+    ----------
+    *labels : Hashable
+        Mode label components.
+
+    Returns
+    -------
+    OpSum
+
+    """
+    mode = _mode(*labels)
+    return OpSum(
+        {Monomial(ops=(Op(mode, "x"),)): 1},
+        rules=PAULI,
+    )
+
+
+def sigma_y(*labels: Hashable) -> OpSum:
+    """Pauli σ_y operator.
+
+    Parameters
+    ----------
+    *labels : Hashable
+        Mode label components.
+
+    Returns
+    -------
+    OpSum
+
+    """
+    mode = _mode(*labels)
+    return OpSum(
+        {Monomial(ops=(Op(mode, "y"),)): 1},
+        rules=PAULI,
+    )
+
+
+def sigma_z(*labels: Hashable) -> OpSum:
+    """Pauli σ_z operator.
+
+    Parameters
+    ----------
+    *labels : Hashable
+        Mode label components.
+
+    Returns
+    -------
+    OpSum
+
+    """
+    mode = _mode(*labels)
+    return OpSum(
+        {Monomial(ops=(Op(mode, "z"),)): 1},
+        rules=PAULI,
+    )

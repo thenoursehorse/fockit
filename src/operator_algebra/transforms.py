@@ -4,7 +4,7 @@ import warnings
 from collections.abc import Hashable
 
 from operator_algebra.normal_order import normal_order
-from operator_algebra.operators import LadderOp, Monomial, OpSum, Scalar
+from operator_algebra.operators import Monomial, Op, OpSum, Scalar
 
 
 def _conjugate(coeff: Scalar) -> Scalar:
@@ -59,10 +59,7 @@ def hc(op: OpSum) -> OpSum:
     """
     new_terms: dict[Monomial, Scalar] = {}
     for mono, coeff in op._terms.items():
-        new_ops = tuple(
-            LadderOp(ladder_op.mode, not ladder_op.is_creator)
-            for ladder_op in reversed(mono.ops)
-        )
+        new_ops = tuple(op.rules.dagger(single_op) for single_op in reversed(mono.ops))
         new_terms[Monomial(new_ops)] = _conjugate(coeff)
     return OpSum(new_terms, rules=op.rules)
 
@@ -135,8 +132,8 @@ def substitute_modes(
     new_terms: dict[Monomial, Scalar] = {}
     for mono, coeff in op._terms.items():
         new_ops = tuple(
-            LadderOp(mapping.get(ladder_op.mode, ladder_op.mode), ladder_op.is_creator)
-            for ladder_op in mono.ops
+            Op(mapping.get(single_op.mode, single_op.mode), single_op.kind)
+            for single_op in mono.ops
         )
         new_mono = Monomial(new_ops)
         if new_mono in new_terms:

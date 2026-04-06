@@ -1,4 +1,4 @@
-"""Core data types and helpers: LadderOp, Monomial, OpSum."""
+"""Core data types and helpers: Op, Monomial, OpSum."""
 
 from __future__ import annotations
 
@@ -16,39 +16,39 @@ _POW_MSG = "Exponent must be a non-negative integer, got {}"
 
 
 @dataclass(frozen=True, slots=True)
-class LadderOp:
-    """A single creation or annihilation operator acting on one mode.
+class Op:
+    """A single operator acting on one mode.
 
     Parameters
     ----------
     mode : Hashable
         Any hashable Python object identifying the single-particle state.
-    is_creator : bool
-        True for creation operator, False for annihilation operator.
+    kind : Hashable
+        Operator variant within the mode. ``True``/``False`` for ladder
+        (creation/annihilation), ``"x"``/``"y"``/``"z"`` for Pauli, etc.
 
     """
 
     mode: Hashable
-    is_creator: bool
+    kind: Hashable
 
     def __repr__(self) -> str:
-        """Return string like ``c†(k)`` or ``c(k)``."""
-        symbol = "c†" if self.is_creator else "c"
-        return f"{symbol}({format_mode(self.mode)})"
+        """Return a generic representation like ``Op(k, True)``."""
+        return f"Op({format_mode(self.mode)}, {self.kind!r})"
 
 
 @dataclass(frozen=True, slots=True)
 class Monomial:
-    """An ordered product of ladder operators. No coefficient.
+    """An ordered product of operators. No coefficient.
 
     Parameters
     ----------
-    ops : tuple[LadderOp, ...]
-        The ordered sequence of ladder operators in this product.
+    ops : tuple[Op, ...]
+        The ordered sequence of operators in this product.
 
     """
 
-    ops: tuple[LadderOp, ...]
+    ops: tuple[Op, ...]
 
     def __len__(self) -> int:
         """Return the number of ladder operators in the product."""

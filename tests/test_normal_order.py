@@ -3,7 +3,6 @@
 import pytest
 
 from operator_algebra import (
-    BOSON,
     anticommutator,
     b,
     bdag,
@@ -14,6 +13,7 @@ from operator_algebra import (
     normal_order,
     zero,
 )
+from operator_algebra.algebra import BOSON
 
 
 class TestFermionNormalOrder:

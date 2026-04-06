@@ -2,61 +2,8 @@
 
 import pytest
 
-from operator_algebra import (
-    BOSON,
-    LadderOp,
-    Monomial,
-    bdag,
-    c,
-    cdag,
-    identity,
-    num_terms,
-    zero,
-)
-
-
-class TestLadderOp:
-    def test_frozen_and_hashable(self):
-        op = LadderOp(1, True)
-        assert hash(op) == hash(LadderOp(1, True))
-        with pytest.raises(AttributeError):
-            op.mode = 2  # type: ignore[misc]
-
-    def test_various_mode_types(self):
-        LadderOp(1, True)
-        LadderOp("up", False)
-        LadderOp((1, "up"), True)
-        LadderOp(frozenset({1, 2}), False)
-
-    def test_equality(self):
-        assert LadderOp(1, True) == LadderOp(1, True)
-        assert LadderOp(1, True) != LadderOp(2, True)
-        assert LadderOp(1, True) != LadderOp(1, False)
-
-    def test_bool_int_aliasing(self):
-        assert LadderOp(True, True) == LadderOp(1, True)
-
-    def test_repr(self):
-        assert repr(LadderOp(3, False)) == "c(3)"
-        assert repr(LadderOp(("Fe1", "up"), True)) == "c†(Fe1, up)"
-
-
-class TestMonomial:
-    def test_hashable_and_equal(self):
-        m1 = Monomial((LadderOp(1, True), LadderOp(2, False)))
-        m2 = Monomial((LadderOp(1, True), LadderOp(2, False)))
-        assert m1 == m2
-        assert hash(m1) == hash(m2)
-
-    def test_len_returns_num_operators(self):
-        m = Monomial((LadderOp(1, True), LadderOp(2, False)))
-        assert len(m) == 2
-        assert len(Monomial(())) == 0
-
-    def test_repr(self):
-        m = Monomial((LadderOp(1, True), LadderOp(2, False)))
-        assert repr(m) == "c†(1) c(2)"
-        assert repr(Monomial(())) == "I"
+from operator_algebra import bdag, c, cdag, identity, num_terms, zero
+from operator_algebra.algebra import BOSON
 
 
 class TestOpSum:

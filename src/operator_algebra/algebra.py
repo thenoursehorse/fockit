@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from operator_algebra.operators import LadderOp
+    from operator_algebra.operators import Op
 
 type Scalar = Any
 
@@ -16,12 +16,12 @@ type Scalar = Any
 class SwapResult:
     """Result of swapping two adjacent operators.
 
-    Each entry in ``terms`` is a ``(Scalar, tuple[LadderOp, ...])`` pair,
+    Each entry in ``terms`` is a ``(Scalar, tuple[Op, ...])`` pair,
     where the tuple replaces the original two-operator subsequence.
 
     Parameters
     ----------
-    terms : tuple[tuple[Scalar, tuple[LadderOp, ...]], ...]
+    terms : tuple[tuple[Scalar, tuple[Op, ...]], ...]
         The replacement terms.
 
     Notes
@@ -32,7 +32,7 @@ class SwapResult:
 
     """
 
-    terms: tuple[tuple[Scalar, tuple[LadderOp, ...]], ...]
+    terms: tuple[tuple[Scalar, tuple[Op, ...]], ...]
 
 
 @runtime_checkable
@@ -47,13 +47,13 @@ class AlgebraRules(Protocol):
 
     """
 
-    def swap(self, left: LadderOp, right: LadderOp) -> SwapResult:
+    def swap(self, left: Op, right: Op) -> SwapResult:
         """Define what happens when ``left`` and ``right`` are exchanged.
 
         Parameters
         ----------
-        left : LadderOp
-        right : LadderOp
+        left : Op
+        right : Op
 
         Returns
         -------
@@ -62,13 +62,13 @@ class AlgebraRules(Protocol):
         """
         ...
 
-    def is_normal_ordered_pair(self, left: LadderOp, right: LadderOp) -> bool:
+    def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
         """Return True if ``(left, right)`` is already in normal order.
 
         Parameters
         ----------
-        left : LadderOp
-        right : LadderOp
+        left : Op
+        right : Op
 
         Returns
         -------
@@ -77,16 +77,58 @@ class AlgebraRules(Protocol):
         """
         ...
 
-    def is_zero_monomial(self, ops: tuple[LadderOp, ...]) -> bool:
+    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:
         """Return True if this monomial is identically zero.
 
         Parameters
         ----------
-        ops : tuple[LadderOp, ...]
+        ops : tuple[Op, ...]
 
         Returns
         -------
         bool
+
+        """
+        ...
+
+    def dagger(self, op: Op) -> Op:
+        """Return the Hermitian conjugate of a single operator.
+
+        Parameters
+        ----------
+        op : Op
+
+        Returns
+        -------
+        Op
+
+        """
+        ...
+
+    def format_op_text(self, op: Op) -> str:
+        """Format a single operator for human-readable text display.
+
+        Parameters
+        ----------
+        op : Op
+
+        Returns
+        -------
+        str
+
+        """
+        ...
+
+    def format_op_latex(self, op: Op) -> str:
+        r"""Format a single operator for LaTeX display.
+
+        Parameters
+        ----------
+        op : Op
+
+        Returns
+        -------
+        str
 
         """
         ...
@@ -128,65 +170,59 @@ def _mode_sort_key(mode: Hashable) -> tuple[Any, ...]:
             return (3, repr(mode))
 
 
+def _format_mode(mode: Hashable) -> str:
+    """Format a mode label for display."""
+    if isinstance(mode, tuple):
+        return ", ".join(str(m) for m in mode)
+    return str(mode)
+
+
+def _format_mode_latex(mode: Hashable) -> str:
+    """Format a mode label for LaTeX subscript."""
+    raw = _format_mode(mode)
+    return raw.replace("up", r"\uparrow").replace("dn", r"\downarrow")
+
+
 class FermionRules:
     """Canonical anticommutation relations: {c_a, c†_b} = delta_{ab}."""
 
-    def swap(self, left: LadderOp, right: LadderOp) -> SwapResult:
-        """Apply fermion swap rules.
-
-        Parameters
-        ----------
-        left : LadderOp
-        right : LadderOp
-
-        Returns
-        -------
-        SwapResult
-
-        """
+    def swap(self, left: Op, right: Op) -> SwapResult:
+        """Apply fermion swap rules."""
         swapped = ((-1, (right, left)),)
-        if not left.is_creator and right.is_creator and left.mode == right.mode:
+        if left.kind is False and right.kind is True and left.mode == right.mode:
             return SwapResult(terms=((1, ()), *swapped))
         return SwapResult(terms=swapped)
 
-    def is_normal_ordered_pair(self, left: LadderOp, right: LadderOp) -> bool:
+    def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
         """Check if a pair is in fermionic normal order.
 
         Creators left, canonical mode order within blocks.
-
-        Parameters
-        ----------
-        left : LadderOp
-        right : LadderOp
-
-        Returns
-        -------
-        bool
-
         """
-        if left.is_creator and not right.is_creator:
+        if left.kind is True and right.kind is False:
             return True
-        if not left.is_creator and right.is_creator:
+        if left.kind is False and right.kind is True:
             return False
         return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
 
-    def is_zero_monomial(self, ops: tuple[LadderOp, ...]) -> bool:
-        """Return True if any adjacent identical LadderOps exist.
-
-        Only adjacent duplicates are checked because non-adjacent duplicates
-        may still yield nonzero contributions after expanding commutation
-        relations (e.g., c†_1 c_1 c†_1 = c†_1).
-
-        Parameters
-        ----------
-        ops : tuple[LadderOp, ...]
-
-        Returns
-        -------
-        bool
-
-        """
+    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:
+        """Return True if any adjacent identical ops exist."""
         return any(ops[i] == ops[i + 1] for i in range(len(ops) - 1))
+
+    def dagger(self, op: Op) -> Op:
+        """Flip creation ↔ annihilation."""
+        from operator_algebra.operators import Op as _Op  # noqa: PLC0415
+
+        return _Op(op.mode, op.kind is False)
+
+    def format_op_text(self, op: Op) -> str:
+        """Format as ``c†(k)`` or ``c(k)``."""
+        symbol = "c†" if op.kind is True else "c"
+        return f"{symbol}({_format_mode(op.mode)})"
+
+    def format_op_latex(self, op: Op) -> str:
+        r"""Format as ``c^{\dagger}_{k}`` or ``c_{k}``."""
+        symbol = r"c^{\dagger}" if op.kind is True else "c"
+        return f"{symbol}_{{{_format_mode_latex(op.mode)}}}"
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
         return isinstance(other, FermionRules)
@@ -201,56 +237,40 @@ class FermionRules:
 class BosonRules:
     """Canonical commutation relations: [b_a, b†_b] = delta_{ab}."""
 
-    def swap(self, left: LadderOp, right: LadderOp) -> SwapResult:
-        """Apply boson swap rules.
-
-        Parameters
-        ----------
-        left : LadderOp
-        right : LadderOp
-
-        Returns
-        -------
-        SwapResult
-
-        """
+    def swap(self, left: Op, right: Op) -> SwapResult:
+        """Apply boson swap rules."""
         swapped = ((+1, (right, left)),)
-        if not left.is_creator and right.is_creator and left.mode == right.mode:
+        if left.kind is False and right.kind is True and left.mode == right.mode:
             return SwapResult(terms=((1, ()), *swapped))
         return SwapResult(terms=swapped)
 
-    def is_normal_ordered_pair(self, left: LadderOp, right: LadderOp) -> bool:
-        """Check normal ordering for bosonic operators.
-
-        Parameters
-        ----------
-        left : LadderOp
-        right : LadderOp
-
-        Returns
-        -------
-        bool
-
-        """
-        if left.is_creator and not right.is_creator:
+    def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
+        """Check normal ordering for bosonic operators."""
+        if left.kind is True and right.kind is False:
             return True
-        if not left.is_creator and right.is_creator:
+        if left.kind is False and right.kind is True:
             return False
         return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
 
-    def is_zero_monomial(self, ops: tuple[LadderOp, ...]) -> bool:  # noqa: ARG002
-        """Return False; bosons never square to zero.
-
-        Parameters
-        ----------
-        ops : tuple[LadderOp, ...]
-
-        Returns
-        -------
-        bool
-
-        """
+    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:  # noqa: ARG002
+        """Return False; bosons never square to zero."""
         return False
+
+    def dagger(self, op: Op) -> Op:
+        """Flip creation ↔ annihilation."""
+        from operator_algebra.operators import Op as _Op  # noqa: PLC0415
+
+        return _Op(op.mode, op.kind is False)
+
+    def format_op_text(self, op: Op) -> str:
+        """Format as ``b†(k)`` or ``b(k)``."""
+        symbol = "b†" if op.kind is True else "b"
+        return f"{symbol}({_format_mode(op.mode)})"
+
+    def format_op_latex(self, op: Op) -> str:
+        r"""Format as ``b^{\dagger}_{k}`` or ``b_{k}``."""
+        symbol = r"b^{\dagger}" if op.kind is True else "b"
+        return f"{symbol}_{{{_format_mode_latex(op.mode)}}}"
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
         return isinstance(other, BosonRules)
@@ -262,5 +282,59 @@ class BosonRules:
         return "BosonRules()"
 
 
+_PAULI_KIND_ORDER: dict[Hashable, int] = {"x": 0, "y": 1, "z": 2}
+
+
+class PauliRules:
+    """Pauli (spin-1/2) algebra: anticommute on same site, commute across sites."""
+
+    def swap(self, left: Op, right: Op) -> SwapResult:
+        """Apply Pauli swap rules.
+
+        Same site, same kind: σ_i² = I → identity.
+        Same site, different kind: {σ_i, σ_j} = 0 → anticommute.
+        Different site: commute.
+        """
+        if left.mode != right.mode:
+            return SwapResult(terms=((+1, (right, left)),))
+        if left.kind == right.kind:
+            return SwapResult(terms=((1, ()),))
+        return SwapResult(terms=((-1, (right, left)),))
+
+    def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
+        """Check Pauli normal order: mode order, then x < y < z within site."""
+        if left.mode != right.mode:
+            return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
+        if left.kind == right.kind:
+            return False  # σ_i σ_i must reduce to identity
+        return _PAULI_KIND_ORDER[left.kind] < _PAULI_KIND_ORDER[right.kind]
+
+    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:  # noqa: ARG002
+        """Return False; no Pauli monomial is identically zero."""
+        return False
+
+    def dagger(self, op: Op) -> Op:
+        """Pauli operators are Hermitian: dagger is identity."""
+        return op
+
+    def format_op_text(self, op: Op) -> str:
+        """Format as ``σ_x(k)``."""
+        return f"σ_{op.kind}({_format_mode(op.mode)})"
+
+    def format_op_latex(self, op: Op) -> str:
+        r"""Format as ``\sigma^{x}_{k}``."""
+        return rf"\sigma^{{{op.kind}}}_{{{_format_mode_latex(op.mode)}}}"
+
+    def __eq__(self, other: object) -> bool:  # noqa: D105
+        return isinstance(other, PauliRules)
+
+    def __hash__(self) -> int:  # noqa: D105
+        return hash(type(self))
+
+    def __repr__(self) -> str:  # noqa: D105
+        return "PauliRules()"
+
+
 FERMION = FermionRules()
 BOSON = BosonRules()
+PAULI = PauliRules()

@@ -97,6 +97,7 @@ ignore = [
   "RUF012", # Would require a lot of ClassVar's
   "D417",  # remove documentation requirement for all functions
 ]
+allowed-confusables = ["σ"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]

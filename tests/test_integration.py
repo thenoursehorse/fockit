@@ -6,13 +6,18 @@ from operator_algebra import (
     anticommutator,
     c,
     cdag,
+    commutator,
     hc,
     identity,
     n,
     normal_order,
     num_terms,
+    sigma_x,
+    sigma_y,
+    sigma_z,
     zero,
 )
+from operator_algebra.algebra import PAULI
 
 
 def test_hubbard_model():
@@ -77,3 +82,29 @@ def test_scalar_addition_in_hamiltonian():
     E_0 = sympy.Symbol("E_0")
     H = cdag(0) * c(1) + E_0
     assert num_terms(H) == 2
+
+
+class TestPauliIntegration:
+    def test_sigma_squared_is_identity(self):
+        for sigma in (sigma_x, sigma_y, sigma_z):
+            result = normal_order(sigma(0) * sigma(0))
+            assert result == identity(PAULI)
+
+    def test_anticommutator_same_gives_two_identity(self):
+        for sigma in (sigma_x, sigma_y, sigma_z):
+            result = normal_order(anticommutator(sigma(0), sigma(0)))
+            assert result == 2 * identity(PAULI)
+
+    def test_anticommutator_different_gives_zero(self):
+        pairs = [(sigma_x, sigma_y), (sigma_x, sigma_z), (sigma_y, sigma_z)]
+        for sa, sb in pairs:
+            result = normal_order(anticommutator(sa(0), sb(0)))
+            assert result == zero(PAULI)
+
+    def test_different_sites_commute(self):
+        result = normal_order(commutator(sigma_x(0), sigma_y(1)))
+        assert result == zero(PAULI)
+
+    def test_hc_pauli_is_self(self):
+        for sigma in (sigma_x, sigma_y, sigma_z):
+            assert hc(sigma(0)) == sigma(0)

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Hashable, Iterator
 
-from operator_algebra.operators import LadderOp, OpSum, Scalar
+from operator_algebra.operators import Op, OpSum, Scalar
 
 
-def monomials(op: OpSum) -> Iterator[tuple[Scalar, tuple[LadderOp, ...]]]:
+def monomials(op: OpSum) -> Iterator[tuple[Scalar, tuple[Op, ...]]]:
     """Iterate over terms as (coefficient, operators) pairs.
 
     Parameters
@@ -16,7 +16,7 @@ def monomials(op: OpSum) -> Iterator[tuple[Scalar, tuple[LadderOp, ...]]]:
 
     Yields
     ------
-    tuple[Scalar, tuple[LadderOp, ...]]
+    tuple[Scalar, tuple[Op, ...]]
 
     """
     for mono, coeff in op.terms.items():

@@ -5,9 +5,6 @@ import warnings
 import pytest
 
 from operator_algebra import (
-    LadderOp,
-    Monomial,
-    OpSum,
     c,
     cdag,
     commutator,
@@ -17,6 +14,7 @@ from operator_algebra import (
     substitute_modes,
     zero,
 )
+from operator_algebra.operators import Monomial, Op, OpSum
 
 
 class TestHC:
@@ -55,7 +53,7 @@ class TestHC:
             def __hash__(self) -> int:
                 return id(self)
 
-        op = OpSum({Monomial((LadderOp(1, True),)): NoConj()})
+        op = OpSum({Monomial((Op(1, True),)): NoConj()})
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             with pytest.raises(TypeError, match="conjugate"):
