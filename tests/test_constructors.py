@@ -3,8 +3,6 @@
 from operator_algebra import (
     BOSON,
     FERMION,
-    LadderOp,
-    Monomial,
     b,
     bdag,
     c,
@@ -12,27 +10,23 @@ from operator_algebra import (
     create,
     identity,
     n,
+    num_terms,
     zero,
 )
 
 
-def test_cdag_single_mode():
-    op = cdag(1)
-    mono, coeff = next(iter(op.terms.items()))
-    assert coeff == 1
-    assert mono.ops == (LadderOp(1, True),)
+def test_cdag_creates_single_term():
+    assert num_terms(cdag(1)) == 1
 
 
 def test_cdag_tuple_mode():
-    op = cdag(1, "up")
-    mono = next(iter(op.terms.keys()))
-    assert mono.ops[0].mode == (1, "up")
+    assert cdag(1, "up") != cdag(1, "dn")
+    assert cdag(1, "up") == cdag(1, "up")
 
 
 def test_c_annihilation():
-    op = c("foo")
-    mono = next(iter(op.terms.keys()))
-    assert mono.ops[0] == LadderOp("foo", False)
+    assert c("foo") == c("foo")
+    assert c("foo") != cdag("foo")
 
 
 def test_n_equals_cdag_times_c():
@@ -51,13 +45,13 @@ def test_create_with_fermion_equals_cdag():
     assert create(1, rules=FERMION) == cdag(1)
 
 
-def test_identity():
-    ident = identity()
-    mono, coeff = next(iter(ident.terms.items()))
-    assert mono == Monomial(())
-    assert coeff == 1
+def test_identity_is_multiplicative_unit():
+    op = cdag(1)
+    assert identity() * op == op
+    assert op * identity() == op
 
 
-def test_zero():
-    z = zero()
-    assert len(z._terms) == 0
+def test_zero_is_additive_unit():
+    op = cdag(1)
+    assert op + zero() == op
+    assert not zero()

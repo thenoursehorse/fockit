@@ -53,7 +53,7 @@ def _format_coeff(coeff: object) -> str:
     return str(coeff)
 
 
-def format_opsum(op: OpSum) -> str:
+def to_text(op: OpSum) -> str:
     """Format an OpSum as a human-readable string.
 
     Parameters
@@ -104,21 +104,6 @@ def format_opsum(op: OpSum) -> str:
         else:
             result += f" + {part}"
     return result
-
-
-def pretty_print(op: OpSum) -> str:
-    """Pretty-print an operator expression with Unicode daggers.
-
-    Parameters
-    ----------
-    op : OpSum
-
-    Returns
-    -------
-    str
-
-    """
-    return format_opsum(op)
 
 
 def to_latex(op: OpSum) -> str:

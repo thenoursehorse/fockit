@@ -5,21 +5,6 @@ from __future__ import annotations
 from operator_algebra.operators import Monomial, OpSum, Scalar
 
 
-def collect_terms(op: OpSum) -> OpSum:
-    """Re-collect like monomials, drop zeros.
-
-    Parameters
-    ----------
-    op : OpSum
-
-    Returns
-    -------
-    OpSum
-
-    """
-    return OpSum(dict(op._terms), rules=op.rules)
-
-
 def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     """Drop terms with negligible coefficients.
 

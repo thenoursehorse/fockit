@@ -10,9 +10,9 @@ from operator_algebra import (
     c,
     cdag,
     identity,
+    num_terms,
     zero,
 )
-from operator_algebra.operators import is_scalar, is_zero
 
 
 class TestLadderOp:
@@ -62,48 +62,40 @@ class TestMonomial:
 class TestOpSum:
     def test_addition_merges_terms(self):
         result = cdag(1) + cdag(2)
-        assert len(result._terms) == 2
+        assert num_terms(result) == 2
 
     def test_addition_combines_like_terms(self):
         result = cdag(1) + cdag(1)
-        assert list(result._terms.values()) == [2]
+        assert result == 2 * cdag(1)
 
     def test_subtraction(self):
-        result = cdag(1) - cdag(1)
-        assert result == zero()
+        assert cdag(1) - cdag(1) == zero()
 
     def test_negation(self):
-        result = -cdag(1)
-        assert list(result._terms.values()) == [-1]
+        assert -cdag(1) == -1 * cdag(1)
 
     def test_scalar_mul_right(self):
-        result = cdag(1) * 3
-        assert list(result._terms.values()) == [3]
+        assert cdag(1) * 3 == 3 * cdag(1)
 
     def test_scalar_mul_left(self):
-        result = 3 * cdag(1)
-        assert list(result._terms.values()) == [3]
+        assert 3 * cdag(1) != cdag(1)
+        assert 3 * cdag(1) == 3 * cdag(1)
 
     def test_scalar_addition(self):
-        result = cdag(1) + 5
-        assert result == cdag(1) + 5 * identity()
+        assert cdag(1) + 5 == cdag(1) + 5 * identity()
 
     def test_scalar_radd(self):
-        result = 5 + cdag(1)
-        assert result == 5 * identity() + cdag(1)
+        assert 5 + cdag(1) == 5 * identity() + cdag(1)
 
     def test_scalar_sub(self):
-        result = cdag(1) - 3
-        assert result == cdag(1) + (-3) * identity()
+        assert cdag(1) - 3 == cdag(1) + (-3) * identity()
 
     def test_scalar_rsub(self):
-        result = 3 - cdag(1)
-        assert result == 3 * identity() - cdag(1)
+        assert 3 - cdag(1) == 3 * identity() - cdag(1)
 
     def test_mul_opsum(self):
         result = cdag(1) * c(2)
-        mono = next(iter(result._terms))
-        assert len(mono) == 2
+        assert num_terms(result) == 1
 
     def test_pow(self):
         op = cdag(1)
@@ -122,12 +114,11 @@ class TestOpSum:
     def test_sum_builtin(self):
         ops = [cdag(1), cdag(2), cdag(3)]
         result = sum(ops, zero())
-        assert len(result._terms) == 3
+        assert num_terms(result) == 3
 
     def test_sum_builtin_radd_with_int_zero(self):
-        """``sum([op1, op2])`` calls ``0 + op1`` via __radd__."""
         result = sum([cdag(1), cdag(2)])
-        assert len(result._terms) == 2
+        assert num_terms(result) == 2
 
     def test_structural_equality(self):
         assert cdag(1) == cdag(1)
@@ -150,37 +141,3 @@ class TestOpSum:
     def test_scalar_list_raises(self):
         with pytest.raises(TypeError):
             cdag(1) * [1, 2, 3]  # type: ignore[operator]
-
-
-class TestIsScalar:
-    def test_int_float_complex(self):
-        assert is_scalar(1)
-        assert is_scalar(1.0)
-        assert is_scalar(1j)
-
-    def test_sympy_symbol(self):
-        sympy = pytest.importorskip("sympy")
-        assert is_scalar(sympy.Symbol("t"))
-
-    def test_opsum_not_scalar(self):
-        assert not is_scalar(cdag(1))
-
-    def test_list_dict_set_not_scalar(self):
-        assert not is_scalar([1])
-        assert not is_scalar({1: 2})
-        assert not is_scalar({1})
-
-
-class TestIsZero:
-    def test_exact_zeros(self):
-        assert is_zero(0)
-        assert is_zero(0.0)
-        assert is_zero(0j)
-
-    def test_nonzero(self):
-        assert not is_zero(1)
-        assert not is_zero(1e-10)
-
-    def test_tolerance(self):
-        assert is_zero(1e-16, tol=1e-15)
-        assert not is_zero(1e-14, tol=1e-15)

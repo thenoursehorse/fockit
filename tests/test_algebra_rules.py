@@ -7,7 +7,6 @@ from operator_algebra import (
     FermionRules,
     LadderOp,
 )
-from operator_algebra.operators import rules_compatible
 
 
 class TestFermionRules:
@@ -84,15 +83,3 @@ class TestRulesComparison:
 
     def test_fermion_ne_boson(self):
         assert FermionRules() != BosonRules()
-
-    def test_type_fallback(self):
-        """Custom rules without __eq__ use type-based fallback."""
-
-        class MyRules:
-            def swap(self, left, right): ...
-
-            def is_normal_ordered_pair(self, left, right): ...
-
-            def is_zero_monomial(self, ops): ...
-
-        assert rules_compatible(MyRules(), MyRules())

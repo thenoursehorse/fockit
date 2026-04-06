@@ -9,8 +9,8 @@ from operator_algebra import (
     bdag,
     c,
     cdag,
-    pretty_print,
     to_latex,
+    to_text,
     zero,
 )
 
@@ -65,6 +65,6 @@ def test_zero_display():
     assert repr(zero()) == "0"
 
 
-def test_pretty_print():
-    s = pretty_print(cdag(1))
+def test_to_text():
+    s = to_text(cdag(1))
     assert "c†(1)" in s
