@@ -1,0 +1,14 @@
+name: operator-algebra
+channels:
+  - conda-forge
+dependencies:
+  - python == 3.12
+  - pip
+  - sympy
+  - triqs
+  - pytest
+  - pytest-subtests
+  - pytest-cov
+  - pre-commit
+  - ruff
+  - mypy
