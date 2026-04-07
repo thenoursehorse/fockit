@@ -58,6 +58,7 @@ testpaths = [
 src = ["src"]
 target-version = "py312"
 line-length = 88
+extend-exclude = ["src/operator_algebra/_version.py"]
 
 [tool.ruff.format]
 docstring-code-format = true
