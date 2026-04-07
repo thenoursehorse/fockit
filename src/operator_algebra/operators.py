@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import types as _builtin_types
 from collections.abc import Hashable
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
 from operator_algebra.algebra import FERMION, AlgebraRules
@@ -105,9 +105,9 @@ class OpSum:
         return hash(frozenset(self._terms.items()))
 
     @property
-    def terms(self) -> _builtin_types.MappingProxyType[Monomial, Scalar]:
+    def terms(self) -> MappingProxyType[Monomial, Scalar]:
         """Read-only view of the internal terms dict."""
-        return _builtin_types.MappingProxyType(self._terms)
+        return MappingProxyType(self._terms)
 
     def __add__(self, other: object) -> OpSum:
         """Merge terms from both sums, or promote a scalar via identity."""
