@@ -52,7 +52,7 @@ def simplify_coeffs(op: OpSum) -> OpSum:
         If sympy is not installed.
 
     """
-    import sympy as _sympy  # noqa: PLC0415
+    import sympy as _sympy
 
     new_terms: dict[Monomial, Scalar] = {}
     for mono, coeff in op.terms.items():

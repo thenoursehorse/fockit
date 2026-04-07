@@ -23,7 +23,7 @@ def to_triqs(op: OpSum) -> object:
         msg = f"to_triqs requires FermionRules, got {type(op.rules).__name__}"
         raise TypeError(msg)
 
-    from triqs.operators import Operator, c, c_dag  # noqa: PLC0415
+    from triqs.operators import Operator, c, c_dag
 
     result = Operator()
     for mono, coeff in op.terms.items():

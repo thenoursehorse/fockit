@@ -95,6 +95,7 @@ extend-select = [
 ]
 ignore = [
   "PLR",    # Design related pylint codes
+  "PLC0415", # allow lazy imports (not at top of file)
   "RUF012", # Would require a lot of ClassVar's
   "D417",  # remove documentation requirement for all functions
 ]

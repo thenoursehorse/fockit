@@ -221,7 +221,7 @@ class OpSum:
 
     def __repr__(self) -> str:
         """Delegate to ``format_opsum`` for human-readable display."""
-        from operator_algebra.display import to_text  # noqa: PLC0415
+        from operator_algebra.display import to_text
 
         return to_text(self)
 

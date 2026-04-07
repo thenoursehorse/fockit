@@ -210,7 +210,7 @@ class FermionRules:
 
     def dagger(self, op: Op) -> Op:
         """Flip creation ↔ annihilation."""
-        from operator_algebra.operators import Op as _Op  # noqa: PLC0415
+        from operator_algebra.operators import Op as _Op
 
         return _Op(op.mode, op.kind is False)
 
@@ -258,7 +258,7 @@ class BosonRules:
 
     def dagger(self, op: Op) -> Op:
         """Flip creation ↔ annihilation."""
-        from operator_algebra.operators import Op as _Op  # noqa: PLC0415
+        from operator_algebra.operators import Op as _Op
 
         return _Op(op.mode, op.kind is False)
 

@@ -11,8 +11,8 @@ from operator_algebra.converters import to_triqs
 
 
 def test_kanamori_3orbital():
-    import numpy as np  # noqa: PLC0415
-    from triqs.operators.util.hamiltonians import h_int_kanamori  # noqa: PLC0415
+    import numpy as np
+    from triqs.operators.util.hamiltonians import h_int_kanamori
 
     n_orb = 3
     U_val = 4.0
