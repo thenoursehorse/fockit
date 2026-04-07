@@ -101,7 +101,7 @@ def is_normal_ordered(op: OpSum) -> bool:
 
 def _scale(op: OpSum, coeff: Scalar) -> OpSum:
     """Multiply all coefficients in op by coeff."""
-    return OpSum({m: c * coeff for m, c in op._terms.items()}, rules=op.rules)
+    return OpSum({m: c * coeff for m, c in op.terms.items()}, rules=op.rules)
 
 
 def _accumulate(acc: dict[Monomial, Scalar], mono: Monomial, coeff: Scalar) -> None:

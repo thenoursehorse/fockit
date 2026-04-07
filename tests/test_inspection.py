@@ -1,6 +1,6 @@
 """Tests for inspection utilities."""
 
-from operator_algebra import c, cdag, degree, modes, monomials, num_terms, zero
+from operator_algebra import c, cdag, degree, modes, num_terms, zero
 
 
 def test_modes():
@@ -20,11 +20,3 @@ def test_degree_zero():
 def test_num_terms():
     op = cdag(1) + cdag(2)
     assert num_terms(op) == 2
-
-
-def test_monomials_iteration():
-    op = cdag(1) + 3 * cdag(2)
-    terms = list(monomials(op))
-    assert len(terms) == 2
-    coeffs = {coeff for coeff, _ in terms}
-    assert coeffs == {1, 3}

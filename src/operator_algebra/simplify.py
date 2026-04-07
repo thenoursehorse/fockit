@@ -20,7 +20,7 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
 
     """
     kept: dict[Monomial, Scalar] = {}
-    for mono, coeff in op._terms.items():
+    for mono, coeff in op.terms.items():
         if coeff == 0:
             continue
         if isinstance(coeff, (float, complex)) and abs(coeff) <= tol:
@@ -55,6 +55,6 @@ def simplify_coeffs(op: OpSum) -> OpSum:
     import sympy as _sympy  # noqa: PLC0415
 
     new_terms: dict[Monomial, Scalar] = {}
-    for mono, coeff in op._terms.items():
+    for mono, coeff in op.terms.items():
         new_terms[mono] = _sympy.simplify(coeff)
     return OpSum(new_terms, rules=op.rules)

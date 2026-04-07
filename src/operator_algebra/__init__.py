@@ -14,7 +14,7 @@ from operator_algebra.constructors import (
     sp,
 )
 from operator_algebra.display import to_latex, to_text
-from operator_algebra.inspection import degree, modes, monomials, num_terms
+from operator_algebra.inspection import degree, modes, num_terms
 from operator_algebra.normal_order import is_normal_ordered, normal_order
 from operator_algebra.operators import (
     identity,
@@ -36,7 +36,6 @@ __all__ = [
     "identity",
     "is_normal_ordered",
     "modes",
-    "monomials",
     "n",
     "nb",
     "normal_order",

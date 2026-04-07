@@ -46,11 +46,11 @@ def to_text(op: OpSum) -> str:
     str
 
     """
-    if not op._terms:
+    if not op.terms:
         return "0"
 
     sorted_terms = sorted(
-        op._terms.items(), key=lambda item: _monomial_sort_key(item[0])
+        op.terms.items(), key=lambda item: _monomial_sort_key(item[0])
     )
 
     parts: list[str] = []
@@ -93,11 +93,11 @@ def to_latex(op: OpSum) -> str:
     str
 
     """
-    if not op._terms:
+    if not op.terms:
         return "0"
 
     sorted_terms = sorted(
-        op._terms.items(), key=lambda item: _monomial_sort_key(item[0])
+        op.terms.items(), key=lambda item: _monomial_sort_key(item[0])
     )
 
     parts: list[str] = []

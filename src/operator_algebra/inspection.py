@@ -2,25 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable, Iterator
+from collections.abc import Hashable
 
-from operator_algebra.operators import Op, OpSum, Scalar
-
-
-def monomials(op: OpSum) -> Iterator[tuple[Scalar, tuple[Op, ...]]]:
-    """Iterate over terms as (coefficient, operators) pairs.
-
-    Parameters
-    ----------
-    op : OpSum
-
-    Yields
-    ------
-    tuple[Scalar, tuple[Op, ...]]
-
-    """
-    for mono, coeff in op.terms.items():
-        yield coeff, mono.ops
+from operator_algebra.operators import OpSum
 
 
 def modes(op: OpSum) -> set[Hashable]:
@@ -56,9 +40,9 @@ def degree(op: OpSum) -> int:
     int
 
     """
-    if not op._terms:
+    if not op.terms:
         return 0
-    return max(len(mono) for mono in op._terms)
+    return max(len(mono) for mono in op.terms)
 
 
 def num_terms(op: OpSum) -> int:
@@ -73,4 +57,4 @@ def num_terms(op: OpSum) -> int:
     int
 
     """
-    return len(op._terms)
+    return len(op.terms)
