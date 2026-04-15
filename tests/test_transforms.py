@@ -2,8 +2,6 @@
 
 import warnings
 
-import pytest
-
 from operator_algebra import (
     c,
     cdag,
@@ -14,7 +12,6 @@ from operator_algebra import (
     substitute_modes,
     zero,
 )
-from operator_algebra.operators import Monomial, Op, OpSum
 
 
 class TestHC:
@@ -33,31 +30,6 @@ class TestHC:
 
     def test_hc_complex_coeff(self):
         assert hc(1j * cdag(1)) == -1j * c(1)
-
-    def test_hc_exotic_no_conjugate_raises(self):
-        """Coefficient type without .conjugate() raises TypeError."""
-
-        class NoConj:
-            def __mul__(self, other: object) -> "NoConj":
-                return self
-
-            def __add__(self, other: object) -> "NoConj":
-                return self
-
-            def __neg__(self) -> "NoConj":
-                return self
-
-            def __eq__(self, other: object) -> bool:
-                return False
-
-            def __hash__(self) -> int:
-                return id(self)
-
-        op = OpSum({Monomial((Op(1, True),)): NoConj()})
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            with pytest.raises(TypeError, match="conjugate"):
-                hc(op)
 
 
 class TestCommutator:

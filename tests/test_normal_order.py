@@ -17,21 +17,9 @@ from operator_algebra.algebra import BOSON
 
 
 class TestFermionNormalOrder:
-    def test_identity(self):
-        assert normal_order(identity()) == identity()
-
-    def test_zero(self):
-        assert normal_order(zero()) == zero()
-
-    def test_single_creator(self):
-        assert normal_order(cdag(1)) == cdag(1)
-
-    def test_single_annihilator(self):
-        assert normal_order(c(1)) == c(1)
-
-    def test_already_normal_ordered(self):
-        op = cdag(1) * c(2)
-        assert normal_order(op) == op
+    def test_already_normal_ordered_passes_through(self):
+        for op in [identity(), zero(), cdag(1), c(1), cdag(1) * c(2)]:
+            assert normal_order(op) == op
 
     def test_simple_swap_same_mode(self):
         result = normal_order(c(1) * cdag(1))
