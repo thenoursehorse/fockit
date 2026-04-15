@@ -286,7 +286,10 @@ _PAULI_KIND_ORDER: dict[Hashable, int] = {"x": 0, "y": 1, "z": 2}
 
 
 class PauliRules:
-    """Pauli (spin-1/2) algebra: anticommute on same site, commute across sites."""
+    """Pauli algebra.
+
+    Anticommutes on the same site, commutes across sites.
+    """
 
     def swap(self, left: Op, right: Op) -> SwapResult:
         """Apply Pauli swap rules.
@@ -302,7 +305,10 @@ class PauliRules:
         return SwapResult(terms=((-1, (right, left)),))
 
     def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
-        """Check Pauli normal order: mode order, then x < y < z within site."""
+        """Check Pauli normal order.
+
+        Uses mode order, then ``x < y < z`` within a site.
+        """
         if left.mode != right.mode:
             return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
         if left.kind == right.kind:

@@ -39,7 +39,7 @@ type ComplexConvertible = complex | SupportsComplex | SupportsFloat | SupportsIn
 
 
 def as_coefficient(value: object) -> Coefficient:
-    """Cast an operator-algebra coefficient result back to ``Coefficient``."""
+    """Cast a coefficient result back to ``Coefficient``."""
     return cast(Coefficient, value)
 
 

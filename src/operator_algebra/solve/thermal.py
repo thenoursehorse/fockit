@@ -24,9 +24,10 @@ def thermal_expectation(
     basis: Basis,
     beta: float,
 ) -> complex:
-    """Thermal expectation ``Tr[op e^{-beta H}] / Z`` in the eigenbasis of ``H``.
+    """Thermal expectation ``Tr[op e^{-beta H}] / Z``.
 
-    ``energies`` and ``states`` are the full spectrum from :func:`eigh_full`.
+    Evaluated in the eigenbasis of ``H``. ``energies`` and ``states``
+    are the full spectrum from :func:`eigh_full`.
     """
     op_mat = to_matrix(op, basis).toarray()
     diag = np.einsum("ji,jk,ki->i", states.conj(), op_mat, states)
@@ -107,7 +108,8 @@ def tpq_thermal_expectation(
     """Finite-T expectation via Sugiura-Shimizu TPQ states.
 
     Builds ``|ψ⟩ = e^{-β H / 2} |r⟩`` for random unit vectors ``|r⟩`` via
-    ``scipy.sparse.linalg.expm_multiply`` and averages ``⟨ψ|op|ψ⟩ / ⟨ψ|ψ⟩``.
+    ``scipy.sparse.linalg.expm_multiply`` and averages
+    ``⟨ψ|op|ψ⟩ / ⟨ψ|ψ⟩``.
     """
     H_mat = to_matrix(H, basis)
     op_mat = to_matrix(op, basis)
@@ -143,10 +145,10 @@ def kpm_thermal_expectation(
     """Finite-T expectation via Chebyshev/KPM expansion of ``e^{-β H}``.
 
     Stochastically estimates the moments ``μ_n = Tr[T_n(H̃)]`` and
-    ``nu_n = Tr[op T_n(H̃)]`` with ``n_samples`` random vectors and contracts
-    them with the (Jackson-damped) Chebyshev coefficients of ``e^{-β H}``.
-    ``H̃`` is ``H`` rescaled to ``[-1, 1]``; ``e_bounds`` overrides the
-    spectral bounds (otherwise estimated via ``eigsh``).
+    ``nu_n = Tr[op T_n(H̃)]`` with ``n_samples`` random vectors, then
+    contracts them with the Jackson-damped Chebyshev coefficients of
+    ``e^{-β H}``. ``H̃`` is ``H`` rescaled to ``[-1, 1]``; ``e_bounds``
+    overrides the spectral bounds (otherwise estimated via ``eigsh``).
     """
     H_mat = to_matrix(H, basis)
     op_mat = to_matrix(op, basis)

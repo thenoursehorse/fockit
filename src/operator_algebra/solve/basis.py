@@ -1,4 +1,4 @@
-"""Fock-space basis construction with optional symmetry sector restriction."""
+"""Fock-space basis construction with optional sector restriction."""
 
 from __future__ import annotations
 

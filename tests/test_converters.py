@@ -26,7 +26,7 @@ def test_kanamori_3orbital():
     Uprime = np.full((n_orb, n_orb), Uprime_val)
     np.fill_diagonal(Uprime, 0)
 
-    # density-density (mirrors TRIQS: diagonal=0 naturally excludes same-mode)
+    # density-density; diagonal=0 naturally excludes same-mode
     H = sum(
         0.5
         * (float(U[a1, a2]) if s1 == s2 else float(Uprime[a1, a2]))

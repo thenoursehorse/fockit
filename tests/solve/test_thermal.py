@@ -1,4 +1,4 @@
-"""Finite-temperature expectation values: analytic + hardcoded ED references."""
+"""Finite-temperature expectation values with ED references."""
 
 from __future__ import annotations
 

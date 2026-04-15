@@ -60,7 +60,7 @@ def eigenstates(H: OpSum, basis: Basis, k: int = 1) -> tuple[RealArray, ComplexA
 
 
 def groundstate(H: OpSum, basis: Basis) -> tuple[float, ComplexArray]:
-    """Return ``(E0, psi0)`` — the lowest eigenvalue and its eigenvector."""
+    """Return ``(E0, psi0)``, the lowest eigenvalue and eigenvector."""
     evals, evecs = eigenstates(H, basis, k=1)
     return float(evals[0]), evecs[:, 0]
 

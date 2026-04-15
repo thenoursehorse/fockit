@@ -69,7 +69,7 @@ class Monomial:
         return self.ops == other.ops
 
     def __repr__(self) -> str:
-        """Show the operator product, or ``I`` for the empty monomial (identity)."""
+        """Show the operator product, or ``I`` for the empty monomial."""
         if not self.ops:
             return "I"
         return " ".join(repr(op) for op in self.ops)
@@ -219,7 +219,7 @@ class OpSum:
         return result
 
     def __eq__(self, other: object) -> bool:
-        """Two OpSums are equal iff they have the same monomial-coefficient pairs."""
+        """Two OpSums are equal iff monomial-coefficient pairs match."""
         if not isinstance(other, OpSum):
             return NotImplemented
         return self._terms == other._terms

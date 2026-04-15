@@ -38,11 +38,11 @@ def expm_multiply_evolve(
     basis: Basis,
     times: Sequence[float],
 ) -> ComplexArray:
-    """Evolve ``|ψ⟩`` under ``H`` to each ``t`` via ``scipy.expm_multiply``.
+    """Evolve ``|ψ⟩`` under ``H`` to each ``t``.
 
-    ``times`` must be uniformly spaced and start at ``0`` for the underlying
-    ``expm_multiply`` time-stepping path; otherwise this falls back to one
-    independent call per time.
+    Uses ``scipy.expm_multiply``. ``times`` must be uniformly spaced and
+    start at ``0`` for the time-stepping path; otherwise this falls back
+    to one independent call per time.
 
     Returns
     -------
@@ -75,11 +75,12 @@ def krylov_evolve(
 ) -> ComplexArray:
     """Evolve ``|ψ⟩`` via a Lanczos/Krylov approximation of ``e^{-i H dt}``.
 
-    Between consecutive ``times[i]`` and ``times[i+1]`` a single ``n_krylov``
-    -step Lanczos is run from the current state, the tridiagonal is
-    diagonalized, and the propagator is applied in the Krylov basis. ``tol``
-    controls a soft warning: if the trailing Krylov coefficient exceeds it,
-    the user should pass closer ``times`` or larger ``n_krylov``.
+    Between consecutive ``times[i]`` and ``times[i+1]`` a
+    ``n_krylov``-step Lanczos run starts from the current state. The
+    tridiagonal is diagonalized and the propagator is applied in the
+    Krylov basis. ``tol`` controls a soft warning: if the trailing
+    Krylov coefficient exceeds it, pass closer ``times`` or larger
+    ``n_krylov``.
 
     Returns
     -------
@@ -179,8 +180,9 @@ def suzuki_trotter_sequence(
         Step size. May be complex (e.g. ``-1j*dt`` for real-time evolution,
         ``-dtau/2`` for imaginary-time / TPQ).
     order
-        ``1`` for first-order forward sweep, or any even integer ``≥ 2`` for
-        symmetric Suzuki-Trotter (recursive for ``order ≥ 4``).
+        ``1`` for first-order forward sweep, or any even integer
+        ``≥ 2`` for symmetric Suzuki-Trotter
+        (recursive for ``order ≥ 4``).
 
     Returns
     -------
@@ -259,11 +261,12 @@ def tpq_state(
     *,
     rng: np.random.Generator,
 ) -> ComplexArray:
-    """Sample one TPQ state ``|φ⟩ = e^{-β H/2}|r⟩`` for a random unit ``|r⟩``.
+    """Sample one TPQ state ``|φ⟩ = e^{-β H/2}|r⟩``.
 
-    The Hamiltonian is shifted by an estimate of its ground-state energy
-    so the matrix exponential does not overflow. Caller is responsible for
-    averaging over samples and accounting for the (state-dependent) norm.
+    The random input ``|r⟩`` is a unit vector. The Hamiltonian is shifted
+    by an estimate of its ground-state energy so the matrix exponential
+    does not overflow. Caller handles sample averaging and the
+    state-dependent norm.
     """
     H_mat = to_matrix(H, basis)
     e0 = float(
@@ -291,8 +294,8 @@ def lanczos_eigenpairs(
     psi : np.ndarray, shape ``(dim, m)``
         Ritz vectors ``V U`` in the original basis.
     r : np.ndarray, shape ``(dim,)``
-        Starting random unit vector. ``psi.conj().T @ r`` gives ``⟨ψ_k|r⟩``,
-        useful for FTLM-style stochastic traces.
+        Starting random unit vector. ``psi.conj().T @ r`` gives
+        ``⟨ψ_k|r⟩``, useful for FTLM-style stochastic traces.
 
     """
     H_mat = to_matrix(H, basis)

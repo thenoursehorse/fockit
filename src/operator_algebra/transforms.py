@@ -1,4 +1,4 @@
-"""Transforms: Hermitian conjugate, commutator, anticommutator, mode substitution."""
+"""Transforms for conjugation, commutators, and mode substitution."""
 
 import warnings
 from collections.abc import Hashable
