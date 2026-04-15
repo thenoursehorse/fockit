@@ -21,6 +21,15 @@ classifiers = [
 Homepage = "https://github.com/thenoursehorse/operator-algebra"
 Documentation = "https://thenoursehorse.github.io/operator-algebra"
 
+[project.optional-dependencies]
+sympy = [
+  "sympy>=1.14",
+]
+solve = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+]
+
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
@@ -31,7 +40,6 @@ build.hooks.vcs.version-file = "src/operator_algebra/_version.py"
 metadata.allow-direct-references = true
 
 [dependency-groups]
-sympy = ["sympy"]
 test = [
   "pytest>=9.0",
   "pytest-subtests>=0.15",
@@ -42,6 +50,10 @@ dev = [
   "pre-commit",
   "ruff",
   "mypy",
+]
+all = [
+  {include-group = "test"},
+  {include-group = "dev"},
 ]
 
 [tool.pytest]
@@ -116,5 +128,5 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["sympy.*", "triqs.*"]
+module = ["scipy.*", "sympy.*", "triqs.*"]
 ignore_missing_imports = true
