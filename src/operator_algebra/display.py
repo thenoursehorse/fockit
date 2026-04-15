@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from operator_algebra._types import Scalar
+from operator_algebra._types import Coefficient
 from operator_algebra.algebra import _mode_sort_key
 from operator_algebra.operators import Monomial, OpSum
 
@@ -28,7 +28,7 @@ def _kind_sort_key(kind: Hashable) -> tuple[object, ...]:
     return (3, repr(kind))
 
 
-def _format_coeff(coeff: Scalar) -> str:
+def _format_coeff(coeff: Coefficient) -> str:
     """Format a coefficient for display."""
     if coeff == 1:
         return ""

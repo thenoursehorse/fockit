@@ -7,7 +7,7 @@ from collections.abc import Hashable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from operator_algebra._types import Scalar, as_scalar
+from operator_algebra._types import Coefficient, as_coefficient
 from operator_algebra.algebra import FERMION, AlgebraRules
 
 _POW_MSG = "Exponent must be a non-negative integer, got {}"
@@ -80,7 +80,7 @@ class OpSum:
 
     Parameters
     ----------
-    terms : dict[Monomial, Scalar] | None
+    terms : dict[Monomial, Coefficient] | None
         Mapping from monomials to coefficients.
     rules : AlgebraRules | None
         Algebra rules. Default: ``FERMION``.
@@ -89,12 +89,12 @@ class OpSum:
 
     def __init__(
         self,
-        terms: dict[Monomial, Scalar] | None = None,
+        terms: dict[Monomial, Coefficient] | None = None,
         rules: AlgebraRules | None = None,
     ) -> None:
         self.rules: AlgebraRules = rules if rules is not None else FERMION
         if terms is None:
-            self._terms: dict[Monomial, Scalar] = {}
+            self._terms: dict[Monomial, Coefficient] = {}
         else:
             self._terms = {m: c for m, c in terms.items() if not is_zero(c)}
 
@@ -103,7 +103,7 @@ class OpSum:
         return hash(frozenset(self._terms.items()))
 
     @property
-    def terms(self) -> MappingProxyType[Monomial, Scalar]:
+    def terms(self) -> MappingProxyType[Monomial, Coefficient]:
         """Read-only view of the internal terms dict."""
         return MappingProxyType(self._terms)
 
@@ -113,10 +113,10 @@ class OpSum:
             if not rules_compatible(self.rules, other.rules):
                 msg = f"Cannot add OpSum with {self.rules} and {other.rules}"
                 raise ValueError(msg)
-            merged: dict[Monomial, Scalar] = dict(self._terms)
+            merged: dict[Monomial, Coefficient] = dict(self._terms)
             for mono, coeff in other._terms.items():
                 if mono in merged:
-                    merged[mono] = as_scalar(merged[mono] + coeff)
+                    merged[mono] = as_coefficient(merged[mono] + coeff)
                 else:
                     merged[mono] = coeff
             return OpSum(merged, rules=self.rules)
@@ -147,7 +147,8 @@ class OpSum:
     def __neg__(self) -> OpSum:
         """Negate all coefficients."""
         return OpSum(
-            {m: as_scalar(-c) for m, c in self._terms.items()}, rules=self.rules
+            {m: as_coefficient(-c) for m, c in self._terms.items()},
+            rules=self.rules,
         )
 
     def __mul__(self, other: object) -> OpSum:
@@ -156,20 +157,20 @@ class OpSum:
             if not rules_compatible(self.rules, other.rules):
                 msg = f"Cannot multiply OpSum with {self.rules} and {other.rules}"
                 raise ValueError(msg)
-            result: dict[Monomial, Scalar] = {}
+            result: dict[Monomial, Coefficient] = {}
             for m1, c1 in self._terms.items():
                 for m2, c2 in other._terms.items():
                     new_mono = Monomial(m1.ops + m2.ops)
-                    new_coeff = as_scalar(c1 * c2)
+                    new_coeff = as_coefficient(c1 * c2)
                     if new_mono in result:
-                        result[new_mono] = as_scalar(result[new_mono] + new_coeff)
+                        result[new_mono] = as_coefficient(result[new_mono] + new_coeff)
                     else:
                         result[new_mono] = new_coeff
             return OpSum(result, rules=self.rules)
         if is_scalar(other):
             return OpSum(
                 {
-                    m: as_scalar(py_operator.mul(c, other))
+                    m: as_coefficient(py_operator.mul(c, other))
                     for m, c in self._terms.items()
                 },
                 rules=self.rules,
@@ -181,7 +182,7 @@ class OpSum:
         if is_scalar(other):
             return OpSum(
                 {
-                    m: as_scalar(py_operator.mul(other, c))
+                    m: as_coefficient(py_operator.mul(other, c))
                     for m, c in self._terms.items()
                 },
                 rules=self.rules,
@@ -248,12 +249,12 @@ def format_mode(mode: Hashable) -> str:
     return str(mode)
 
 
-def is_zero(coeff: Scalar, tol: float = 0.0) -> bool:
+def is_zero(coeff: Coefficient, tol: float = 0.0) -> bool:
     """Check if a coefficient is zero, with tolerance for floats.
 
     Parameters
     ----------
-    coeff : Scalar
+    coeff : Coefficient
         The coefficient to check.
     tol : float
         Tolerance for floating-point comparison. Default 0.0 (exact).

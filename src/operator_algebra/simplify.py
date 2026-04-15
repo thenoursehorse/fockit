@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import cast
 
-from operator_algebra._types import Scalar
+from operator_algebra._types import Coefficient, as_coefficient
 from operator_algebra.operators import Monomial, OpSum
 
 
@@ -23,7 +23,7 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     OpSum
 
     """
-    kept: dict[Monomial, Scalar] = {}
+    kept: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
         if coeff == 0:
             continue
@@ -57,10 +57,10 @@ def simplify_coeffs(op: OpSum) -> OpSum:
         If sympy is not installed.
 
     """
-    import sympy as _sympy
+    import sympy
 
-    simplify = cast(Callable[[object], object], _sympy.simplify)
-    new_terms: dict[Monomial, Scalar] = {}
+    simplify = cast(Callable[[object], object], sympy.simplify)
+    new_terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
-        new_terms[mono] = cast(Scalar, simplify(coeff))
+        new_terms[mono] = as_coefficient(simplify(coeff))
     return OpSum(new_terms, rules=op.rules)

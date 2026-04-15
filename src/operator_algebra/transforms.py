@@ -2,24 +2,23 @@
 
 import warnings
 from collections.abc import Hashable
-from typing import cast
 
-from operator_algebra._types import Scalar
+from operator_algebra._types import Coefficient, as_coefficient
 from operator_algebra.normal_order import normal_order
 from operator_algebra.operators import Monomial, Op, OpSum
 
 
-def _conjugate(coeff: Scalar) -> Scalar:
+def _conjugate(coeff: Coefficient) -> Coefficient:
     """Complex-conjugate a coefficient.
 
     Parameters
     ----------
-    coeff : Scalar
+    coeff : Coefficient
         The coefficient to conjugate.
 
     Returns
     -------
-    Scalar
+    Coefficient
 
     Raises
     ------
@@ -28,7 +27,7 @@ def _conjugate(coeff: Scalar) -> Scalar:
 
     """
     try:
-        return cast(Scalar, coeff.conjugate())
+        return as_coefficient(coeff.conjugate())
     except AttributeError:
         type_name = type(coeff).__name__
         warnings.warn(
@@ -59,7 +58,7 @@ def hc(op: OpSum) -> OpSum:
     OpSum
 
     """
-    new_terms: dict[Monomial, Scalar] = {}
+    new_terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
         new_ops = tuple(op.rules.dagger(single_op) for single_op in reversed(mono.ops))
         new_terms[Monomial(new_ops)] = _conjugate(coeff)
@@ -131,7 +130,7 @@ def substitute_modes(
             stacklevel=2,
         )
 
-    new_terms: dict[Monomial, Scalar] = {}
+    new_terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
         new_ops = tuple(
             Op(mapping.get(single_op.mode, single_op.mode), single_op.kind)
@@ -139,7 +138,7 @@ def substitute_modes(
         )
         new_mono = Monomial(new_ops)
         if new_mono in new_terms:
-            new_terms[new_mono] = cast(Scalar, new_terms[new_mono] + coeff)
+            new_terms[new_mono] = as_coefficient(new_terms[new_mono] + coeff)
         else:
             new_terms[new_mono] = coeff
 

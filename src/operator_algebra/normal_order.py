@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import functools
 from collections import deque
-from typing import cast
 
-from operator_algebra._types import Scalar
+from operator_algebra._types import Coefficient, as_coefficient
 from operator_algebra.algebra import AlgebraRules
 from operator_algebra.operators import Monomial, OpSum, zero
 
@@ -41,8 +40,8 @@ def normal_order(op: OpSum) -> OpSum:
 @functools.lru_cache(maxsize=4096)
 def normal_order_monomial(mono: Monomial, rules: AlgebraRules) -> OpSum:
     """Normal-order a single monomial using iterative worklist."""
-    worklist: deque[tuple[Monomial, Scalar]] = deque([(mono, 1)])
-    accumulator: dict[Monomial, Scalar] = {}
+    worklist: deque[tuple[Monomial, Coefficient]] = deque([(mono, 1)])
+    accumulator: dict[Monomial, Coefficient] = {}
 
     while worklist:
         current_mono, current_coeff = worklist.popleft()
@@ -76,7 +75,7 @@ def normal_order_monomial(mono: Monomial, rules: AlgebraRules) -> OpSum:
         for coeff, replacement_ops in swap_result.terms:
             new_ops = prefix + replacement_ops + suffix
             new_mono = Monomial(new_ops)
-            worklist.append((new_mono, cast(Scalar, current_coeff * coeff)))
+            worklist.append((new_mono, as_coefficient(current_coeff * coeff)))
 
     return OpSum(accumulator, rules=rules)
 
@@ -101,24 +100,26 @@ def is_normal_ordered(op: OpSum) -> bool:
     return True
 
 
-def _scale(op: OpSum, coeff: Scalar) -> OpSum:
+def _scale(op: OpSum, coeff: Coefficient) -> OpSum:
     """Multiply all coefficients in op by coeff."""
     return OpSum(
-        {m: cast(Scalar, c * coeff) for m, c in op.terms.items()}, rules=op.rules
+        {m: as_coefficient(c * coeff) for m, c in op.terms.items()}, rules=op.rules
     )
 
 
-def _accumulate(acc: dict[Monomial, Scalar], mono: Monomial, coeff: Scalar) -> None:
+def _accumulate(
+    acc: dict[Monomial, Coefficient], mono: Monomial, coeff: Coefficient
+) -> None:
     """Add coeff * mono into the accumulator dict.
 
     Parameters
     ----------
-    acc : dict[Monomial, Scalar]
+    acc : dict[Monomial, Coefficient]
     mono : Monomial
-    coeff : Scalar
+    coeff : Coefficient
 
     """
     if mono in acc:
-        acc[mono] = cast(Scalar, acc[mono] + coeff)
+        acc[mono] = as_coefficient(acc[mono] + coeff)
     else:
         acc[mono] = coeff

@@ -6,7 +6,7 @@ from collections.abc import Hashable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from operator_algebra._types import Scalar
+from operator_algebra._types import Coefficient
 
 if TYPE_CHECKING:
     from operator_algebra.operators import Op
@@ -16,12 +16,12 @@ if TYPE_CHECKING:
 class SwapResult:
     """Result of swapping two adjacent operators.
 
-    Each entry in ``terms`` is a ``(Scalar, tuple[Op, ...])`` pair,
+    Each entry in ``terms`` is a ``(Coefficient, tuple[Op, ...])`` pair,
     where the tuple replaces the original two-operator subsequence.
 
     Parameters
     ----------
-    terms : tuple[tuple[Scalar, tuple[Op, ...]], ...]
+    terms : tuple[tuple[Coefficient, tuple[Op, ...]], ...]
         The replacement terms.
 
     Notes
@@ -32,7 +32,7 @@ class SwapResult:
 
     """
 
-    terms: tuple[tuple[Scalar, tuple[Op, ...]], ...]
+    terms: tuple[tuple[Coefficient, tuple[Op, ...]], ...]
 
 
 @runtime_checkable

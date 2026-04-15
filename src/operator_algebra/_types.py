@@ -8,7 +8,7 @@ from typing import Protocol, SupportsComplex, SupportsFloat, SupportsIndex, cast
 type Mode = Hashable
 
 
-class SymbolicScalar(Protocol):
+class SymbolicCoefficient(Protocol):
     """Protocol for symbolic coefficient objects."""
 
     def __hash__(self) -> int: ...
@@ -34,15 +34,15 @@ class SymbolicScalar(Protocol):
     def conjugate(self) -> object: ...
 
 
-type Scalar = int | float | complex | SymbolicScalar
+type Coefficient = int | float | complex | SymbolicCoefficient
 type ComplexConvertible = complex | SupportsComplex | SupportsFloat | SupportsIndex
 
 
-def as_scalar(value: object) -> Scalar:
-    """Cast an operator-algebra coefficient result back to ``Scalar``."""
-    return cast(Scalar, value)
+def as_coefficient(value: object) -> Coefficient:
+    """Cast an operator-algebra coefficient result back to ``Coefficient``."""
+    return cast(Coefficient, value)
 
 
-def as_complex(value: Scalar) -> complex:
+def as_complex(value: Coefficient) -> complex:
     """Convert a coefficient to ``complex``."""
     return complex(cast(ComplexConvertible, value))
