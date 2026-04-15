@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 
 from operator_algebra.operators import OpSum
 from operator_algebra.solve.basis import Basis
-from operator_algebra.solve.matrix import to_matrix
+from operator_algebra.solve.matrix import CSRMatrix, to_matrix
 
 type RealArray = NDArray[np.float64]
 type ComplexArray = NDArray[np.complex128]
@@ -66,7 +66,7 @@ def groundstate(H: OpSum, basis: Basis) -> tuple[float, ComplexArray]:
 
 
 def lanczos(
-    H: scipy.sparse.csr_matrix,
+    H: CSRMatrix,
     v0: ComplexArray,
     m: int,
 ) -> tuple[RealArray, RealArray, ComplexArray]:

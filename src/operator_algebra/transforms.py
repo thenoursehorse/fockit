@@ -2,9 +2,11 @@
 
 import warnings
 from collections.abc import Hashable
+from typing import cast
 
+from operator_algebra._types import Scalar
 from operator_algebra.normal_order import normal_order
-from operator_algebra.operators import Monomial, Op, OpSum, Scalar
+from operator_algebra.operators import Monomial, Op, OpSum
 
 
 def _conjugate(coeff: Scalar) -> Scalar:
@@ -26,7 +28,7 @@ def _conjugate(coeff: Scalar) -> Scalar:
 
     """
     try:
-        return coeff.conjugate()
+        return cast(Scalar, coeff.conjugate())
     except AttributeError:
         type_name = type(coeff).__name__
         warnings.warn(
@@ -137,7 +139,7 @@ def substitute_modes(
         )
         new_mono = Monomial(new_ops)
         if new_mono in new_terms:
-            new_terms[new_mono] = new_terms[new_mono] + coeff
+            new_terms[new_mono] = cast(Scalar, new_terms[new_mono] + coeff)
         else:
             new_terms[new_mono] = coeff
 

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+from operator_algebra._types import Scalar
 
 if TYPE_CHECKING:
     from operator_algebra.operators import Op
-
-type Scalar = Any
 
 
 @dataclass(frozen=True)
@@ -138,7 +138,7 @@ class AlgebraRules(Protocol):
         ...
 
 
-def _mode_sort_key(mode: Hashable) -> tuple[Any, ...]:
+def _mode_sort_key(mode: Hashable) -> tuple[object, ...]:
     """Canonical sort key for modes.
 
     Stratifies by type first, then compares within type.

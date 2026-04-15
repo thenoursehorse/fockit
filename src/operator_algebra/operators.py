@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
+import operator as py_operator
 from collections.abc import Hashable
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any
 
+from operator_algebra._types import Scalar, as_scalar
 from operator_algebra.algebra import FERMION, AlgebraRules
-
-type Mode = Hashable
-type Scalar = Any
 
 _POW_MSG = "Exponent must be a non-negative integer, got {}"
 
@@ -118,7 +116,7 @@ class OpSum:
             merged: dict[Monomial, Scalar] = dict(self._terms)
             for mono, coeff in other._terms.items():
                 if mono in merged:
-                    merged[mono] = merged[mono] + coeff
+                    merged[mono] = as_scalar(merged[mono] + coeff)
                 else:
                     merged[mono] = coeff
             return OpSum(merged, rules=self.rules)
@@ -148,7 +146,9 @@ class OpSum:
 
     def __neg__(self) -> OpSum:
         """Negate all coefficients."""
-        return OpSum({m: -c for m, c in self._terms.items()}, rules=self.rules)
+        return OpSum(
+            {m: as_scalar(-c) for m, c in self._terms.items()}, rules=self.rules
+        )
 
     def __mul__(self, other: object) -> OpSum:
         """Distribute over terms; monomial products concatenate ops."""
@@ -160,15 +160,19 @@ class OpSum:
             for m1, c1 in self._terms.items():
                 for m2, c2 in other._terms.items():
                     new_mono = Monomial(m1.ops + m2.ops)
-                    new_coeff = c1 * c2
+                    new_coeff = as_scalar(c1 * c2)
                     if new_mono in result:
-                        result[new_mono] = result[new_mono] + new_coeff
+                        result[new_mono] = as_scalar(result[new_mono] + new_coeff)
                     else:
                         result[new_mono] = new_coeff
             return OpSum(result, rules=self.rules)
         if is_scalar(other):
             return OpSum(
-                {m: c * other for m, c in self._terms.items()}, rules=self.rules
+                {
+                    m: as_scalar(py_operator.mul(c, other))
+                    for m, c in self._terms.items()
+                },
+                rules=self.rules,
             )
         return NotImplemented
 
@@ -176,7 +180,11 @@ class OpSum:
         """Scale each coefficient from the left for ``scalar * OpSum``."""
         if is_scalar(other):
             return OpSum(
-                {m: other * c for m, c in self._terms.items()}, rules=self.rules
+                {
+                    m: as_scalar(py_operator.mul(other, c))
+                    for m, c in self._terms.items()
+                },
+                rules=self.rules,
             )
         return NotImplemented
 

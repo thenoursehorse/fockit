@@ -1,5 +1,7 @@
 """Tests for core data types."""
 
+import operator
+
 import pytest
 
 from operator_algebra import bdag, c, cdag, identity, num_terms, zero
@@ -87,4 +89,4 @@ class TestOpSum:
 
     def test_scalar_list_raises(self):
         with pytest.raises(TypeError):
-            cdag(1) * [1, 2, 3]  # type: ignore[operator]
+            operator.mul(cdag(1), [1, 2, 3])

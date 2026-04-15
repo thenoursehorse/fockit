@@ -1,0 +1,48 @@
+"""Shared typing helpers."""
+
+from __future__ import annotations
+
+from collections.abc import Hashable
+from typing import Protocol, SupportsComplex, SupportsFloat, SupportsIndex, cast
+
+type Mode = Hashable
+
+
+class SymbolicScalar(Protocol):
+    """Protocol for symbolic coefficient objects."""
+
+    def __hash__(self) -> int: ...
+
+    def __add__(self, other: object, /) -> object: ...
+
+    def __radd__(self, other: object, /) -> object: ...
+
+    def __sub__(self, other: object, /) -> object: ...
+
+    def __rsub__(self, other: object, /) -> object: ...
+
+    def __mul__(self, other: object, /) -> object: ...
+
+    def __rmul__(self, other: object, /) -> object: ...
+
+    def __neg__(self) -> object: ...
+
+    def __abs__(self) -> object: ...
+
+    def __eq__(self, other: object, /) -> bool: ...
+
+    def conjugate(self) -> object: ...
+
+
+type Scalar = int | float | complex | SymbolicScalar
+type ComplexConvertible = complex | SupportsComplex | SupportsFloat | SupportsIndex
+
+
+def as_scalar(value: object) -> Scalar:
+    """Cast an operator-algebra coefficient result back to ``Scalar``."""
+    return cast(Scalar, value)
+
+
+def as_complex(value: Scalar) -> complex:
+    """Convert a coefficient to ``complex``."""
+    return complex(cast(ComplexConvertible, value))

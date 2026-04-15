@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
+
+from operator_algebra._types import Scalar
 from operator_algebra.algebra import _mode_sort_key
 from operator_algebra.operators import Monomial, OpSum
 
@@ -14,7 +17,7 @@ def _monomial_sort_key(mono: Monomial) -> tuple[object, ...]:
     return (len(mono.ops), tuple(keys))
 
 
-def _kind_sort_key(kind: object) -> tuple[object, ...]:
+def _kind_sort_key(kind: Hashable) -> tuple[object, ...]:
     """Sort key for operator kind within display ordering."""
     if kind is True:
         return (0,)
@@ -25,7 +28,7 @@ def _kind_sort_key(kind: object) -> tuple[object, ...]:
     return (3, repr(kind))
 
 
-def _format_coeff(coeff: object) -> str:
+def _format_coeff(coeff: Scalar) -> str:
     """Format a coefficient for display."""
     if coeff == 1:
         return ""

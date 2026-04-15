@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import cast
 
-from operator_algebra.operators import Monomial, OpSum, Scalar
+from operator_algebra._types import Scalar
+from operator_algebra.operators import Monomial, OpSum
 
 
 def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
@@ -30,7 +31,8 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
             continue
         if not isinstance(coeff, int | float | complex):
             try:
-                if abs(coeff) <= tol:
+                magnitude = abs(coeff)
+                if isinstance(magnitude, int | float) and magnitude <= tol:
                     continue
             except TypeError:
                 pass

@@ -6,6 +6,7 @@ import cmath
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from dataclasses import dataclass
 
+from operator_algebra._types import as_complex
 from operator_algebra.algebra import (
     AlgebraRules,
     _mode_sort_key,
@@ -136,7 +137,7 @@ def _diagonal_value(
 ) -> complex:
     total: complex = 0j
     for mono, coeff in op.terms.items():
-        amp: complex = complex(coeff)
+        amp: complex = as_complex(coeff)
         cur: State = state
         for op_single in reversed(mono.ops):
             res = apply_op(rules, op_single, mode_index[op_single.mode], cur, n_max)

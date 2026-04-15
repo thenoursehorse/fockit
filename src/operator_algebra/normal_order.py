@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import functools
 from collections import deque
+from typing import cast
 
+from operator_algebra._types import Scalar
 from operator_algebra.algebra import AlgebraRules
-from operator_algebra.operators import Monomial, OpSum, Scalar, zero
+from operator_algebra.operators import Monomial, OpSum, zero
 
 
 def normal_order(op: OpSum) -> OpSum:
@@ -74,7 +76,7 @@ def normal_order_monomial(mono: Monomial, rules: AlgebraRules) -> OpSum:
         for coeff, replacement_ops in swap_result.terms:
             new_ops = prefix + replacement_ops + suffix
             new_mono = Monomial(new_ops)
-            worklist.append((new_mono, current_coeff * coeff))
+            worklist.append((new_mono, cast(Scalar, current_coeff * coeff)))
 
     return OpSum(accumulator, rules=rules)
 
@@ -101,7 +103,9 @@ def is_normal_ordered(op: OpSum) -> bool:
 
 def _scale(op: OpSum, coeff: Scalar) -> OpSum:
     """Multiply all coefficients in op by coeff."""
-    return OpSum({m: c * coeff for m, c in op.terms.items()}, rules=op.rules)
+    return OpSum(
+        {m: cast(Scalar, c * coeff) for m, c in op.terms.items()}, rules=op.rules
+    )
 
 
 def _accumulate(acc: dict[Monomial, Scalar], mono: Monomial, coeff: Scalar) -> None:
@@ -115,6 +119,6 @@ def _accumulate(acc: dict[Monomial, Scalar], mono: Monomial, coeff: Scalar) -> N
 
     """
     if mono in acc:
-        acc[mono] = acc[mono] + coeff
+        acc[mono] = cast(Scalar, acc[mono] + coeff)
     else:
         acc[mono] = coeff

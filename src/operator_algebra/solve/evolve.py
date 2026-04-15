@@ -23,7 +23,7 @@ from scipy.special import jv
 from operator_algebra.operators import OpSum
 from operator_algebra.solve.basis import Basis
 from operator_algebra.solve.diagonalize import lanczos
-from operator_algebra.solve.matrix import to_matrix
+from operator_algebra.solve.matrix import CSRMatrix, to_matrix
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -342,7 +342,7 @@ def _merge_adjacent(
 
 
 def _krylov_step(
-    H_mat: scipy.sparse.csr_matrix,
+    H_mat: CSRMatrix,
     psi: ComplexArray,
     dt: float,
     m: int,

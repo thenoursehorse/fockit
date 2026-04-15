@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from operator_algebra._types import as_complex
 from operator_algebra.algebra import FermionRules
 from operator_algebra.operators import OpSum
 
+if TYPE_CHECKING:
+    from triqs.operators import Operator as TriqsOperator
 
-def to_triqs(op: OpSum) -> object:
+
+def to_triqs(op: OpSum) -> TriqsOperator:
     """Convert a fermionic OpSum to a TRIQS Operator.
 
     Parameters
@@ -27,7 +33,7 @@ def to_triqs(op: OpSum) -> object:
 
     result = Operator()
     for mono, coeff in op.terms.items():
-        c_val = complex(coeff)
+        c_val = as_complex(coeff)
         term = c_val.real if c_val.imag == 0 else c_val
         for ladder_op in mono.ops:
             indices = (
