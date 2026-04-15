@@ -23,11 +23,11 @@ Documentation = "https://thenoursehorse.github.io/operator-algebra"
 
 [project.optional-dependencies]
 sympy = [
-  "sympy>=1.14",
+  "sympy>=1.12",
 ]
 solve = [
   "numpy>=1.26",
-  "scipy>=1.11",
+  "scipy>=1.11.4",
 ]
 
 [build-system]
@@ -41,15 +41,15 @@ metadata.allow-direct-references = true
 
 [dependency-groups]
 test = [
-  "pytest>=9.0",
-  "pytest-subtests>=0.15",
-  "pytest-cov>=7",
+  "pytest>=8.3",
+  "pytest-subtests>=0.14",
+  "pytest-cov>=6.0",
 ]
 dev = [
   { include-group = "test" },
-  "pre-commit",
-  "ruff",
-  "mypy",
+  "pre-commit>=4.0",
+  "ruff>=0.8.0",
+  "mypy>=1.13",
 ]
 all = [
   {include-group = "test"},
@@ -57,7 +57,7 @@ all = [
 ]
 
 [tool.pytest]
-minversion = "9.0"
+minversion = "8.3"
 addopts = ["-ra", "--showlocals"]
 strict = true
 filterwarnings = ["error"]
