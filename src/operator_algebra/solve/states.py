@@ -36,7 +36,7 @@ _BOSONS_NEED_CUTOFF = "Bosons need a maximum Fock cutoff for each mode"
 
 def local_dim(rules: AlgebraRules, n_max: int | None) -> int:
     """Return the per-mode Hilbert space dimension."""
-    if isinstance(rules, (FermionRules, PauliRules)):
+    if isinstance(rules, FermionRules | PauliRules):
         return 2
     if isinstance(rules, BosonRules):
         if n_max is None:
@@ -49,7 +49,7 @@ def enumerate_states(
     rules: AlgebraRules, num_modes: int, n_max: int | None
 ) -> list[State]:
     """Enumerate every basis state of the full Fock space."""
-    if isinstance(rules, (FermionRules, PauliRules)):
+    if isinstance(rules, FermionRules | PauliRules):
         return list(range(1 << num_modes))
     if isinstance(rules, BosonRules):
         if n_max is None:

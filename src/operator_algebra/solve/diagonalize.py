@@ -6,13 +6,17 @@ import numpy as np
 import scipy.linalg
 import scipy.sparse
 import scipy.sparse.linalg
+from numpy.typing import NDArray
 
 from operator_algebra.operators import OpSum
 from operator_algebra.solve.basis import Basis
 from operator_algebra.solve.matrix import to_matrix
 
+type RealArray = NDArray[np.float64]
+type ComplexArray = NDArray[np.complex128]
 
-def eigh_full(H: OpSum, basis: Basis) -> tuple[np.ndarray, np.ndarray]:
+
+def eigh_full(H: OpSum, basis: Basis) -> tuple[RealArray, ComplexArray]:
     """Full dense diagonalization of ``H`` in ``basis``.
 
     Returns
@@ -29,7 +33,7 @@ def eigh_full(H: OpSum, basis: Basis) -> tuple[np.ndarray, np.ndarray]:
     return np.asarray(evals.real), np.asarray(evecs)
 
 
-def eigenstates(H: OpSum, basis: Basis, k: int = 1) -> tuple[np.ndarray, np.ndarray]:
+def eigenstates(H: OpSum, basis: Basis, k: int = 1) -> tuple[RealArray, ComplexArray]:
     """Compute the ``k`` lowest eigenpairs of ``H`` in ``basis``.
 
     Returns
@@ -55,7 +59,7 @@ def eigenstates(H: OpSum, basis: Basis, k: int = 1) -> tuple[np.ndarray, np.ndar
     return np.asarray(evals[:k].real), np.asarray(evecs[:, :k])
 
 
-def groundstate(H: OpSum, basis: Basis) -> tuple[float, np.ndarray]:
+def groundstate(H: OpSum, basis: Basis) -> tuple[float, ComplexArray]:
     """Return ``(E0, psi0)`` — the lowest eigenvalue and its eigenvector."""
     evals, evecs = eigenstates(H, basis, k=1)
     return float(evals[0]), evecs[:, 0]
@@ -63,9 +67,9 @@ def groundstate(H: OpSum, basis: Basis) -> tuple[float, np.ndarray]:
 
 def lanczos(
     H: scipy.sparse.csr_matrix,
-    v0: np.ndarray,
+    v0: ComplexArray,
     m: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[RealArray, RealArray, ComplexArray]:
     """Plain m-step Lanczos from a unit vector ``v0``.
 
     Returns ``(alphas, betas, V)`` with ``alphas`` length ``j``,

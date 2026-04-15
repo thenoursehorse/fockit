@@ -6,17 +6,21 @@ import numpy as np
 import scipy.linalg
 import scipy.sparse
 import scipy.sparse.linalg
+from numpy.typing import NDArray
 
 from operator_algebra.operators import OpSum
 from operator_algebra.solve.basis import Basis
 from operator_algebra.solve.diagonalize import lanczos
 from operator_algebra.solve.matrix import to_matrix
 
+type RealArray = NDArray[np.float64]
+type ComplexArray = NDArray[np.complex128]
+
 
 def thermal_expectation(
     op: OpSum,
-    energies: np.ndarray,
-    states: np.ndarray,
+    energies: RealArray,
+    states: ComplexArray,
     basis: Basis,
     beta: float,
 ) -> complex:
@@ -60,7 +64,7 @@ def lanczos_thermal_expectation(
     dim = basis.dim
     rng = np.random.default_rng(seed)
 
-    samples: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+    samples: list[tuple[RealArray, ComplexArray, ComplexArray]] = []
     for _ in range(n_samples):
         v0 = rng.standard_normal(dim) + 1j * rng.standard_normal(dim)
         v0 /= np.linalg.norm(v0)

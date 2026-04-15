@@ -4,14 +4,14 @@ from itertools import product
 
 import pytest
 
-pytest.importorskip("triqs")
-
-from operator_algebra import c, cdag, n, normal_order
-from operator_algebra.converters import to_triqs
-
 
 def test_kanamori_3orbital():
     import numpy as np
+
+    from operator_algebra import c, cdag, n, normal_order
+    from operator_algebra.converters import to_triqs
+
+    pytest.importorskip("triqs")
     from triqs.operators.util.hamiltonians import h_int_kanamori
 
     n_orb = 3

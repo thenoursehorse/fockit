@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
+from numpy.typing import NDArray
 from scipy.special import jv
 
 from operator_algebra.operators import OpSum
@@ -27,13 +28,16 @@ from operator_algebra.solve.matrix import to_matrix
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+type RealArray = NDArray[np.float64]
+type ComplexArray = NDArray[np.complex128]
+
 
 def expm_multiply_evolve(
     H: OpSum,
-    psi: np.ndarray,
+    psi: ComplexArray,
     basis: Basis,
     times: Sequence[float],
-) -> np.ndarray:
+) -> ComplexArray:
     """Evolve ``|ψ⟩`` under ``H`` to each ``t`` via ``scipy.expm_multiply``.
 
     ``times`` must be uniformly spaced and start at ``0`` for the underlying
@@ -62,13 +66,13 @@ def expm_multiply_evolve(
 
 def krylov_evolve(
     H: OpSum,
-    psi: np.ndarray,
+    psi: ComplexArray,
     basis: Basis,
     times: Sequence[float],
     *,
     n_krylov: int = 30,
     tol: float = 1e-10,
-) -> np.ndarray:
+) -> ComplexArray:
     """Evolve ``|ψ⟩`` via a Lanczos/Krylov approximation of ``e^{-i H dt}``.
 
     Between consecutive ``times[i]`` and ``times[i+1]`` a single ``n_krylov``
@@ -101,13 +105,13 @@ def krylov_evolve(
 
 def chebyshev_evolve(
     H: OpSum,
-    psi: np.ndarray,
+    psi: ComplexArray,
     basis: Basis,
     times: Sequence[float],
     *,
     n_moments: int | None = None,
     e_bounds: tuple[float, float] | None = None,
-) -> np.ndarray:
+) -> ComplexArray:
     """Evolve ``|ψ⟩`` via a Chebyshev expansion of ``e^{-i H t}``.
 
     Builds the Chebyshev vectors ``T_k(H̃)|ψ⟩`` once and contracts them
@@ -204,11 +208,11 @@ def suzuki_trotter_sequence(
 
 def trotter_evolve(
     H_fragments: Sequence[OpSum],
-    psi: np.ndarray,
+    psi: ComplexArray,
     basis: Basis,
     schedule: Sequence[tuple[complex, int]],
     n_steps: int,
-) -> np.ndarray:
+) -> ComplexArray:
     """Apply a Trotter ``schedule`` ``n_steps`` times to ``ψ``.
 
     Each entry ``(c, i)`` of ``schedule`` applies ``exp(c * H_i)`` via
@@ -235,9 +239,9 @@ def trotter_evolve(
 
 def time_expectation(
     op: OpSum,
-    states: np.ndarray,
+    states: ComplexArray,
     basis: Basis,
-) -> np.ndarray:
+) -> ComplexArray:
     """Compute ``⟨ψ(t)|op|ψ(t)⟩`` along a trajectory.
 
     ``states`` has shape ``(n_t, dim)`` (e.g. the output of an evolver).
@@ -254,7 +258,7 @@ def tpq_state(
     beta: float,
     *,
     rng: np.random.Generator,
-) -> np.ndarray:
+) -> ComplexArray:
     """Sample one TPQ state ``|φ⟩ = e^{-β H/2}|r⟩`` for a random unit ``|r⟩``.
 
     The Hamiltonian is shifted by an estimate of its ground-state energy
@@ -277,7 +281,7 @@ def lanczos_eigenpairs(
     *,
     n_lanczos: int,
     rng: np.random.Generator,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[RealArray, ComplexArray, ComplexArray]:
     """Approximate eigenpairs from a single random-vector Lanczos run.
 
     Returns
@@ -303,9 +307,9 @@ def lanczos_eigenpairs(
 
 def eigenbasis_operator(
     op: OpSum,
-    states: np.ndarray,
+    states: ComplexArray,
     basis: Basis,
-) -> np.ndarray:
+) -> ComplexArray:
     """Return ``O_{mn} = ⟨m|op|n⟩`` for the eigenstates in ``states``.
 
     ``states`` has shape ``(dim, k)`` (columns are eigenvectors), as
@@ -316,7 +320,7 @@ def eigenbasis_operator(
     return np.asarray(states.conj().T @ (op_mat @ states))
 
 
-def boltzmann_weights(energies: np.ndarray, beta: float) -> np.ndarray:
+def boltzmann_weights(energies: RealArray, beta: float) -> RealArray:
     """Return normalized Boltzmann weights ``e^{-β(E - E_min)} / Z``.
 
     Subtracting ``E_min`` keeps the exponent finite at low temperature.
@@ -339,11 +343,11 @@ def _merge_adjacent(
 
 def _krylov_step(
     H_mat: scipy.sparse.csr_matrix,
-    psi: np.ndarray,
+    psi: ComplexArray,
     dt: float,
     m: int,
     tol: float,
-) -> np.ndarray:
+) -> ComplexArray:
     norm = float(np.linalg.norm(psi))
     if norm == 0.0:
         return psi.copy()

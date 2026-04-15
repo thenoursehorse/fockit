@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import cast
+
 from operator_algebra.operators import Monomial, OpSum, Scalar
 
 
@@ -23,9 +26,9 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     for mono, coeff in op.terms.items():
         if coeff == 0:
             continue
-        if isinstance(coeff, (float, complex)) and abs(coeff) <= tol:
+        if isinstance(coeff, float | complex) and abs(coeff) <= tol:
             continue
-        if not isinstance(coeff, (int, float, complex)):
+        if not isinstance(coeff, int | float | complex):
             try:
                 if abs(coeff) <= tol:
                     continue
@@ -54,7 +57,8 @@ def simplify_coeffs(op: OpSum) -> OpSum:
     """
     import sympy as _sympy
 
+    simplify = cast(Callable[[object], object], _sympy.simplify)
     new_terms: dict[Monomial, Scalar] = {}
     for mono, coeff in op.terms.items():
-        new_terms[mono] = _sympy.simplify(coeff)
+        new_terms[mono] = cast(Scalar, simplify(coeff))
     return OpSum(new_terms, rules=op.rules)

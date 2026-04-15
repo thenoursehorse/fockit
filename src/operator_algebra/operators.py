@@ -257,7 +257,7 @@ def is_zero(coeff: Scalar, tol: float = 0.0) -> bool:
     """
     if coeff == 0:
         return True
-    if isinstance(coeff, (float, complex)):
+    if isinstance(coeff, float | complex):
         return abs(coeff) <= tol
     return False
 
@@ -277,9 +277,9 @@ def is_scalar(obj: object) -> bool:
     """
     if isinstance(obj, OpSum):
         return False
-    if isinstance(obj, (int, float, complex)):
+    if isinstance(obj, int | float | complex):
         return True
-    if isinstance(obj, (str, bytes, list, tuple, set, frozenset, dict)):
+    if isinstance(obj, str | bytes | list | tuple | set | frozenset | dict):
         return False
     return hasattr(obj, "__mul__") and hasattr(obj, "__add__")
 
