@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.sparse as sp
+from numpy.typing import NDArray
 
 from operator_algebra._types import as_complex
 from operator_algebra.inspection import modes as op_modes
@@ -13,6 +14,7 @@ from operator_algebra.solve.states import apply_op
 
 type SparseMatrix = sp.spmatrix
 type CSRMatrix = sp.csr_matrix
+type ComplexArray = NDArray[np.complex128]
 
 
 def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
@@ -65,3 +67,30 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     ).tocsr()
     mat.sum_duplicates()
     return mat
+
+
+def expectations(
+    op: OpSum,
+    states: ComplexArray,
+    basis: Basis,
+) -> ComplexArray:
+    """Compute ``⟨ψ|op|ψ⟩`` for each row of ``states``.
+
+    ``states`` has shape ``(n, dim)``. Returns shape ``(n,)``.
+    """
+    op_mat = to_matrix(op, basis)
+    op_states = (op_mat @ states.T).T
+    return np.asarray(np.sum(states.conj() * op_states, axis=1))
+
+
+def matrix_elements(
+    op: OpSum,
+    states: ComplexArray,
+    basis: Basis,
+) -> ComplexArray:
+    """Return ``O_{mn} = ⟨m|op|n⟩`` for the column states in ``states``.
+
+    ``states`` has shape ``(dim, k)`` (columns are the bra/ket states).
+    """
+    op_mat = to_matrix(op, basis)
+    return np.asarray(states.conj().T @ (op_mat @ states))

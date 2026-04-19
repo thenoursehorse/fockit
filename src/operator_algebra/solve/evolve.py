@@ -3,7 +3,7 @@
 Provides three T=0 evolvers (``expm_multiply_evolve``, ``krylov_evolve``,
 ``chebyshev_evolve``) and lower-level helpers for composing finite-T
 dynamical correlators (``tpq_state``, ``lanczos_eigenpairs``,
-``eigenbasis_operator``, ``boltzmann_weights``, ``time_expectation``).
+``boltzmann_weights``).
 
 The finite-T helpers expose building blocks rather than fixed n-point
 correlators so users can assemble arbitrary objects (2-point, OTOCs,
@@ -239,21 +239,6 @@ def trotter_evolve(
     return out
 
 
-def time_expectation(
-    op: OpSum,
-    states: ComplexArray,
-    basis: Basis,
-) -> ComplexArray:
-    """Compute ``⟨ψ(t)|op|ψ(t)⟩`` along a trajectory.
-
-    ``states`` has shape ``(n_t, dim)`` (e.g. the output of an evolver).
-    Returns shape ``(n_t,)``.
-    """
-    op_mat = to_matrix(op, basis)
-    op_states = (op_mat @ states.T).T
-    return np.asarray(np.sum(states.conj() * op_states, axis=1))
-
-
 def tpq_state(
     H: OpSum,
     basis: Basis,
@@ -306,21 +291,6 @@ def lanczos_eigenpairs(
     eps, U = np.linalg.eigh(T)
     psi = V @ U
     return eps, psi, r
-
-
-def eigenbasis_operator(
-    op: OpSum,
-    states: ComplexArray,
-    basis: Basis,
-) -> ComplexArray:
-    """Return ``O_{mn} = ⟨m|op|n⟩`` for the eigenstates in ``states``.
-
-    ``states`` has shape ``(dim, k)`` (columns are eigenvectors), as
-    produced by :func:`operator_algebra.solve.eigh_full` or
-    :func:`operator_algebra.solve.eigenstates`.
-    """
-    op_mat = to_matrix(op, basis)
-    return np.asarray(states.conj().T @ (op_mat @ states))
 
 
 def boltzmann_weights(energies: RealArray, beta: float) -> RealArray:

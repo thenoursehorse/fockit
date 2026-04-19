@@ -15,16 +15,14 @@ from operator_algebra.solve.diagonalize import eigh_full
 from operator_algebra.solve.evolve import (
     boltzmann_weights,
     chebyshev_evolve,
-    eigenbasis_operator,
     expm_multiply_evolve,
     krylov_evolve,
     lanczos_eigenpairs,
     suzuki_trotter_sequence,
-    time_expectation,
     tpq_state,
     trotter_evolve,
 )
-from operator_algebra.solve.matrix import to_matrix
+from operator_algebra.solve.matrix import expectations, matrix_elements, to_matrix
 from operator_algebra.solve.thermal import thermal_expectation
 
 
@@ -63,7 +61,7 @@ def test_free_fermion_single_particle_matches_analytic():
         amp = (evecs * np.exp(-1j * t * evals)) @ evecs[0].conj()
         ref = np.abs(amp) ** 2
         for j in range(L):
-            obs = time_expectation(cdag(j) * c(j), traj[k : k + 1], basis)[0].real
+            obs = expectations(cdag(j) * c(j), traj[k : k + 1], basis)[0].real
             assert obs == pytest.approx(ref[j], abs=1e-10)
 
 
@@ -166,14 +164,14 @@ def test_trotter_evolve_imaginary_time_matches_tpq():
     assert np.allclose(traj[-1], ref, atol=1e-6)
 
 
-def test_eigenbasis_operator_and_boltzmann_reproduce_thermal_expectation():
+def test_matrix_elements_and_boltzmann_reproduce_thermal_expectation():
     labels, H = heisenberg_chain(3)
     basis = enumerate_basis(labels, PAULI)
     E, V = eigh_full(H, basis)
     op = sigma_z(0) * sigma_z(1)
     beta = 0.8
 
-    op_eb = eigenbasis_operator(op, V, basis)
+    op_eb = matrix_elements(op, V, basis)
     p = boltzmann_weights(E, beta)
     got = float((p * np.diag(op_eb).real).sum())
 

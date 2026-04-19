@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import product
+
 import numpy as np
 import pytest
 import scipy.linalg
@@ -22,6 +24,56 @@ def hubbard_chain(sites: int, t: float, u: float):
     for i in range(sites):
         H = H + u * n(i, "up") * n(i, "dn")
     return modes, H
+
+
+def risb_bilayer_impurity():
+    U = 1
+    V = 0.25
+    J = 0
+    bath_offdiag = -0.00460398
+    hybr_diag = -2.59694448e-01
+    mu = U / 2.0  # half-filling
+    imp_orbs = (0, 1)
+    spin_names = ("up", "dn")
+    h_int = 0 * n("up", 0)
+    for o in imp_orbs:
+        h_int += U * n("up", o) * n("dn", o)
+    for s1, s2 in product(spin_names, spin_names):
+        h_int += 0.5 * J * cdag(s1, 0) * c(s2, 0) * cdag(s2, 1) * c(s1, 1)
+    h0 = 0 * n("up", 0)
+    for spin in spin_names:
+        h0 += V * cdag(spin, 0) * c(spin, 1)
+        h0 += V * cdag(spin, 1) * c(spin, 0)
+        h0 += bath_offdiag * cdag(spin, 2) * c(spin, 3)
+        h0 += bath_offdiag * cdag(spin, 3) * c(spin, 2)
+        h0 -= mu * cdag(spin, 2) * c(spin, 3)
+        h0 -= mu * cdag(spin, 3) * c(spin, 2)
+        h0 += hybr_diag * cdag(spin, 0) * c(spin, 2)
+        h0 += hybr_diag * cdag(spin, 2) * c(spin, 0)
+        h0 += hybr_diag * cdag(spin, 1) * c(spin, 3)
+        h0 += hybr_diag * cdag(spin, 3) * c(spin, 1)
+    modes = [(s, i) for i in range(2 * len(imp_orbs)) for s in spin_names]
+    return modes, h0 + h_int
+
+
+def test_risb_bilayer_impurity():
+    modes, h_emb = risb_bilayer_impurity()
+    N = int(len(modes) / 2)
+    Sz = 0
+    basis = enumerate_basis(
+        modes, FERMION, sectors={total_n(modes): N, total_sz(modes): Sz}
+    )
+    basis = enumerate_basis(modes, FERMION, sectors={total_n(modes): N})
+    e0, v0 = groundstate(h_emb, basis)
+    print(e0)
+    rho_f_expected = np.array([[0.5, -0.1999913941210893], [-0.1999913941210893, 0.5]])
+    rho_cf_expected = np.array([[0.42326519677453511, 0], [0, 0.42326519677453511]])
+    rho_c_expected = np.array([[0.5, -0.1836332097072352], [-0.1836332097072352, 0.5]])
+    N_expected = 2.0
+    # S2_expected = 0.8247577338845973
+
+    e0_expected = -1.7429249197415944
+    # assert e0 == pytest.approx(e0_expected, abs=1e-10)
 
 
 def total_n(modes):

@@ -10,12 +10,10 @@ from operator_algebra.solve.diagonalize import (
 from operator_algebra.solve.evolve import (
     boltzmann_weights,
     chebyshev_evolve,
-    eigenbasis_operator,
     expm_multiply_evolve,
     krylov_evolve,
     lanczos_eigenpairs,
     suzuki_trotter_sequence,
-    time_expectation,
     tpq_state,
     trotter_evolve,
 )
@@ -31,7 +29,6 @@ __all__ = [
     "Basis",
     "boltzmann_weights",
     "chebyshev_evolve",
-    "eigenbasis_operator",
     "eigenstates",
     "eigh_full",
     "enumerate_basis",
@@ -44,7 +41,6 @@ __all__ = [
     "lanczos_thermal_expectation",
     "suzuki_trotter_sequence",
     "thermal_expectation",
-    "time_expectation",
     "to_matrix",
     "tpq_state",
     "tpq_thermal_expectation",
