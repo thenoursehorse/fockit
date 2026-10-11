@@ -279,3 +279,25 @@ def test_expand_rejects_a_full_basis_with_other_states():
     _, other = hubbard_bases(4, 3, 2, k=0)
     with pytest.raises(ValueError, match="missing states"):
         expand_state(np.ones(sym.dim), sym, other)
+
+
+def test_symmetry_that_leaves_the_selected_states_is_rejected():
+    sites = 4
+    modes = [(i, s) for i in range(sites) for s in SPINS]
+    flip = {(i, "up"): (i, "dn") for i in range(sites)}
+    flip |= {(i, "dn"): (i, "up") for i in range(sites)}
+    sz = 0.5 * sum(n(i, "up") - n(i, "dn") for i in range(sites))
+    # spin flip turns Sz = 1 into Sz = -1
+    with pytest.raises(ValueError, match="outside"):
+        enumerate_basis(
+            {FermionSpace(): modes},
+            diagonal_symmetries={sz: 1},
+            permutation_symmetries=[(flip, 1)],
+        )
+    # translation moves the spin off site 0
+    with pytest.raises(ValueError, match="outside"):
+        enumerate_basis(
+            {PauliSpace(): range(sites)},
+            permutation_symmetries=[(shift(sites), 1)],
+            predicate_function=lambda lv: lv[:, 0] == 1,
+        )

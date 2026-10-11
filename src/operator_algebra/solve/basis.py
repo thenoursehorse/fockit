@@ -483,33 +483,48 @@ def _orbit_representatives(
     spaces: Sequence[LocalSpace],
     strides: IntArray,
 ) -> tuple[Levels, FloatArray]:
-    """Keep orbit representatives whose symmetric combination is nonzero."""
+    """Keep orbit representatives whose symmetric combination is nonzero.
+
+    Raises ValueError unless the states are a union of whole orbits.
+    """
+    if not len(levels):
+        return levels, np.zeros(0)
     selected = levels @ strides
-    kept, kept_norms = [levels[:0]], [np.zeros(0)]
+
+    # a state represents its orbit if no image has a smaller code; drop
+    # states as soon as one image beats them
+    found = []
     for first in range(0, len(levels), _CHUNK):
-        chunk = levels[first : first + _CHUNK]
-        codes = np.stack([chunk @ strides[perm] for perm in group])
-        pos = np.minimum(np.searchsorted(selected, codes), len(selected) - 1)
-        if np.any(selected[pos] != codes):
-            msg = (
-                "A permutation symmetry maps some selected states outside those "
-                "kept by diagonal_symmetries or predicate_function."
-            )
-            raise ValueError(msg)
-        own = codes[0]
-        reps = codes.min(axis=0) == own
-        chunk, codes, own = chunk[reps], codes[:, reps], own[reps]
-        # norm = |G| sum over operations that fix the state
-        norm = np.zeros(len(chunk), dtype=complex)
-        for g in range(len(group)):
-            fixed = codes[g] == own
-            phase = _exchange_phase(chunk[fixed], swaps[g], spaces)
-            norm[fixed] += np.conj(characters[g]) * phase
-        norm = norm.real * len(group)
-        nonzero = norm > _TOL
-        kept.append(chunk[nonzero])
-        kept_norms.append(norm[nonzero])
-    return np.concatenate(kept), np.concatenate(kept_norms)
+        chunk = levels[first : first + _CHUNK].astype(np.int64)
+        own = selected[first : first + _CHUNK]
+        rows = np.arange(len(chunk))
+        for perm in group[1:]:
+            rows = rows[chunk[rows] @ strides[perm] >= own[rows]]
+        found.append(first + rows)
+    reps = levels[np.concatenate(found)]
+
+    own = reps @ strides
+    codes = np.stack([reps @ strides[perm] for perm in group])
+    fixed = codes == own
+    # every representative's orbit is selected, and the orbits add up to all
+    # selected states, so nothing else is selected
+    pos = np.minimum(np.searchsorted(selected, codes), len(selected) - 1)
+    orbit_sizes = len(group) / fixed.sum(axis=0)
+    if np.any(selected[pos] != codes) or not np.isclose(orbit_sizes.sum(), len(levels)):
+        msg = (
+            "A permutation symmetry maps some selected states outside those "
+            "kept by diagonal_symmetries or predicate_function."
+        )
+        raise ValueError(msg)
+
+    # norm = |G| sum over operations that fix the state
+    norm = np.zeros(len(reps), dtype=complex)
+    for g in range(len(group)):
+        phase = _exchange_phase(reps[fixed[g]], swaps[g], spaces)
+        norm[fixed[g]] += np.conj(characters[g]) * phase
+    norm = norm.real * len(group)
+    nonzero = norm > _TOL
+    return reps[nonzero], norm[nonzero]
 
 
 def _diagonal_values(
