@@ -1,6 +1,11 @@
 """Numerical solvers built on top of operator-algebra."""
 
-from operator_algebra.solve.basis import Basis, enumerate_basis, state_index
+from operator_algebra.solve.basis import (
+    Basis,
+    enumerate_basis,
+    expand_state,
+    state_index,
+)
 from operator_algebra.solve.diagonalize import (
     eigenstates,
     eigh_full,
@@ -17,7 +22,7 @@ from operator_algebra.solve.evolve import (
     tpq_state,
     trotter_evolve,
 )
-from operator_algebra.solve.matrix import to_matrix
+from operator_algebra.solve.matrix import expectations, matrix_elements, to_matrix
 from operator_algebra.solve.spaces import (
     BosonSpace,
     FermionSpace,
@@ -42,6 +47,8 @@ __all__ = [
     "eigenstates",
     "eigh_full",
     "enumerate_basis",
+    "expand_state",
+    "expectations",
     "expm_multiply_evolve",
     "groundstate",
     "kpm_thermal_expectation",
@@ -49,6 +56,7 @@ __all__ = [
     "lanczos",
     "lanczos_eigenpairs",
     "lanczos_thermal_expectation",
+    "matrix_elements",
     "state_index",
     "suzuki_trotter_sequence",
     "thermal_expectation",

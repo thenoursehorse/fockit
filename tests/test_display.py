@@ -1,6 +1,19 @@
 """Tests for display functions."""
 
-from operator_algebra import b, bdag, c, cdag, sigma_x, to_latex, to_text, zero
+from operator_algebra import (
+    b,
+    bdag,
+    c,
+    cdag,
+    normal_order,
+    sigma_x,
+    sigma_z,
+    sm,
+    sp,
+    to_latex,
+    to_text,
+    zero,
+)
 from operator_algebra.algebra import SwapResult
 from operator_algebra.operators import Monomial, Op, OpSum
 
@@ -76,3 +89,8 @@ def test_zero_display():
 def test_to_text():
     s = to_text(cdag(1))
     assert "c†(1)" in s
+
+
+def test_complex_coefficients_without_imaginary_part_display_as_real():
+    assert to_text(normal_order(sp(0) * sm(0))) == "0.5 + 0.5 σ_z(0)"
+    assert to_text(normal_order(sp(0) * sigma_z(0))) == "-0.5 σ_x(0) - 0.5j σ_y(0)"

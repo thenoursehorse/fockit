@@ -16,9 +16,9 @@ from operator_algebra import (
     sigma_y,
     sigma_z,
 )
-from operator_algebra.solve.basis import enumerate_basis
-from operator_algebra.solve.diagonalize import eigh_full
-from operator_algebra.solve.matrix import to_matrix
+from operator_algebra.solve.basis import enumerate_basis, expand_state
+from operator_algebra.solve.diagonalize import eigenstates, eigh_full, groundstate
+from operator_algebra.solve.matrix import expectations, to_matrix
 from operator_algebra.solve.spaces import BosonSpace, FermionSpace, PauliSpace
 
 SPINS = ("up", "dn")
@@ -204,3 +204,78 @@ def test_non_commuting_symmetries_are_rejected():
             {FermionSpace(): range(sites)},
             permutation_symmetries=[(shift(sites), 1), (reflection, 1)],
         )
+
+
+def hubbard_bases(sites, n_up, n_dn, k):
+    modes = [(i, s) for i in range(sites) for s in SPINS]
+    diagonal = {
+        sum(n(i, "up") for i in range(sites)): n_up,
+        sum(n(i, "dn") for i in range(sites)): n_dn,
+    }
+    full = enumerate_basis({FermionSpace(): modes}, diagonal_symmetries=diagonal)
+    sym = enumerate_basis(
+        {FermionSpace(): modes},
+        diagonal_symmetries=diagonal,
+        permutation_symmetries=[(shift(sites, SPINS), momentum(k, sites))],
+    )
+    return sym, full
+
+
+def test_expanded_ground_state_is_eigenvector_of_full_hamiltonian():
+    sites = 6
+    H = hubbard_ring(sites)
+    sym, full = hubbard_bases(sites, 2, 2, k=1)
+    energy, psi = groundstate(to_matrix(H, sym))
+    v = expand_state(psi, sym, full)
+    assert np.linalg.norm(v) == pytest.approx(1)
+    assert to_matrix(H, full) @ v == pytest.approx(energy * v)
+
+
+def test_momentum_eigenstate_has_uniform_density():
+    sites = 6
+    sym, full = hubbard_bases(sites, 2, 3, k=2)
+    _, psi = groundstate(to_matrix(hubbard_ring(sites), sym))
+    v = expand_state(psi, sym, full)
+    densities = [
+        expectations(to_matrix(n(i, "up"), full), v).real for i in range(sites)
+    ]
+    assert densities == pytest.approx([2 / sites] * sites)
+
+
+def test_expanded_states_from_different_momenta_are_orthogonal():
+    sites = 5
+    H = hubbard_ring(sites)
+    columns = []
+    for k in range(sites):
+        sym, full = hubbard_bases(sites, 2, 1, k)
+        _, states = eigenstates(to_matrix(H, sym), k=2)
+        columns.append(expand_state(states, sym, full))
+    V = np.hstack(columns)
+    overlaps = V.conj().T @ V
+    assert overlaps == pytest.approx(np.eye(V.shape[1]))
+
+
+def test_heisenberg_correlations_from_symmetric_ground_state_match_full_basis():
+    sites = 8
+    H = heisenberg_ring(sites)
+    space = {PauliSpace(): range(sites)}
+    sz0 = {0.5 * sum(sigma_z(i) for i in range(sites)): 0}
+    full = enumerate_basis(space, diagonal_symmetries=sz0)
+    sym = enumerate_basis(
+        space,
+        diagonal_symmetries=sz0,
+        permutation_symmetries=[(shift(sites), momentum(0, sites))],
+    )
+    _, psi_full = groundstate(to_matrix(H, full))
+    _, psi_sym = groundstate(to_matrix(H, sym))
+    v = expand_state(psi_sym, sym, full)
+    for r in range(1, sites // 2 + 1):
+        zz = to_matrix(sigma_z(0) * sigma_z(r), full)
+        assert expectations(zz, v) == pytest.approx(expectations(zz, psi_full))
+
+
+def test_expand_rejects_a_full_basis_with_other_states():
+    sym, _ = hubbard_bases(4, 2, 2, k=0)
+    _, other = hubbard_bases(4, 3, 2, k=0)
+    with pytest.raises(ValueError, match="missing states"):
+        expand_state(np.ones(sym.dim), sym, other)

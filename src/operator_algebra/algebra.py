@@ -143,51 +143,6 @@ class AlgebraRules(Protocol):
         ...
 
 
-def _mode_sort_key(mode: Hashable) -> tuple[object, ...]:
-    """Canonical sort key for modes.
-
-    Stratifies by type first, then compares within type.
-
-    Parameters
-    ----------
-    mode : Hashable
-        The mode label.
-
-    Returns
-    -------
-    tuple
-        A universally comparable sort key.
-
-    Notes
-    -----
-    ``bool`` is a subclass of ``int``, so ``True`` and ``1`` produce
-    identical sort keys. Avoid using ``bool`` values as modes.
-
-    """
-    match mode:
-        case int():
-            return (0, mode)
-        case str():
-            return (1, mode)
-        case tuple():
-            return (2, *(_mode_sort_key(m) for m in mode))
-        case _:
-            return (3, repr(mode))
-
-
-def _format_mode(mode: Hashable) -> str:
-    """Format a mode label for display."""
-    if isinstance(mode, tuple):
-        return ", ".join(str(m) for m in mode)
-    return str(mode)
-
-
-def _format_mode_latex(mode: Hashable) -> str:
-    """Format a mode label for LaTeX subscript."""
-    raw = _format_mode(mode)
-    return raw.replace("up", r"\uparrow").replace("dn", r"\downarrow")
-
-
 class FermionRules:
     """Canonical anticommutation relations: {c_a, c†_b} = delta_{ab}."""
 
@@ -215,7 +170,7 @@ class FermionRules:
             return True
         if left.kind is Ladder.ANNIHILATE and right.kind is Ladder.CREATE:
             return False
-        return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
+        return mode_sort_key(left.mode) <= mode_sort_key(right.mode)
 
     def dagger(self, op: Op) -> Op:
         """Flip creation ↔ annihilation."""
@@ -262,7 +217,7 @@ class BosonRules:
             return True
         if left.kind is Ladder.ANNIHILATE and right.kind is Ladder.CREATE:
             return False
-        return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
+        return mode_sort_key(left.mode) <= mode_sort_key(right.mode)
 
     def dagger(self, op: Op) -> Op:
         """Flip creation ↔ annihilation."""
@@ -315,7 +270,7 @@ class PauliRules:
         """Sites in mode order, at most one operator per site."""
         if left.mode == right.mode:
             return False
-        return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
+        return mode_sort_key(left.mode) <= mode_sort_key(right.mode)
 
     def dagger(self, op: Op) -> Op:
         """Pauli operators are Hermitian: dagger is identity."""
@@ -342,3 +297,48 @@ class PauliRules:
 FERMION = FermionRules()
 BOSON = BosonRules()
 PAULI = PauliRules()
+
+
+def mode_sort_key(mode: Hashable) -> tuple[object, ...]:
+    """Canonical sort key for modes.
+
+    Stratifies by type first, then compares within type.
+
+    Parameters
+    ----------
+    mode : Hashable
+        The mode label.
+
+    Returns
+    -------
+    tuple
+        A universally comparable sort key.
+
+    Notes
+    -----
+    ``bool`` is a subclass of ``int``, so ``True`` and ``1`` produce
+    identical sort keys. Avoid using ``bool`` values as modes.
+
+    """
+    match mode:
+        case int():
+            return (0, mode)
+        case str():
+            return (1, mode)
+        case tuple():
+            return (2, *(mode_sort_key(m) for m in mode))
+        case _:
+            return (3, repr(mode))
+
+
+def _format_mode(mode: Hashable) -> str:
+    """Format a mode label for display."""
+    if isinstance(mode, tuple):
+        return ", ".join(str(m) for m in mode)
+    return str(mode)
+
+
+def _format_mode_latex(mode: Hashable) -> str:
+    """Format a mode label for LaTeX subscript."""
+    raw = _format_mode(mode)
+    return raw.replace("up", r"\uparrow").replace("dn", r"\downarrow")

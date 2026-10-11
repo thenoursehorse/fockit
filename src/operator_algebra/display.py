@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Hashable
 
 from operator_algebra._types import Coefficient
-from operator_algebra.algebra import _mode_sort_key
+from operator_algebra.algebra import mode_sort_key
 from operator_algebra.operators import Monomial, OpSum
 
 
@@ -13,7 +13,7 @@ def _monomial_sort_key(mono: Monomial) -> tuple[object, ...]:
     """Sort key for deterministic term ordering in display."""
     keys = []
     for op in mono.ops:
-        keys.append((_kind_sort_key(op.kind), _mode_sort_key(op.mode)))
+        keys.append((_kind_sort_key(op.kind), mode_sort_key(op.mode)))
     return (len(mono.ops), tuple(keys))
 
 
@@ -22,6 +22,13 @@ def _kind_sort_key(kind: Hashable) -> tuple[object, ...]:
     if isinstance(kind, str):
         return (2, kind)
     return (3, repr(kind))
+
+
+def _real_if_possible(coeff: Coefficient) -> Coefficient:
+    """Show a complex number with no imaginary part as a real one."""
+    if isinstance(coeff, complex) and coeff.imag == 0:
+        return coeff.real
+    return coeff
 
 
 def _format_coeff(coeff: Coefficient) -> str:
@@ -53,7 +60,8 @@ def to_text(op: OpSum) -> str:
     )
 
     parts: list[str] = []
-    for mono, coeff in sorted_terms:
+    for mono, raw_coeff in sorted_terms:
+        coeff = _real_if_possible(raw_coeff)
         if not mono.ops:
             parts.append(str(coeff))
             continue
@@ -102,7 +110,8 @@ def to_latex(op: OpSum) -> str:
     )
 
     parts: list[str] = []
-    for mono, coeff in sorted_terms:
+    for mono, raw_coeff in sorted_terms:
+        coeff = _real_if_possible(raw_coeff)
         if not mono.ops:
             parts.append(str(coeff))
             continue

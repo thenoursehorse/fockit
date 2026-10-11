@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from operator_algebra._types import as_complex
-from operator_algebra.algebra import AlgebraRules, _mode_sort_key
+from operator_algebra.algebra import AlgebraRules, mode_sort_key
 from operator_algebra.normal_order import normal_order
 from operator_algebra.operators import Monomial, OpSum, zero
 from operator_algebra.simplify import drop_zeros
@@ -128,7 +128,7 @@ def enumerate_basis(
     starts: list[int] = []
     for space, labels in spaces.items():
         start = len(modes)
-        for label in sorted(labels, key=_mode_sort_key):
+        for label in sorted(labels, key=mode_sort_key):
             modes.append((space.rules, label))
             mode_spaces.append(space)
             starts.append(start)
@@ -247,6 +247,34 @@ def state_index(basis: Basis, levels: ArrayLike) -> int | IntArray:
         msg = "State is not in the basis."
         raise ValueError(msg)
     return int(pos) if rows.ndim == 1 else pos
+
+
+def expand_state(state: ArrayLike, basis: Basis, full_basis: Basis) -> ComplexArray:
+    """Write states of ``basis`` in the occupation states of ``full_basis``.
+
+    ``state`` has shape ``(basis.dim,)`` or ``(basis.dim, k)``. ``full_basis``
+    must have the same modes and contain every state of each orbit, e.g. the
+    same call to ``enumerate_basis`` without ``permutation_symmetries``.
+    """
+    if full_basis.modes != basis.modes:
+        msg = "full_basis must have the same modes as basis."
+        raise ValueError(msg)
+    psi = np.asarray(state)
+    weights = psi / np.sqrt(basis.norms).reshape(-1, *[1] * (psi.ndim - 1))
+    out = np.zeros((full_basis.dim, *psi.shape[1:]), dtype=complex)
+    for g, perm in enumerate(basis.group):
+        codes = basis.levels @ basis.strides[perm]
+        pos = np.searchsorted(full_basis.codes, codes)
+        if np.any(pos == full_basis.dim) or np.any(
+            full_basis.codes[pos % full_basis.dim] != codes
+        ):
+            msg = "full_basis is missing states that basis is built from."
+            raise ValueError(msg)
+        phase = np.conj(basis.characters[g]) * _exchange_phase(
+            basis.levels, basis.swaps[g], basis.spaces
+        )
+        np.add.at(out, pos, weights * phase.reshape(-1, *[1] * (psi.ndim - 1)))
+    return out
 
 
 def representatives(
