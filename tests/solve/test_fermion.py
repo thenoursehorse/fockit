@@ -12,17 +12,17 @@ from operator_algebra import c, cdag, n
 from operator_algebra.algebra import FERMION
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigenstates, groundstate
-from operator_algebra.solve.matrix import to_matrix
+from operator_algebra.solve.matrix import expectations, to_matrix
 
 
 def hubbard_chain(sites: int, t: float, u: float):
-    modes = [(i, s) for i in range(sites) for s in ("up", "dn")]
-    H = 0 * cdag(0, "up") * c(0, "up")
+    modes = [(s, i) for i in range(sites) for s in ("up", "dn")]
+    H = 0 * cdag("up", 0) * c("up", 0)
     for i in range(sites - 1):
         for s in ("up", "dn"):
-            H = H - t * (cdag(i, s) * c(i + 1, s) + cdag(i + 1, s) * c(i, s))
+            H = H - t * (cdag(s, i) * c(s, i + 1) + cdag(s, i + 1) * c(s, i))
     for i in range(sites):
-        H = H + u * n(i, "up") * n(i, "dn")
+        H = H + u * n("up", i) * n("dn", i)
     return modes, H
 
 
@@ -44,10 +44,10 @@ def risb_bilayer_impurity():
     for spin in spin_names:
         h0 += V * cdag(spin, 0) * c(spin, 1)
         h0 += V * cdag(spin, 1) * c(spin, 0)
+        h0 -= mu * cdag(spin, 2) * c(spin, 2)
+        h0 -= mu * cdag(spin, 3) * c(spin, 3)
         h0 += bath_offdiag * cdag(spin, 2) * c(spin, 3)
         h0 += bath_offdiag * cdag(spin, 3) * c(spin, 2)
-        h0 -= mu * cdag(spin, 2) * c(spin, 3)
-        h0 -= mu * cdag(spin, 3) * c(spin, 2)
         h0 += hybr_diag * cdag(spin, 0) * c(spin, 2)
         h0 += hybr_diag * cdag(spin, 2) * c(spin, 0)
         h0 += hybr_diag * cdag(spin, 1) * c(spin, 3)
@@ -58,21 +58,24 @@ def risb_bilayer_impurity():
 
 def test_risb_bilayer_impurity():
     modes, h_emb = risb_bilayer_impurity()
-    N = int(len(modes) / 2)
-    Sz = 0
-    basis = enumerate_basis(
-        modes, FERMION, sectors={total_n(modes): N, total_sz(modes): Sz}
-    )
-    basis = enumerate_basis(modes, FERMION, sectors={total_n(modes): N})
+    num_op = total_n(modes)
+    sz_op = total_sz(modes)
+    num_elec_emb = int(len(modes) / 2)
+    sz = 0
+    basis = enumerate_basis(modes, FERMION, sectors={num_op: num_elec_emb, sz_op: sz})
     e0, v0 = groundstate(h_emb, basis)
-    print(e0)
+    n0 = expectations(num_op, v0, basis)
+    sz0 = expectations(sz_op, v0, basis)
     rho_f_expected = np.array([[0.5, -0.1999913941210893], [-0.1999913941210893, 0.5]])
     rho_cf_expected = np.array([[0.42326519677453511, 0], [0, 0.42326519677453511]])
     rho_c_expected = np.array([[0.5, -0.1836332097072352], [-0.1836332097072352, 0.5]])
-    N_expected = 2.0
+    # num_elec_expected = 2.0
     # S2_expected = 0.8247577338845973
 
     e0_expected = -1.7429249197415944
+    assert n0 == pytest.approx(num_elec_emb)
+    assert sz0 == pytest.approx(sz)
+    # FIXME: this is not giving expected, am I constructing h_emb like in risb?
     # assert e0 == pytest.approx(e0_expected, abs=1e-10)
 
 
@@ -85,8 +88,8 @@ def total_n(modes):
 
 def total_sz(modes):
     op = 0 * cdag(*modes[0]) * c(*modes[0])
-    for i, s in modes:
-        op = op + (0.5 if s == "up" else -0.5) * n(i, s)
+    for s, i in modes:
+        op = op + (0.5 if s == "up" else -0.5) * n(s, i)
     return op
 
 

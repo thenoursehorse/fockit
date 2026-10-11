@@ -73,12 +73,15 @@ def expectations(
     op: OpSum,
     states: ComplexArray,
     basis: Basis,
-) -> ComplexArray:
+) -> ComplexArray | complex:
     """Compute ``⟨ψ|op|ψ⟩`` for each row of ``states``.
 
-    ``states`` has shape ``(n, dim)``. Returns shape ``(n,)``.
+    ``states`` has shape ``(dim,)`` for a single state (returns a scalar)
+    or ``(n, dim)`` for a batch (returns shape ``(n,)``).
     """
     op_mat = to_matrix(op, basis)
+    if states.ndim == 1:
+        return complex(states.conj() @ (op_mat @ states))
     op_states = (op_mat @ states.T).T
     return np.asarray(np.sum(states.conj() * op_states, axis=1))
 
