@@ -118,14 +118,6 @@ def _apply_pauli(op: Op, mode_index: int, state: int) -> tuple[complex, int] | N
     bit = 1 << mode_index
     is_up = bool(state & bit)
     kind = op.kind
-    if kind is True:
-        if is_up:
-            return None
-        return 1 + 0j, state | bit
-    if kind is False:
-        if not is_up:
-            return None
-        return 1 + 0j, state ^ bit
     if kind == "x":
         return 1 + 0j, state ^ bit
     if kind == "z":

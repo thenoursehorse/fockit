@@ -26,9 +26,9 @@ class SwapResult:
 
     Notes
     -----
-    For the normal ordering algorithm to terminate, implementations must
-    ensure that the total number of inversions strictly decreases across
-    the replacement terms. Tuples of length 0 or 2 are safe.
+    For the normal ordering algorithm to terminate, each replacement must
+    either shorten the pair (length 0 or 1) or reduce the number of
+    inversions (length 2).
 
     """
 
@@ -282,38 +282,35 @@ class BosonRules:
         return "BosonRules()"
 
 
-_PAULI_KIND_ORDER: dict[Hashable, int] = {"x": 0, "y": 1, "z": 2}
+_PAULI_PRODUCT: dict[tuple[Hashable, Hashable], tuple[complex, Hashable]] = {
+    ("x", "y"): (1j, "z"),
+    ("y", "x"): (-1j, "z"),
+    ("y", "z"): (1j, "x"),
+    ("z", "y"): (-1j, "x"),
+    ("z", "x"): (1j, "y"),
+    ("x", "z"): (-1j, "y"),
+}
 
 
 class PauliRules:
-    """Pauli algebra.
-
-    Anticommutes on the same site, commutes across sites.
-    """
+    """Pauli algebra: σ_a σ_b = δ_ab + i ε_abc σ_c on a site, commute across sites."""
 
     def swap(self, left: Op, right: Op) -> SwapResult:
-        """Apply Pauli swap rules.
-
-        Same site, same kind: σ_i² = I → identity.
-        Same site, different kind: {σ_i, σ_j} = 0 → anticommute.
-        Different site: commute.
-        """
+        """Commute across sites, multiply out on the same site."""
         if left.mode != right.mode:
             return SwapResult(terms=((+1, (right, left)),))
         if left.kind == right.kind:
             return SwapResult(terms=((1, ()),))
-        return SwapResult(terms=((-1, (right, left)),))
+        from operator_algebra.operators import Op as _Op
+
+        phase, kind = _PAULI_PRODUCT[(left.kind, right.kind)]
+        return SwapResult(terms=((phase, (_Op(left.mode, kind),)),))
 
     def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
-        """Check Pauli normal order.
-
-        Uses mode order, then ``x < y < z`` within a site.
-        """
-        if left.mode != right.mode:
-            return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
-        if left.kind == right.kind:
-            return False  # σ_i σ_i must reduce to identity
-        return _PAULI_KIND_ORDER[left.kind] < _PAULI_KIND_ORDER[right.kind]
+        """Sites in mode order, at most one operator per site."""
+        if left.mode == right.mode:
+            return False
+        return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
 
     def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:  # noqa: ARG002
         """Return False; no Pauli monomial is identically zero."""

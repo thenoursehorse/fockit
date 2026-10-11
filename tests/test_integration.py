@@ -15,6 +15,8 @@ from operator_algebra import (
     sigma_x,
     sigma_y,
     sigma_z,
+    sm,
+    sp,
     zero,
 )
 from operator_algebra.algebra import PAULI
@@ -85,10 +87,48 @@ def test_scalar_addition_in_hamiltonian():
 
 
 class TestPauliIntegration:
-    def test_sigma_squared_is_identity(self):
-        for sigma in (sigma_x, sigma_y, sigma_z):
-            result = normal_order(sigma(0) * sigma(0))
-            assert result == identity(PAULI)
+    def test_pauli_product_rule(self):
+        x, y, z = sigma_x(0), sigma_y(0), sigma_z(0)
+        one = identity(PAULI)
+        cases = [
+            (x, x, one),
+            (y, y, one),
+            (z, z, one),
+            (x, y, 1j * z),
+            (y, z, 1j * x),
+            (z, x, 1j * y),
+            (y, x, -1j * z),
+            (z, y, -1j * x),
+            (x, z, -1j * y),
+        ]
+        for a, b, expected in cases:
+            assert normal_order(a * b) == expected
+        assert normal_order(x * y * z) == 1j * one
+
+    def test_sigma_plus_minus_ladder_relations(self):
+        z = sigma_z(0)
+        assert normal_order(sp(0) * sp(0)) == zero(PAULI)
+        assert normal_order(sm(0) * sm(0)) == zero(PAULI)
+        assert normal_order(commutator(sp(0), sm(0))) == z
+        assert normal_order(commutator(z, sp(0))) == 2 * sp(0)
+        assert normal_order(commutator(z, sm(0))) == -2 * sm(0)
+        assert hc(sp(0)) == sm(0)
+
+    def test_heisenberg_bond_in_ladder_form(self):
+        zz = sigma_z(0) * sigma_z(1)
+        xyz = sigma_x(0) * sigma_x(1) + sigma_y(0) * sigma_y(1) + zz
+        ladder = 2 * (sp(0) * sm(1) + sm(0) * sp(1)) + zz
+        assert normal_order(xyz) == normal_order(ladder)
+
+    def test_heisenberg_conserves_total_sz(self):
+        H = sum(
+            sigma_x(i) * sigma_x(i + 1)
+            + sigma_y(i) * sigma_y(i + 1)
+            + sigma_z(i) * sigma_z(i + 1)
+            for i in range(2)
+        )
+        Sz = sum(sigma_z(i) for i in range(3))
+        assert normal_order(commutator(H, Sz)) == zero(PAULI)
 
     def test_anticommutator_same_gives_two_identity(self):
         for sigma in (sigma_x, sigma_y, sigma_z):

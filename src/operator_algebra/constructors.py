@@ -166,7 +166,7 @@ def nb(*labels: Hashable) -> OpSum:
 
 
 def sp(*labels: Hashable) -> OpSum:
-    """Pauli raising operator σ+.
+    """Pauli raising operator σ+ = (σx + iσy)/2.
 
     Parameters
     ----------
@@ -178,11 +178,11 @@ def sp(*labels: Hashable) -> OpSum:
     OpSum
 
     """
-    return create(*labels, rules=PAULI)
+    return 0.5 * sigma_x(*labels) + 0.5j * sigma_y(*labels)
 
 
 def sm(*labels: Hashable) -> OpSum:
-    """Pauli lowering operator σ-.
+    """Pauli lowering operator σ- = (σx - iσy)/2.
 
     Parameters
     ----------
@@ -194,7 +194,7 @@ def sm(*labels: Hashable) -> OpSum:
     OpSum
 
     """
-    return annihilate(*labels, rules=PAULI)
+    return 0.5 * sigma_x(*labels) - 0.5j * sigma_y(*labels)
 
 
 def sigma_plus(*labels: Hashable) -> OpSum:
