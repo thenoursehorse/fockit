@@ -22,6 +22,7 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     Returns
     -------
     scipy.sparse.csr_matrix
+        Real if every matrix element is real, complex otherwise.
 
     """
     check_modes(op, basis.mode_index)
@@ -45,6 +46,8 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
         shape=(basis.dim, basis.dim),
     ).tocsr()
     mat.sum_duplicates()
+    if not np.any(mat.data.imag):
+        return mat.real
     return mat
 
 

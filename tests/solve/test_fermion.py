@@ -13,7 +13,7 @@ import scipy.linalg
 
 from operator_algebra import c, cdag, hc, n, normal_order
 from operator_algebra.solve.basis import enumerate_basis
-from operator_algebra.solve.diagonalize import eigenstates, groundstate
+from operator_algebra.solve.diagonalize import eigenstates, eigh_full, groundstate
 from operator_algebra.solve.matrix import expectations, to_matrix
 from operator_algebra.solve.spaces import FermionSpace
 
@@ -250,3 +250,20 @@ def test_normal_ordered_h_squared_matches_matrix_square():
     h = to_matrix(H, basis).toarray()
     h2 = to_matrix(normal_order(H * H), basis).toarray()
     assert h2 == pytest.approx(h @ h)
+
+
+def test_flux_through_ring_shifts_single_particle_levels():
+    sites, t, flux = 5, 1.0, 0.7
+    phase = np.exp(1j * flux / sites)
+    H = -t * sum(
+        phase * cdag((i + 1) % sites) * c(i)
+        + np.conj(phase) * cdag(i) * c((i + 1) % sites)
+        for i in range(sites)
+    )
+    basis = enumerate_basis(
+        {FermionSpace(): range(sites)}, sectors={sum(n(i) for i in range(sites)): 1}
+    )
+    energies, _ = eigh_full(to_matrix(H, basis))
+    k = np.arange(sites)
+    expected = np.sort(-2 * t * np.cos((2 * np.pi * k + flux) / sites))
+    assert energies == pytest.approx(expected)
