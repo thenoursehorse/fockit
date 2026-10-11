@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -16,8 +17,12 @@ from operator_algebra.operators import Monomial, OpSum
 from operator_algebra.solve.spaces import ComplexArray, IntArray, LocalSpace
 
 _CHUNK = 2**20
+_LARGE_PRODUCT = 2**22
+_TOL = 1e-9
 
 type Levels = NDArray[np.unsignedinteger[Any]]
+type FloatArray = NDArray[np.float64]
+type ChargeTables = tuple[list[FloatArray], float]
 
 
 @dataclass
@@ -72,7 +77,11 @@ def enumerate_basis(
         Labels are put in canonical order within each space.
     sectors : Mapping[OpSum, complex], optional
         Quantum-number operators mapped to their target eigenvalues. Each
-        operator must be diagonal in the level basis.
+        operator must be diagonal in the level basis. Sums of single-mode
+        terms (particle number, Sz, ...) are used to build only the states
+        in the sector. Other operators, and ``predicate``, filter those
+        states afterwards, so without a single-mode sector every product
+        state is built first, which can take a lot of memory.
     predicate : Callable, optional
         Extra filter applied after sector restriction. Receives an array of
         states (one row of levels each) and returns which to keep.
@@ -91,9 +100,15 @@ def enumerate_basis(
     if len(mode_index) < len(modes):
         msg = "A mode is listed more than once."
         raise ValueError(msg)
-    sectors = sectors or {}
-    for qn_op in sectors:
+    additive: list[tuple[ChargeTables, float]] = []
+    others: dict[OpSum, complex] = {}
+    for qn_op, target in (sectors or {}).items():
         check_modes(qn_op, mode_index)
+        tables = _charge_tables(qn_op, mode_index, mode_spaces, starts)
+        if tables is None:
+            others[qn_op] = target
+        else:
+            additive.append((tables, complex(target).real))
 
     dims = [s.dim for s in mode_spaces]
     total = math.prod(dims)
@@ -101,22 +116,27 @@ def enumerate_basis(
         msg = "The full product space has too many states to index."
         raise ValueError(msg)
     strides = np.array([math.prod(dims[k + 1 :]) for k in range(len(dims))])
-    dtype = np.min_scalar_type(max(dims) - 1)
+    if not additive and (others or predicate) and total > _LARGE_PRODUCT:
+        msg = (
+            f"Building all {total:,} product states before filtering. Adding a "
+            "sector such as particle number builds only the states in it."
+        )
+        warnings.warn(msg, UserWarning, stacklevel=2)
 
-    # walk the full product space in chunks so memory stays bounded
-    kept = []
-    for first in range(0, total, _CHUNK):
-        codes = np.arange(first, min(first + _CHUNK, total))
-        levels = np.stack(np.unravel_index(codes, dims), axis=1).astype(dtype)
-        keep = np.ones(len(levels), dtype=bool)
-        for qn_op, target in sectors.items():
-            value = _diagonal_values(qn_op, levels, mode_index, mode_spaces, starts)
-            keep &= np.isclose(value, target, rtol=1e-9, atol=1e-10)
-        if predicate is not None:
-            keep &= predicate(levels)
-        kept.append(levels[keep])
+    levels = _generate(dims, additive)
+    if others or predicate is not None:
+        kept = [levels[:0]]
+        for first in range(0, len(levels), _CHUNK):
+            chunk = levels[first : first + _CHUNK]
+            keep = np.ones(len(chunk), dtype=bool)
+            for qn_op, target in others.items():
+                value = _diagonal_values(qn_op, chunk, mode_index, mode_spaces, starts)
+                keep &= np.isclose(value, target, rtol=_TOL, atol=_TOL)
+            if predicate is not None:
+                keep &= predicate(chunk)
+            kept.append(chunk[keep])
+        levels = np.concatenate(kept)
 
-    levels = np.concatenate(kept)
     return Basis(
         modes=tuple(modes),
         spaces=tuple(mode_spaces),
@@ -192,6 +212,88 @@ def check_modes(
                     f"{single_op.rules!r}, which is not in the basis."
                 )
                 raise ValueError(msg)
+
+
+def _charge_tables(
+    op: OpSum,
+    mode_index: Mapping[tuple[AlgebraRules, Hashable], int],
+    spaces: Sequence[LocalSpace],
+    starts: Sequence[int],
+) -> ChargeTables | None:
+    """Split ``op`` into a value per level of each mode, plus a constant.
+
+    Returns None if a term acts on more than one mode or a value is not real.
+    """
+    tables = [np.zeros(s.dim) for s in spaces]
+    constant = 0.0
+    for mono, coeff in op.terms.items():
+        value = as_complex(coeff)
+        touched = {mode_index[(o.rules, o.mode)] for o in mono.ops}
+        if not touched:
+            if value.imag:
+                return None
+            constant += value.real
+            continue
+        if len(touched) > 1:
+            return None
+        (k,) = touched
+        # one row per level of mode k; earlier modes empty, so no string phase
+        levels = np.zeros((spaces[k].dim, len(spaces)), dtype=np.uint8)
+        levels[:, k] = np.arange(spaces[k].dim)
+        rows, new, amp = apply_monomial(mono, levels, mode_index, spaces, starts)
+        if np.any(new != levels[rows]):
+            msg = (
+                "Sector operator is not diagonal in the level basis: it "
+                f"changes state {levels[rows][0].tolist()}."
+            )
+            raise ValueError(msg)
+        contribution = value * amp
+        if np.any(contribution.imag):
+            return None
+        tables[k][rows] += contribution.real
+    return tables, constant
+
+
+def _generate(
+    dims: Sequence[int], additive: Sequence[tuple[ChargeTables, float]]
+) -> Levels:
+    """Build the product states whose additive charges hit their targets.
+
+    Modes are added one at a time, dropping prefixes whose charge can no
+    longer reach a target given what the remaining modes can add. Rows come
+    out in product order.
+    """
+    dtype = np.min_scalar_type(max(dims) - 1)
+    tables = [t for (t, _), _ in additive]
+    targets = [target for _, target in additive]
+    charges = [np.full(1, constant) for (_, constant), _ in additive]
+    # least and most the modes from k on can still add, per sector
+    lows = [_suffix_sums([t.min() for t in ts]) for ts in tables]
+    highs = [_suffix_sums([t.max() for t in ts]) for ts in tables]
+
+    levels = np.zeros((1, 0), dtype=dtype)
+    for k, dim in enumerate(dims):
+        levels = np.hstack(
+            [
+                np.repeat(levels, dim, axis=0),
+                np.tile(np.arange(dim, dtype=dtype), len(levels))[:, None],
+            ]
+        )
+        keep = np.ones(len(levels), dtype=bool)
+        for i in range(len(additive)):
+            charges[i] = np.repeat(charges[i], dim) + np.tile(
+                tables[i][k], len(charges[i])
+            )
+            keep &= charges[i] + lows[i][k + 1] <= targets[i] + _TOL
+            keep &= charges[i] + highs[i][k + 1] >= targets[i] - _TOL
+        levels = levels[keep]
+        charges = [q[keep] for q in charges]
+    return levels
+
+
+def _suffix_sums(values: Sequence[float]) -> FloatArray:
+    """``out[k] = sum(values[k:])``, with ``out[len(values)] = 0``."""
+    return np.append(np.cumsum(values[::-1])[::-1], 0.0)
 
 
 def _diagonal_values(

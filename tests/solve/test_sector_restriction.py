@@ -161,3 +161,12 @@ class TestPauliSectors:
             {"predicate": lambda lv, p=p: lv.sum(axis=1) % 2 == p} for p in (0, 1)
         ]
         assert_sectors_rebuild_spectrum(H, {PauliSpace(): range(self.sites)}, sectors)
+
+
+def test_off_diagonal_sector_operators_are_rejected():
+    for space, labels, op in [
+        (PauliSpace(), range(2), sigma_x(0)),
+        (FermionSpace(), range(2), cdag(0) * c(1) + cdag(1) * c(0)),
+    ]:
+        with pytest.raises(ValueError, match="not diagonal"):
+            enumerate_basis({space: labels}, sectors={op: 1})
