@@ -3,13 +3,29 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from operator_algebra._types import Coefficient
 
 if TYPE_CHECKING:
     from operator_algebra.operators import Op
+
+
+class Ladder(StrEnum):
+    """Operator kinds for fermions and bosons."""
+
+    CREATE = "+"
+    ANNIHILATE = "-"
+
+
+class Pauli(StrEnum):
+    """Operator kinds for Pauli matrices."""
+
+    X = "x"
+    Y = "y"
+    Z = "z"
 
 
 @dataclass(frozen=True)
@@ -38,6 +54,9 @@ class SwapResult:
 @runtime_checkable
 class AlgebraRules(Protocol):
     """Protocol defining the (anti)commutation relations for an algebra.
+
+    Methods only ever receive operators of this algebra. Operators of
+    different algebras commute.
 
     Notes
     -----
@@ -69,20 +88,6 @@ class AlgebraRules(Protocol):
         ----------
         left : Op
         right : Op
-
-        Returns
-        -------
-        bool
-
-        """
-        ...
-
-    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:
-        """Return True if this monomial is identically zero.
-
-        Parameters
-        ----------
-        ops : tuple[Op, ...]
 
         Returns
         -------
@@ -188,8 +193,14 @@ class FermionRules:
 
     def swap(self, left: Op, right: Op) -> SwapResult:
         """Apply fermion swap rules."""
+        if left == right:
+            return SwapResult(terms=())  # c c = 0
         swapped = ((-1, (right, left)),)
-        if left.kind is False and right.kind is True and left.mode == right.mode:
+        if (
+            left.kind is Ladder.ANNIHILATE
+            and right.kind is Ladder.CREATE
+            and left.mode == right.mode
+        ):
             return SwapResult(terms=((1, ()), *swapped))
         return SwapResult(terms=swapped)
 
@@ -198,30 +209,27 @@ class FermionRules:
 
         Creators left, canonical mode order within blocks.
         """
-        if left.kind is True and right.kind is False:
+        if left == right:
+            return False
+        if left.kind is Ladder.CREATE and right.kind is Ladder.ANNIHILATE:
             return True
-        if left.kind is False and right.kind is True:
+        if left.kind is Ladder.ANNIHILATE and right.kind is Ladder.CREATE:
             return False
         return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
 
-    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:
-        """Return True if any adjacent identical ops exist."""
-        return any(ops[i] == ops[i + 1] for i in range(len(ops) - 1))
-
     def dagger(self, op: Op) -> Op:
         """Flip creation ↔ annihilation."""
-        from operator_algebra.operators import Op as _Op
-
-        return _Op(op.mode, op.kind is False)
+        flipped = Ladder.CREATE if op.kind is Ladder.ANNIHILATE else Ladder.ANNIHILATE
+        return replace(op, kind=flipped)
 
     def format_op_text(self, op: Op) -> str:
         """Format as ``c†(k)`` or ``c(k)``."""
-        symbol = "c†" if op.kind is True else "c"
+        symbol = "c†" if op.kind is Ladder.CREATE else "c"
         return f"{symbol}({_format_mode(op.mode)})"
 
     def format_op_latex(self, op: Op) -> str:
         r"""Format as ``c^{\dagger}_{k}`` or ``c_{k}``."""
-        symbol = r"c^{\dagger}" if op.kind is True else "c"
+        symbol = r"c^{\dagger}" if op.kind is Ladder.CREATE else "c"
         return f"{symbol}_{{{_format_mode_latex(op.mode)}}}"
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
@@ -240,36 +248,35 @@ class BosonRules:
     def swap(self, left: Op, right: Op) -> SwapResult:
         """Apply boson swap rules."""
         swapped = ((+1, (right, left)),)
-        if left.kind is False and right.kind is True and left.mode == right.mode:
+        if (
+            left.kind is Ladder.ANNIHILATE
+            and right.kind is Ladder.CREATE
+            and left.mode == right.mode
+        ):
             return SwapResult(terms=((1, ()), *swapped))
         return SwapResult(terms=swapped)
 
     def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
         """Check normal ordering for bosonic operators."""
-        if left.kind is True and right.kind is False:
+        if left.kind is Ladder.CREATE and right.kind is Ladder.ANNIHILATE:
             return True
-        if left.kind is False and right.kind is True:
+        if left.kind is Ladder.ANNIHILATE and right.kind is Ladder.CREATE:
             return False
         return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
 
-    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:  # noqa: ARG002
-        """Return False; bosons never square to zero."""
-        return False
-
     def dagger(self, op: Op) -> Op:
         """Flip creation ↔ annihilation."""
-        from operator_algebra.operators import Op as _Op
-
-        return _Op(op.mode, op.kind is False)
+        flipped = Ladder.CREATE if op.kind is Ladder.ANNIHILATE else Ladder.ANNIHILATE
+        return replace(op, kind=flipped)
 
     def format_op_text(self, op: Op) -> str:
         """Format as ``b†(k)`` or ``b(k)``."""
-        symbol = "b†" if op.kind is True else "b"
+        symbol = "b†" if op.kind is Ladder.CREATE else "b"
         return f"{symbol}({_format_mode(op.mode)})"
 
     def format_op_latex(self, op: Op) -> str:
         r"""Format as ``b^{\dagger}_{k}`` or ``b_{k}``."""
-        symbol = r"b^{\dagger}" if op.kind is True else "b"
+        symbol = r"b^{\dagger}" if op.kind is Ladder.CREATE else "b"
         return f"{symbol}_{{{_format_mode_latex(op.mode)}}}"
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
@@ -283,12 +290,12 @@ class BosonRules:
 
 
 _PAULI_PRODUCT: dict[tuple[Hashable, Hashable], tuple[complex, Hashable]] = {
-    ("x", "y"): (1j, "z"),
-    ("y", "x"): (-1j, "z"),
-    ("y", "z"): (1j, "x"),
-    ("z", "y"): (-1j, "x"),
-    ("z", "x"): (1j, "y"),
-    ("x", "z"): (-1j, "y"),
+    (Pauli.X, Pauli.Y): (1j, Pauli.Z),
+    (Pauli.Y, Pauli.X): (-1j, Pauli.Z),
+    (Pauli.Y, Pauli.Z): (1j, Pauli.X),
+    (Pauli.Z, Pauli.Y): (-1j, Pauli.X),
+    (Pauli.Z, Pauli.X): (1j, Pauli.Y),
+    (Pauli.X, Pauli.Z): (-1j, Pauli.Y),
 }
 
 
@@ -301,20 +308,14 @@ class PauliRules:
             return SwapResult(terms=((+1, (right, left)),))
         if left.kind == right.kind:
             return SwapResult(terms=((1, ()),))
-        from operator_algebra.operators import Op as _Op
-
         phase, kind = _PAULI_PRODUCT[(left.kind, right.kind)]
-        return SwapResult(terms=((phase, (_Op(left.mode, kind),)),))
+        return SwapResult(terms=((phase, (replace(left, kind=kind),)),))
 
     def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
         """Sites in mode order, at most one operator per site."""
         if left.mode == right.mode:
             return False
         return _mode_sort_key(left.mode) <= _mode_sort_key(right.mode)
-
-    def is_zero_monomial(self, ops: tuple[Op, ...]) -> bool:  # noqa: ARG002
-        """Return False; no Pauli monomial is identically zero."""
-        return False
 
     def dagger(self, op: Op) -> Op:
         """Pauli operators are Hermitian: dagger is identity."""

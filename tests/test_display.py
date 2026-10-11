@@ -32,11 +32,8 @@ def test_custom_rules_display():
         def is_normal_ordered_pair(self, _left: Op, _right: Op) -> bool:
             return True
 
-        def is_zero_monomial(self, _ops: tuple[Op, ...]) -> bool:
-            return False
-
         def dagger(self, op: Op) -> Op:
-            return Op(op.mode, not op.kind)
+            return Op(op.mode, not op.kind, self)
 
         def format_op_text(self, op: Op) -> str:
             symbol = "a†" if op.kind else "a"
@@ -52,7 +49,7 @@ def test_custom_rules_display():
         def __hash__(self) -> int:
             return hash(type(self))
 
-    op = OpSum({Monomial((Op(1, True),)): 1}, rules=CustomRules())
+    op = OpSum({Monomial((Op(1, True, CustomRules()),)): 1})
     s = repr(op)
     assert "a†(1)" in s
 

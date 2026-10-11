@@ -19,10 +19,6 @@ def _monomial_sort_key(mono: Monomial) -> tuple[object, ...]:
 
 def _kind_sort_key(kind: Hashable) -> tuple[object, ...]:
     """Sort key for operator kind within display ordering."""
-    if kind is True:
-        return (0,)
-    if kind is False:
-        return (1,)
     if isinstance(kind, str):
         return (2, kind)
     return (3, repr(kind))
@@ -62,7 +58,9 @@ def to_text(op: OpSum) -> str:
             parts.append(str(coeff))
             continue
 
-        ops_str = " ".join(op.rules.format_op_text(ladder_op) for ladder_op in mono.ops)
+        ops_str = " ".join(
+            ladder_op.rules.format_op_text(ladder_op) for ladder_op in mono.ops
+        )
 
         coeff_str = _format_coeff(coeff)
         if coeff_str == "":
@@ -110,7 +108,7 @@ def to_latex(op: OpSum) -> str:
             continue
 
         ops_str = " ".join(
-            op.rules.format_op_latex(ladder_op) for ladder_op in mono.ops
+            ladder_op.rules.format_op_latex(ladder_op) for ladder_op in mono.ops
         )
 
         coeff_str = _format_coeff(coeff)

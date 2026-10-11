@@ -37,7 +37,7 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
             except TypeError:
                 pass
         kept[mono] = coeff
-    return OpSum(kept, rules=op.rules)
+    return OpSum(kept)
 
 
 def simplify_coeffs(op: OpSum) -> OpSum:
@@ -63,4 +63,4 @@ def simplify_coeffs(op: OpSum) -> OpSum:
     new_terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
         new_terms[mono] = as_coefficient(simplify(coeff))
-    return OpSum(new_terms, rules=op.rules)
+    return OpSum(new_terms)

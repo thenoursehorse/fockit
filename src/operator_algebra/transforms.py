@@ -2,10 +2,11 @@
 
 import warnings
 from collections.abc import Hashable
+from dataclasses import replace
 
 from operator_algebra._types import Coefficient, as_coefficient
 from operator_algebra.normal_order import normal_order
-from operator_algebra.operators import Monomial, Op, OpSum
+from operator_algebra.operators import Monomial, OpSum
 
 
 def _conjugate(coeff: Coefficient) -> Coefficient:
@@ -60,9 +61,11 @@ def hc(op: OpSum) -> OpSum:
     """
     new_terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
-        new_ops = tuple(op.rules.dagger(single_op) for single_op in reversed(mono.ops))
+        new_ops = tuple(
+            single_op.rules.dagger(single_op) for single_op in reversed(mono.ops)
+        )
         new_terms[Monomial(new_ops)] = _conjugate(coeff)
-    return OpSum(new_terms, rules=op.rules)
+    return OpSum(new_terms)
 
 
 def commutator(a: OpSum, b: OpSum) -> OpSum:
@@ -133,7 +136,7 @@ def substitute_modes(
     new_terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
         new_ops = tuple(
-            Op(mapping.get(single_op.mode, single_op.mode), single_op.kind)
+            replace(single_op, mode=mapping.get(single_op.mode, single_op.mode))
             for single_op in mono.ops
         )
         new_mono = Monomial(new_ops)
@@ -142,7 +145,7 @@ def substitute_modes(
         else:
             new_terms[new_mono] = coeff
 
-    result = OpSum(new_terms, rules=op.rules)
+    result = OpSum(new_terms)
     if reorder:
         result = normal_order(result)
     return result

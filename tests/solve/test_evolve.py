@@ -47,7 +47,7 @@ def heisenberg_chain(L: int):
 def test_free_fermion_single_particle_matches_analytic():
     L, t_hop = 4, 1.3
     labels, H = free_hopping_chain(L, t_hop)
-    basis = enumerate_basis(labels, FermionSpace())
+    basis = enumerate_basis({FermionSpace(): labels})
     h = -t_hop * (np.diag(np.ones(L - 1), 1) + np.diag(np.ones(L - 1), -1))
 
     psi0 = np.zeros(basis.dim, dtype=complex)
@@ -67,7 +67,7 @@ def test_free_fermion_single_particle_matches_analytic():
 
 def test_evolvers_agree_on_heisenberg():
     labels, H = heisenberg_chain(4)
-    basis = enumerate_basis(labels, PauliSpace())
+    basis = enumerate_basis({PauliSpace(): labels})
     rng = np.random.default_rng(0)
     psi = rng.standard_normal(basis.dim) + 1j * rng.standard_normal(basis.dim)
     psi /= np.linalg.norm(psi)
@@ -86,7 +86,7 @@ def test_evolvers_agree_on_heisenberg():
 )
 def test_evolver_unitary(evolver):
     labels, H = heisenberg_chain(3)
-    basis = enumerate_basis(labels, PauliSpace())
+    basis = enumerate_basis({PauliSpace(): labels})
     rng = np.random.default_rng(1)
     psi = rng.standard_normal(basis.dim) + 1j * rng.standard_normal(basis.dim)
     psi /= np.linalg.norm(psi)
@@ -130,7 +130,7 @@ def test_suzuki_trotter_sequence_merges_adjacent():
 def test_trotter_evolve_matches_exact(order, tol):
     labels, H = heisenberg_chain(4)
     frags = heisenberg_fragments(4)
-    basis = enumerate_basis(labels, PauliSpace())
+    basis = enumerate_basis({PauliSpace(): labels})
     rng = np.random.default_rng(0)
     psi = rng.standard_normal(basis.dim) + 1j * rng.standard_normal(basis.dim)
     psi /= np.linalg.norm(psi)
@@ -147,7 +147,7 @@ def test_trotter_evolve_matches_exact(order, tol):
 def test_trotter_evolve_imaginary_time_matches_tpq():
     labels, H = heisenberg_chain(3)
     frags = heisenberg_fragments(3)
-    basis = enumerate_basis(labels, PauliSpace())
+    basis = enumerate_basis({PauliSpace(): labels})
     H_mat = to_matrix(H, basis)
 
     rng = np.random.default_rng(0)
@@ -166,7 +166,7 @@ def test_trotter_evolve_imaginary_time_matches_tpq():
 
 def test_matrix_elements_and_boltzmann_reproduce_thermal_expectation():
     labels, H = heisenberg_chain(3)
-    basis = enumerate_basis(labels, PauliSpace())
+    basis = enumerate_basis({PauliSpace(): labels})
     E, V = eigh_full(H, basis)
     op = sigma_z(0) * sigma_z(1)
     beta = 0.8
@@ -181,7 +181,7 @@ def test_matrix_elements_and_boltzmann_reproduce_thermal_expectation():
 
 def test_tpq_state_averages_to_thermal_expectation():
     labels, H = heisenberg_chain(2)
-    basis = enumerate_basis(labels, PauliSpace())
+    basis = enumerate_basis({PauliSpace(): labels})
     E, V = eigh_full(H, basis)
     op = sigma_z(0) * sigma_z(1)
     op_mat = to_matrix(op, basis)
@@ -201,7 +201,7 @@ def test_tpq_state_averages_to_thermal_expectation():
 
 def test_lanczos_eigenpairs_compose_to_ftlm():
     labels, H = heisenberg_chain(3)
-    basis = enumerate_basis(labels, PauliSpace())
+    basis = enumerate_basis({PauliSpace(): labels})
     E, V = eigh_full(H, basis)
     op = sigma_z(0) * sigma_z(1)
     op_mat = to_matrix(op, basis)

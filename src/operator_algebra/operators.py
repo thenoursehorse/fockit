@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import operator as py_operator
 from collections.abc import Hashable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 
 from operator_algebra._types import Coefficient, as_coefficient
-from operator_algebra.algebra import FERMION, AlgebraRules
+from operator_algebra.algebra import AlgebraRules
 
 _POW_MSG = "Exponent must be a non-negative integer, got {}"
 
@@ -22,17 +22,36 @@ class Op:
     mode : Hashable
         Any hashable Python object identifying the single-particle state.
     kind : Hashable
-        Operator variant within the mode. ``True``/``False`` for ladder
-        (creation/annihilation), ``"x"``/``"y"``/``"z"`` for Pauli, etc.
+        Which operator of the algebra, e.g. ``Ladder.CREATE`` or
+        ``Pauli.X``.
+    rules : AlgebraRules
+        Algebra the operator belongs to.
 
     """
 
     mode: Hashable
     kind: Hashable
+    rules: AlgebraRules
+    _hash: int = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        """Compute the hash once; the operator is frozen so it never changes.
+
+        The algebra is hashed by its type. Equal rules have equal types, so
+        this agrees with ``__eq__``, and hashing a type runs in C instead of
+        the rules' own Python ``__hash__``.
+        """
+        object.__setattr__(
+            self, "_hash", hash((self.mode, self.kind, type(self.rules)))
+        )
+
+    def __hash__(self) -> int:
+        """Return the hash computed at creation."""
+        return self._hash
 
     def __repr__(self) -> str:
-        """Return a generic representation like ``Op(k, True)``."""
-        return f"Op({format_mode(self.mode)}, {self.kind!r})"
+        """Show mode, kind and algebra, e.g. ``Op(0, <Ladder.CREATE: '+'>, ...)``."""
+        return f"Op({format_mode(self.mode)}, {self.kind!r}, {self.rules!r})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,17 +66,19 @@ class Monomial:
     """
 
     ops: tuple[Op, ...]
+    _hash: int = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        """Compute the hash once; tuples don't cache their own hash."""
+        object.__setattr__(self, "_hash", hash(self.ops))
 
     def __len__(self) -> int:
         """Return the number of ladder operators in the product."""
         return len(self.ops)
 
     def __hash__(self) -> int:
-        """Hash by the operator tuple.
-
-        Monomials with the same operators in the same order are identical.
-        """
-        return hash(self.ops)
+        """Return the hash of the operator tuple, computed at creation."""
+        return self._hash
 
     def __eq__(self, other: object) -> bool:
         """Compare by operator sequence.
@@ -82,17 +103,10 @@ class OpSum:
     ----------
     terms : dict[Monomial, Coefficient] | None
         Mapping from monomials to coefficients.
-    rules : AlgebraRules | None
-        Algebra rules. Default: ``FERMION``.
 
     """
 
-    def __init__(
-        self,
-        terms: dict[Monomial, Coefficient] | None = None,
-        rules: AlgebraRules | None = None,
-    ) -> None:
-        self.rules: AlgebraRules = rules if rules is not None else FERMION
+    def __init__(self, terms: dict[Monomial, Coefficient] | None = None) -> None:
         if terms is None:
             self._terms: dict[Monomial, Coefficient] = {}
         else:
@@ -110,18 +124,15 @@ class OpSum:
     def __add__(self, other: object) -> OpSum:
         """Merge terms from both sums, or promote a scalar via identity."""
         if isinstance(other, OpSum):
-            if not rules_compatible(self.rules, other.rules):
-                msg = f"Cannot add OpSum with {self.rules} and {other.rules}"
-                raise ValueError(msg)
             merged: dict[Monomial, Coefficient] = dict(self._terms)
             for mono, coeff in other._terms.items():
                 if mono in merged:
                     merged[mono] = as_coefficient(merged[mono] + coeff)
                 else:
                     merged[mono] = coeff
-            return OpSum(merged, rules=self.rules)
+            return OpSum(merged)
         if is_scalar(other):
-            return self + identity(self.rules) * other
+            return self + identity() * other
         return NotImplemented
 
     def __radd__(self, other: object) -> OpSum:
@@ -135,7 +146,7 @@ class OpSum:
         if isinstance(other, OpSum):
             return self + (-other)
         if is_scalar(other):
-            return self - identity(self.rules) * other
+            return self - identity() * other
         return NotImplemented
 
     def __rsub__(self, other: object) -> OpSum:
@@ -146,17 +157,11 @@ class OpSum:
 
     def __neg__(self) -> OpSum:
         """Negate all coefficients."""
-        return OpSum(
-            {m: as_coefficient(-c) for m, c in self._terms.items()},
-            rules=self.rules,
-        )
+        return OpSum({m: as_coefficient(-c) for m, c in self._terms.items()})
 
     def __mul__(self, other: object) -> OpSum:
         """Distribute over terms; monomial products concatenate ops."""
         if isinstance(other, OpSum):
-            if not rules_compatible(self.rules, other.rules):
-                msg = f"Cannot multiply OpSum with {self.rules} and {other.rules}"
-                raise ValueError(msg)
             result: dict[Monomial, Coefficient] = {}
             for m1, c1 in self._terms.items():
                 for m2, c2 in other._terms.items():
@@ -166,14 +171,13 @@ class OpSum:
                         result[new_mono] = as_coefficient(result[new_mono] + new_coeff)
                     else:
                         result[new_mono] = new_coeff
-            return OpSum(result, rules=self.rules)
+            return OpSum(result)
         if is_scalar(other):
             return OpSum(
                 {
                     m: as_coefficient(py_operator.mul(c, other))
                     for m, c in self._terms.items()
-                },
-                rules=self.rules,
+                }
             )
         return NotImplemented
 
@@ -184,8 +188,7 @@ class OpSum:
                 {
                     m: as_coefficient(py_operator.mul(other, c))
                     for m, c in self._terms.items()
-                },
-                rules=self.rules,
+                }
             )
         return NotImplemented
 
@@ -212,7 +215,7 @@ class OpSum:
         if n < 0:
             raise ValueError(_POW_MSG.format(n))
         if n == 0:
-            return identity(self.rules)
+            return identity()
         result = self
         for _ in range(n - 1):
             result = result * self
@@ -293,51 +296,23 @@ def is_scalar(obj: object) -> bool:
     return hasattr(obj, "__mul__") and hasattr(obj, "__add__")
 
 
-def rules_compatible(a: AlgebraRules, b: AlgebraRules) -> bool:
-    """Check if two AlgebraRules instances are compatible.
-
-    Parameters
-    ----------
-    a : AlgebraRules
-    b : AlgebraRules
-
-    Returns
-    -------
-    bool
-
-    """
-    if a == b:
-        return True
-    return type(a) is type(b)
-
-
-def identity(rules: AlgebraRules = FERMION) -> OpSum:
+def identity() -> OpSum:
     """Return the identity operator (empty product with coefficient 1).
 
-    Parameters
-    ----------
-    rules : AlgebraRules, optional
-        Algebra rules. Default: ``FERMION``.
-
     Returns
     -------
     OpSum
 
     """
-    return OpSum({Monomial(()): 1}, rules=rules)
+    return OpSum({Monomial(()): 1})
 
 
-def zero(rules: AlgebraRules = FERMION) -> OpSum:
+def zero() -> OpSum:
     """Return the zero operator (empty sum).
 
-    Parameters
-    ----------
-    rules : AlgebraRules, optional
-        Algebra rules. Default: ``FERMION``.
-
     Returns
     -------
     OpSum
 
     """
-    return OpSum({}, rules=rules)
+    return OpSum({})

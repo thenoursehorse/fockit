@@ -4,9 +4,12 @@ import pytest
 
 from operator_algebra import (
     anticommutator,
+    b,
+    bdag,
     c,
     cdag,
     commutator,
+    drop_zeros,
     hc,
     identity,
     n,
@@ -19,7 +22,6 @@ from operator_algebra import (
     sp,
     zero,
 )
-from operator_algebra.algebra import PAULI
 
 
 def test_hubbard_model():
@@ -89,7 +91,7 @@ def test_scalar_addition_in_hamiltonian():
 class TestPauliIntegration:
     def test_pauli_product_rule(self):
         x, y, z = sigma_x(0), sigma_y(0), sigma_z(0)
-        one = identity(PAULI)
+        one = identity()
         cases = [
             (x, x, one),
             (y, y, one),
@@ -101,14 +103,14 @@ class TestPauliIntegration:
             (z, y, -1j * x),
             (x, z, -1j * y),
         ]
-        for a, b, expected in cases:
-            assert normal_order(a * b) == expected
+        for left, right, expected in cases:
+            assert normal_order(left * right) == expected
         assert normal_order(x * y * z) == 1j * one
 
     def test_sigma_plus_minus_ladder_relations(self):
         z = sigma_z(0)
-        assert normal_order(sp(0) * sp(0)) == zero(PAULI)
-        assert normal_order(sm(0) * sm(0)) == zero(PAULI)
+        assert normal_order(sp(0) * sp(0)) == zero()
+        assert normal_order(sm(0) * sm(0)) == zero()
         assert normal_order(commutator(sp(0), sm(0))) == z
         assert normal_order(commutator(z, sp(0))) == 2 * sp(0)
         assert normal_order(commutator(z, sm(0))) == -2 * sm(0)
@@ -128,23 +130,44 @@ class TestPauliIntegration:
             for i in range(2)
         )
         Sz = sum(sigma_z(i) for i in range(3))
-        assert normal_order(commutator(H, Sz)) == zero(PAULI)
+        assert normal_order(commutator(H, Sz)) == zero()
 
     def test_anticommutator_same_gives_two_identity(self):
         for sigma in (sigma_x, sigma_y, sigma_z):
             result = normal_order(anticommutator(sigma(0), sigma(0)))
-            assert result == 2 * identity(PAULI)
+            assert result == 2 * identity()
 
     def test_anticommutator_different_gives_zero(self):
         pairs = [(sigma_x, sigma_y), (sigma_x, sigma_z), (sigma_y, sigma_z)]
         for sa, sb in pairs:
             result = normal_order(anticommutator(sa(0), sb(0)))
-            assert result == zero(PAULI)
+            assert result == zero()
 
     def test_different_sites_commute(self):
         result = normal_order(commutator(sigma_x(0), sigma_y(1)))
-        assert result == zero(PAULI)
+        assert result == zero()
 
     def test_hc_pauli_is_self(self):
         for sigma in (sigma_x, sigma_y, sigma_z):
             assert hc(sigma(0)) == sigma(0)
+
+
+class TestMixedAlgebras:
+    def test_different_algebras_commute(self):
+        for f in (c(0), cdag(0)):
+            for other in (b(0), bdag(0), sigma_x(0), sigma_z(0)):
+                assert normal_order(commutator(f, other)) == zero()
+
+    def test_fermion_anticommutation_with_boson_in_between(self):
+        result = normal_order(c(0) * b(1) * cdag(0) + cdag(0) * b(1) * c(0))
+        assert result == b(1)
+
+    def test_jaynes_cummings_conserves_excitations(self):
+        omega, delta, g = 1.0, 0.7, 0.3
+        H = (
+            omega * bdag(0) * b(0)
+            + 0.5 * delta * sigma_z(0)
+            + g * (sp(0) * b(0) + sm(0) * bdag(0))
+        )
+        N = bdag(0) * b(0) + sp(0) * sm(0)
+        assert drop_zeros(normal_order(commutator(H, N))) == zero()

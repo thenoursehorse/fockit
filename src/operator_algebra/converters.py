@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from operator_algebra._types import as_complex
-from operator_algebra.algebra import FermionRules
+from operator_algebra.algebra import FermionRules, Ladder
 from operator_algebra.operators import OpSum
 
 if TYPE_CHECKING:
@@ -25,9 +25,12 @@ def to_triqs(op: OpSum) -> TriqsOperator:
     triqs.operators.Operator
 
     """
-    if not isinstance(op.rules, FermionRules):
-        msg = f"to_triqs requires FermionRules, got {type(op.rules).__name__}"
-        raise TypeError(msg)
+    for mono in op.terms:
+        for single_op in mono.ops:
+            if not isinstance(single_op.rules, FermionRules):
+                name = type(single_op.rules).__name__
+                msg = f"to_triqs requires FermionRules, got {name}"
+                raise TypeError(msg)
 
     from triqs.operators import Operator, c, c_dag
 
@@ -41,7 +44,7 @@ def to_triqs(op: OpSum) -> TriqsOperator:
                 if isinstance(ladder_op.mode, tuple)
                 else (ladder_op.mode,)
             )
-            if ladder_op.kind is True:
+            if ladder_op.kind is Ladder.CREATE:
                 term = term * c_dag(*indices)
             else:
                 term = term * c(*indices)

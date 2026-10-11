@@ -7,9 +7,8 @@ import scipy.sparse as sp
 from numpy.typing import NDArray
 
 from operator_algebra._types import as_complex
-from operator_algebra.inspection import modes as op_modes
 from operator_algebra.operators import OpSum
-from operator_algebra.solve.basis import Basis
+from operator_algebra.solve.basis import Basis, check_modes
 from operator_algebra.solve.spaces import apply_op
 
 type SparseMatrix = sp.spmatrix
@@ -25,27 +24,28 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     scipy.sparse.csr_matrix
 
     """
-    space = basis.space
-    if type(op.rules) is not type(space.rules):
-        msg = f"Operator rules {op.rules!r} do not match basis rules {space.rules!r}."
-        raise ValueError(msg)
-    for mode in op_modes(op):
-        if mode not in basis.mode_index:
-            msg = f"Operator references mode {mode!r} which is not in the basis."
-            raise ValueError(msg)
+    check_modes(op, basis.mode_index)
 
     rows: list[int] = []
     cols: list[int] = []
     data: list[complex] = []
-    mode_index = basis.mode_index
     lookup = basis.lookup
 
+    # resolve each operator's mode position once, not once per state
+    terms = []
+    for mono, coeff in op.terms.items():
+        steps = []
+        for op_single in reversed(mono.ops):
+            k = basis.mode_index[(op_single.rules, op_single.mode)]
+            steps.append((basis.spaces[k], op_single, k, basis.starts[k]))
+        terms.append((as_complex(coeff), steps))
+
     for j, state in enumerate(basis.states):
-        for mono, coeff in op.terms.items():
-            amp: complex = as_complex(coeff)
+        for coeff, steps in terms:
+            amp: complex = coeff
             cur = state
-            for op_single in reversed(mono.ops):
-                res = apply_op(space, op_single, mode_index[op_single.mode], cur)
+            for space, op_single, k, start in steps:
+                res = apply_op(space, op_single, k, cur, start)
                 if res is None:
                     amp = 0j
                     break

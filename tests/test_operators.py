@@ -1,7 +1,5 @@
 """Tests for core data types."""
 
-import pytest
-
 from operator_algebra import bdag, cdag, identity, num_terms, zero
 
 
@@ -41,11 +39,9 @@ class TestOpSum:
     def test_builtin_sum(self):
         assert sum([cdag(1), cdag(2), cdag(3)]) == cdag(1) + cdag(2) + cdag(3)
 
-    def test_mixing_rules_raises(self):
-        with pytest.raises(ValueError, match="Cannot multiply"):
-            cdag(1) * bdag(2)
-        with pytest.raises(ValueError, match="Cannot add"):
-            cdag(1) + bdag(2)
+    def test_mixing_algebras_gives_one_expression(self):
+        assert num_terms(cdag(1) + bdag(1)) == 2
+        assert num_terms(cdag(1) * bdag(1)) == 1
 
     def test_truthiness(self):
         assert not zero()

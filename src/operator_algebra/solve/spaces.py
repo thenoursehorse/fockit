@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar, Protocol
 
-from operator_algebra.algebra import BOSON, FERMION, PAULI, AlgebraRules
+from operator_algebra.algebra import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
 from operator_algebra.operators import Op
 
 type State = tuple[int, ...]
@@ -46,7 +46,7 @@ class FermionSpace:
 
     def apply(self, op: Op, level: int) -> tuple[complex, int] | None:
         """Apply c† or c."""
-        if op.kind is True:
+        if op.kind is Ladder.CREATE:
             return None if level else (1, 1)
         return (1, 0) if level else None
 
@@ -69,7 +69,7 @@ class BosonSpace:
 
     def apply(self, op: Op, level: int) -> tuple[complex, int] | None:
         """Apply b† or b."""
-        if op.kind is True:
+        if op.kind is Ladder.CREATE:
             if level == self.n_max:
                 return None
             return (level + 1) ** 0.5, level + 1
@@ -91,11 +91,11 @@ class PauliSpace:
 
     def apply(self, op: Op, level: int) -> tuple[complex, int] | None:
         """Apply σx, σy or σz."""
-        if op.kind == "x":
+        if op.kind is Pauli.X:
             return 1, 1 - level
-        if op.kind == "y":
+        if op.kind is Pauli.Y:
             return (1j if level else -1j), 1 - level
-        if op.kind == "z":
+        if op.kind is Pauli.Z:
             return (1 if level else -1), level
         msg = f"Unsupported Pauli kind: {op.kind!r}"
         raise ValueError(msg)
@@ -106,15 +106,17 @@ class PauliSpace:
 
 
 def apply_op(
-    space: LocalSpace, op: Op, index: int, state: State
+    space: LocalSpace, op: Op, index: int, state: State, start: int
 ) -> tuple[complex, State] | None:
     """Apply ``op`` to the mode at ``index``.
 
-    Returns ``(amplitude, new_state)``, or None if the result is zero.
+    ``start`` is the first mode of the same space, so the string phase only
+    sees modes of that space. Returns ``(amplitude, new_state)``, or None if
+    the result is zero.
     """
     res = space.apply(op, state[index])
     if res is None:
         return None
     amp, level = res
-    phase = space.string_phase(op, state[:index])
+    phase = space.string_phase(op, state[start:index])
     return amp * phase, (*state[:index], level, *state[index + 1 :])

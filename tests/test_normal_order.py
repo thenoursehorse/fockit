@@ -15,7 +15,6 @@ from operator_algebra import (
     normal_order,
     zero,
 )
-from operator_algebra.algebra import BOSON
 
 
 class TestFermionNormalOrder:
@@ -82,11 +81,11 @@ class TestFermionNormalOrder:
 class TestBosonNormalOrder:
     def test_simple_swap_same_mode(self):
         result = normal_order(b(1) * bdag(1))
-        assert result == identity(BOSON) + bdag(1) * b(1)
+        assert result == identity() + bdag(1) * b(1)
 
     def test_not_nilpotent(self):
         result = normal_order(b(1) * b(1))
-        assert result != zero(BOSON)
+        assert result != zero()
 
     def test_swap_different_modes(self):
         result = normal_order(b(1) * bdag(2))

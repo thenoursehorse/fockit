@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from operator_algebra.algebra import BOSON, FERMION, PAULI, AlgebraRules
+from operator_algebra.algebra import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
 from operator_algebra.operators import Monomial, Op, OpSum
 
 
@@ -30,7 +30,7 @@ def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     OpSum
 
     """
-    return OpSum({Monomial(ops=(Op(_mode(*labels), True),)): 1}, rules=rules)
+    return OpSum({Monomial(ops=(Op(_mode(*labels), Ladder.CREATE, rules),)): 1})
 
 
 def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
@@ -48,7 +48,7 @@ def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     OpSum
 
     """
-    return OpSum({Monomial(ops=(Op(_mode(*labels), False),)): 1}, rules=rules)
+    return OpSum({Monomial(ops=(Op(_mode(*labels), Ladder.ANNIHILATE, rules),)): 1})
 
 
 def number(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
@@ -243,10 +243,7 @@ def sigma_x(*labels: Hashable) -> OpSum:
 
     """
     mode = _mode(*labels)
-    return OpSum(
-        {Monomial(ops=(Op(mode, "x"),)): 1},
-        rules=PAULI,
-    )
+    return OpSum({Monomial(ops=(Op(mode, Pauli.X, PAULI),)): 1})
 
 
 def sigma_y(*labels: Hashable) -> OpSum:
@@ -263,10 +260,7 @@ def sigma_y(*labels: Hashable) -> OpSum:
 
     """
     mode = _mode(*labels)
-    return OpSum(
-        {Monomial(ops=(Op(mode, "y"),)): 1},
-        rules=PAULI,
-    )
+    return OpSum({Monomial(ops=(Op(mode, Pauli.Y, PAULI),)): 1})
 
 
 def sigma_z(*labels: Hashable) -> OpSum:
@@ -283,7 +277,4 @@ def sigma_z(*labels: Hashable) -> OpSum:
 
     """
     mode = _mode(*labels)
-    return OpSum(
-        {Monomial(ops=(Op(mode, "z"),)): 1},
-        rules=PAULI,
-    )
+    return OpSum({Monomial(ops=(Op(mode, Pauli.Z, PAULI),)): 1})
