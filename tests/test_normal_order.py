@@ -1,5 +1,7 @@
 """Tests for normal ordering."""
 
+import math
+
 import pytest
 
 from operator_algebra import (
@@ -89,3 +91,15 @@ class TestBosonNormalOrder:
     def test_swap_different_modes(self):
         result = normal_order(b(1) * bdag(2))
         assert result == bdag(2) * b(1)
+
+    def test_high_power_ladder_identity(self):
+        # b^k b†^k = sum_j C(k,j)^2 j! b†^(k-j) b^(k-j)
+        k = 12
+        expected = sum(
+            math.comb(k, j) ** 2
+            * math.factorial(j)
+            * bdag(0) ** (k - j)
+            * b(0) ** (k - j)
+            for j in range(k + 1)
+        )
+        assert normal_order(b(0) ** k * bdag(0) ** k) == expected

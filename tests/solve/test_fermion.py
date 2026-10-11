@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from operator_algebra import c, cdag, hc, n
+from operator_algebra import c, cdag, hc, n, normal_order
 from operator_algebra.algebra import FERMION
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigenstates, groundstate
@@ -234,3 +234,11 @@ def test_full_basis_groundstate_is_one_electron_sector():
     assert basis.dim == 16
     e0_full, _ = groundstate(H, basis)
     assert e0_full == pytest.approx(-t, abs=1e-10)
+
+
+def test_normal_ordered_h_squared_matches_matrix_square():
+    modes, H = hubbard_chain(2, t=1.0, u=4.0)
+    basis = enumerate_basis(modes, FERMION)
+    h = to_matrix(H, basis).toarray()
+    h2 = to_matrix(normal_order(H * H), basis).toarray()
+    assert h2 == pytest.approx(h @ h)
