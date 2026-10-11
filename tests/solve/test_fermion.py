@@ -131,7 +131,7 @@ def test_risb_embedding_matches_risb(model):
     c_modes = [(s, i) for i in range(n_orb) for s in ("up", "dn")]
     # risb solves in the half-filled sector of the embedding space
     basis = enumerate_basis(
-        {FermionSpace(): modes}, sectors={total_n(modes): n_orb * 2}
+        {FermionSpace(): modes}, diagonal_symmetries={total_n(modes): n_orb * 2}
     )
     e0, v0 = groundstate(to_matrix(h_emb, basis))
     orbs = range(n_orb)
@@ -201,7 +201,8 @@ def test_two_site_half_filling_matches_analytic():
     t, u = 1.0, 4.0
     modes, H = hubbard_chain(2, t, u)
     basis = enumerate_basis(
-        {FermionSpace(): modes}, sectors={total_n(modes): 2, total_sz(modes): 0}
+        {FermionSpace(): modes},
+        diagonal_symmetries={total_n(modes): 2, total_sz(modes): 0},
     )
     e0, _ = groundstate(to_matrix(H, basis))
     expected = (u - np.sqrt(u**2 + 16 * t**2)) / 2
@@ -213,7 +214,7 @@ def test_two_site_quarter_filling_is_pure_hopping():
     modes, H = hubbard_chain(2, t, u)
     basis = enumerate_basis(
         {FermionSpace(): modes},
-        sectors={total_n(modes): 1, total_sz(modes): 0.5},
+        diagonal_symmetries={total_n(modes): 1, total_sz(modes): 0.5},
     )
     assert basis.dim == 2
     e0, _ = groundstate(to_matrix(H, basis))
@@ -225,7 +226,7 @@ def test_three_site_half_filling_sparse_matches_dense():
     modes, H = hubbard_chain(3, t, u)
     basis = enumerate_basis(
         {FermionSpace(): modes},
-        sectors={total_n(modes): 3, total_sz(modes): 0.5},
+        diagonal_symmetries={total_n(modes): 3, total_sz(modes): 0.5},
     )
     mat = to_matrix(H, basis).toarray()
     mat = 0.5 * (mat + mat.conj().T)
@@ -261,7 +262,8 @@ def test_flux_through_ring_shifts_single_particle_levels():
         for i in range(sites)
     )
     basis = enumerate_basis(
-        {FermionSpace(): range(sites)}, sectors={sum(n(i) for i in range(sites)): 1}
+        {FermionSpace(): range(sites)},
+        diagonal_symmetries={sum(n(i) for i in range(sites)): 1},
     )
     energies, _ = eigh_full(to_matrix(H, basis))
     k = np.arange(sites)

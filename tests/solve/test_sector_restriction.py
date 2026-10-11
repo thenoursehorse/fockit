@@ -62,22 +62,22 @@ class TestFermionSectors:
     def test_particle_number_sector_size(self):
         for n_part in range(2 * self.sites + 1):
             expected = comb(2 * self.sites, n_part)
-            assert self.dim(sectors={self.n_tot: n_part}) == expected
+            assert self.dim(diagonal_symmetries={self.n_tot: n_part}) == expected
 
     def test_spin_resolved_sector_size(self):
         expected = comb(self.sites, 2) * comb(self.sites, 2)
-        assert self.dim(sectors={self.n_tot: 4, self.sz: 0}) == expected
-        assert self.dim(sectors={self.n_up: 2, self.n_dn: 2}) == expected
+        assert self.dim(diagonal_symmetries={self.n_tot: 4, self.sz: 0}) == expected
+        assert self.dim(diagonal_symmetries={self.n_up: 2, self.n_dn: 2}) == expected
 
     def test_no_double_occupancy_sector_size(self):
         # choose the occupied sites, then a spin for each
         for n_part in range(self.sites + 1):
             expected = comb(self.sites, n_part) * 2**n_part
             sectors = {self.n_tot: n_part, self.double_occ: 0}
-            assert self.dim(sectors=sectors) == expected
+            assert self.dim(diagonal_symmetries=sectors) == expected
 
     def test_parity_sector_size(self):
-        even = self.dim(predicate=lambda lv: lv.sum(axis=1) % 2 == 0)
+        even = self.dim(predicate_function=lambda lv: lv.sum(axis=1) % 2 == 0)
         assert even == 2 ** (2 * self.sites - 1)
 
     def test_hubbard_spin_sectors_rebuild_full_spectrum(self):
@@ -86,7 +86,7 @@ class TestFermionSectors:
         n_up = sum(n(i, "up") for i in range(sites))
         n_dn = sum(n(i, "dn") for i in range(sites))
         sectors = [
-            {"sectors": {n_up: k_up, n_dn: k_dn}}
+            {"diagonal_symmetries": {n_up: k_up, n_dn: k_dn}}
             for k_up in range(sites + 1)
             for k_dn in range(sites + 1)
         ]
@@ -101,7 +101,8 @@ class TestFermionSectors:
             for i in range(sites)
         )
         sectors = [
-            {"predicate": lambda lv, p=p: lv.sum(axis=1) % 2 == p} for p in (0, 1)
+            {"predicate_function": lambda lv, p=p: lv.sum(axis=1) % 2 == p}
+            for p in (0, 1)
         ]
         assert_sectors_rebuild_spectrum(H, {FermionSpace(): modes}, sectors)
 
@@ -114,7 +115,7 @@ class TestBosonSectors:
         n_tot = sum(nb(i) for i in range(self.sites))
         space = {BosonSpace(n_max=self.n_max): range(self.sites)}
         for n_part in range(self.n_max + 1):
-            basis = enumerate_basis(space, sectors={n_tot: n_part})
+            basis = enumerate_basis(space, diagonal_symmetries={n_tot: n_part})
             assert basis.dim == comb(n_part + self.sites - 1, self.sites - 1)
 
     def test_bose_hubbard_number_sectors_rebuild_full_spectrum(self):
@@ -123,7 +124,9 @@ class TestBosonSectors:
             bdag(i) * b(i + 1) + bdag(i + 1) * b(i) for i in range(sites - 1)
         ) + 0.5 * sum(bdag(i) * bdag(i) * b(i) * b(i) for i in range(sites))
         n_tot = sum(nb(i) for i in range(sites))
-        sectors = [{"sectors": {n_tot: k}} for k in range(sites * self.n_max + 1)]
+        sectors = [
+            {"diagonal_symmetries": {n_tot: k}} for k in range(sites * self.n_max + 1)
+        ]
         space = {BosonSpace(n_max=self.n_max): range(sites)}
         assert_sectors_rebuild_spectrum(H, space, sectors)
 
@@ -136,7 +139,7 @@ class TestPauliSectors:
         space = {PauliSpace(): range(self.sites)}
         for n_up in range(self.sites + 1):
             m = n_up - self.sites / 2
-            basis = enumerate_basis(space, sectors={self.sz: m})
+            basis = enumerate_basis(space, diagonal_symmetries={self.sz: m})
             assert basis.dim == comb(self.sites, n_up)
 
     def test_xxz_magnetization_sectors_rebuild_full_spectrum(self):
@@ -147,7 +150,7 @@ class TestPauliSectors:
             for i in range(self.sites - 1)
         )
         sectors = [
-            {"sectors": {self.sz: n_up - self.sites / 2}}
+            {"diagonal_symmetries": {self.sz: n_up - self.sites / 2}}
             for n_up in range(self.sites + 1)
         ]
         assert_sectors_rebuild_spectrum(H, {PauliSpace(): range(self.sites)}, sectors)
@@ -158,7 +161,8 @@ class TestPauliSectors:
         H = -sum(sigma_x(i) * sigma_x(i + 1) for i in range(self.sites - 1))
         H = H - 0.8 * sum(sigma_z(i) for i in range(self.sites))
         sectors = [
-            {"predicate": lambda lv, p=p: lv.sum(axis=1) % 2 == p} for p in (0, 1)
+            {"predicate_function": lambda lv, p=p: lv.sum(axis=1) % 2 == p}
+            for p in (0, 1)
         ]
         assert_sectors_rebuild_spectrum(H, {PauliSpace(): range(self.sites)}, sectors)
 
@@ -169,4 +173,4 @@ def test_off_diagonal_sector_operators_are_rejected():
         (FermionSpace(), range(2), cdag(0) * c(1) + cdag(1) * c(0)),
     ]:
         with pytest.raises(ValueError, match="not diagonal"):
-            enumerate_basis({space: labels}, sectors={op: 1})
+            enumerate_basis({space: labels}, diagonal_symmetries={op: 1})

@@ -1,7 +1,7 @@
 """Transforms for conjugation, commutators, and mode substitution."""
 
 import warnings
-from collections.abc import Hashable
+from collections.abc import Hashable, Mapping
 from dataclasses import replace
 
 from operator_algebra._types import Coefficient, as_coefficient
@@ -104,7 +104,7 @@ def anticommutator(a: OpSum, b: OpSum) -> OpSum:
 
 def substitute_modes(
     op: OpSum,
-    mapping: dict[Hashable, Hashable],
+    mapping: Mapping[Hashable, Hashable],
     *,
     reorder: bool = False,
 ) -> OpSum:
@@ -114,7 +114,7 @@ def substitute_modes(
     ----------
     op : OpSum
         The operator expression.
-    mapping : dict[Hashable, Hashable]
+    mapping : Mapping[Hashable, Hashable]
         Mode relabeling map. Modes not in the mapping are unchanged.
     reorder : bool, optional
         If True, ``normal_order()`` is applied after substitution.

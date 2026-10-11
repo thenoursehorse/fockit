@@ -50,6 +50,10 @@ class LocalSpace(Protocol):
         """
         ...
 
+    def exchange_factor(self) -> ComplexArray:
+        """Phase from swapping two modes of this space, indexed by their levels."""
+        ...
+
 
 @dataclass(frozen=True)
 class FermionSpace:
@@ -67,6 +71,10 @@ class FermionSpace:
     def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
         """Jordan-Wigner sign from each occupied earlier mode."""
         return np.array([1, -1], dtype=complex)
+
+    def exchange_factor(self) -> ComplexArray:
+        """Give -1 for swapping two occupied modes."""
+        return np.array([[1, 1], [1, -1]], dtype=complex)
 
 
 @dataclass(frozen=True)
@@ -94,6 +102,10 @@ class BosonSpace:
         """Bosons commute across modes."""
         return np.ones(self.dim, dtype=complex)
 
+    def exchange_factor(self) -> ComplexArray:
+        """Bosons commute across modes."""
+        return np.ones((self.dim, self.dim), dtype=complex)
+
 
 @dataclass(frozen=True)
 class PauliSpace:
@@ -116,3 +128,7 @@ class PauliSpace:
     def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
         """Spins on different sites commute."""
         return np.ones(2, dtype=complex)
+
+    def exchange_factor(self) -> ComplexArray:
+        """Spins on different sites commute."""
+        return np.ones((2, 2), dtype=complex)

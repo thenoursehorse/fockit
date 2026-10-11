@@ -27,7 +27,7 @@ def test_holstein_site_has_polaron_shift():
     eps, omega, g = 0.4, 1.0, 0.5
     H = eps * n(0) + omega * bdag(0) * b(0) + g * n(0) * (b(0) + bdag(0))
     basis = enumerate_basis(
-        {FermionSpace(): [0], BosonSpace(n_max=30): [0]}, sectors={n(0): 1}
+        {FermionSpace(): [0], BosonSpace(n_max=30): [0]}, diagonal_symmetries={n(0): 1}
     )
     energies, _ = eigenstates(to_matrix(H, basis), k=3)
     expected = [eps - g**2 / omega + omega * m for m in range(3)]
@@ -46,7 +46,7 @@ def test_jaynes_cummings_spectrum():
     for n_exc in range(1, 4):
         basis = enumerate_basis(
             {PauliSpace(): [0], BosonSpace(n_max=5): [0]},
-            sectors={excitations: n_exc},
+            diagonal_symmetries={excitations: n_exc},
         )
         energies, _ = eigenstates(to_matrix(H, basis), k=2)
         split = 0.5 * np.sqrt(detuning**2 + 4 * g**2 * n_exc)

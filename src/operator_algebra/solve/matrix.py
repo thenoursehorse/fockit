@@ -8,7 +8,13 @@ from numpy.typing import NDArray
 
 from operator_algebra._types import as_complex
 from operator_algebra.operators import OpSum
-from operator_algebra.solve.basis import Basis, apply_monomial, check_modes
+from operator_algebra.solve.basis import (
+    Basis,
+    apply_monomial,
+    check_modes,
+    check_symmetric,
+    representatives,
+)
 from operator_algebra.solve.spaces import IntArray
 
 type SparseMatrix = sp.spmatrix
@@ -19,6 +25,8 @@ type ComplexArray = NDArray[np.complex128]
 def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     """Build the sparse matrix representation of ``op`` in ``basis``.
 
+    With permutation symmetries, ``op`` must commute with them.
+
     Returns
     -------
     scipy.sparse.csr_matrix
@@ -26,6 +34,8 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
 
     """
     check_modes(op, basis.mode_index)
+    check_symmetric(op, basis.permutation_symmetries)
+    symmetric = len(basis.group) > 1
 
     rows: list[IntArray] = [np.empty(0, dtype=np.int64)]
     cols: list[IntArray] = [np.empty(0, dtype=np.int64)]
@@ -34,9 +44,16 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
         source, new, amp = apply_monomial(
             mono, basis.levels, basis.mode_index, basis.spaces, basis.starts
         )
-        codes = new @ basis.strides
+        if symmetric:
+            # land on the symmetric state of the result's orbit
+            codes, phase, element = representatives(basis, new)
+            amp = amp * phase * np.conj(basis.characters[element])
+        else:
+            codes = new @ basis.strides
         pos = np.minimum(np.searchsorted(basis.codes, codes), basis.dim - 1)
         keep = basis.codes[pos] == codes
+        if symmetric:
+            amp = amp * np.sqrt(basis.norms[pos] / basis.norms[source])
         rows.append(pos[keep])
         cols.append(source[keep])
         data.append(as_complex(coeff) * amp[keep])
