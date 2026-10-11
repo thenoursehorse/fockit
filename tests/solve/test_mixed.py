@@ -29,7 +29,7 @@ def test_holstein_site_has_polaron_shift():
     basis = enumerate_basis(
         {FermionSpace(): [0], BosonSpace(n_max=30): [0]}, sectors={n(0): 1}
     )
-    energies, _ = eigenstates(H, basis, k=3)
+    energies, _ = eigenstates(to_matrix(H, basis), k=3)
     expected = [eps - g**2 / omega + omega * m for m in range(3)]
     assert energies == pytest.approx(expected, abs=1e-10)
 
@@ -48,7 +48,7 @@ def test_jaynes_cummings_spectrum():
             {PauliSpace(): [0], BosonSpace(n_max=5): [0]},
             sectors={excitations: n_exc},
         )
-        energies, _ = eigenstates(H, basis, k=2)
+        energies, _ = eigenstates(to_matrix(H, basis), k=2)
         split = 0.5 * np.sqrt(detuning**2 + 4 * g**2 * n_exc)
         mean = omega * (n_exc - 0.5)
         assert energies == pytest.approx([mean - split, mean + split])

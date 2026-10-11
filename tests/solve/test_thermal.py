@@ -8,6 +8,7 @@ import pytest
 from operator_algebra import b, bdag, c, cdag, n, sigma_x, sigma_y, sigma_z
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigh_full
+from operator_algebra.solve.matrix import to_matrix
 from operator_algebra.solve.spaces import BosonSpace, FermionSpace, PauliSpace
 from operator_algebra.solve.thermal import (
     kpm_thermal_expectation,
@@ -66,10 +67,10 @@ def test_two_level_matches_tanh():
     delta = 1.7
     H = 0.5 * delta * sigma_z(0)
     basis = enumerate_basis({PauliSpace(): [0]})
-    E, V = eigh_full(H, basis)
+    E, V = eigh_full(to_matrix(H, basis))
     for beta in (0.01, 0.5, 2.0, 50.0):
         expected = -np.tanh(0.5 * beta * delta)
-        got = thermal_expectation(sigma_z(0), E, V, basis, beta).real
+        got = thermal_expectation(to_matrix(sigma_z(0), basis), E, V, beta).real
         assert got == pytest.approx(expected, abs=1e-10)
 
 
@@ -77,22 +78,22 @@ def test_free_fermions_match_fermi_dirac():
     t = 1.3
     H = -t * (cdag(0) * c(1) + cdag(1) * c(0))
     basis = enumerate_basis({FermionSpace(): [0, 1]})
-    E, V = eigh_full(H, basis)
+    E, V = eigh_full(to_matrix(H, basis))
     beta = 0.7
     fd_plus = 1.0 / (1.0 + np.exp(+beta * t))
     fd_minus = 1.0 / (1.0 + np.exp(-beta * t))
     expected = 0.5 * (fd_plus + fd_minus)
-    got = thermal_expectation(n(0), E, V, basis, beta).real
+    got = thermal_expectation(to_matrix(n(0), basis), E, V, beta).real
     assert got == pytest.approx(expected, abs=1e-10)
 
 
 def test_harmonic_oscillator_matches_bose_einstein():
     basis = enumerate_basis({BosonSpace(n_max=20): [0]})
     H = bdag(0) * b(0)
-    E, V = eigh_full(H, basis)
+    E, V = eigh_full(to_matrix(H, basis))
     beta = 1.0
     expected = 1.0 / (np.expm1(beta))
-    got = thermal_expectation(bdag(0) * b(0), E, V, basis, beta).real
+    got = thermal_expectation(to_matrix(bdag(0) * b(0), basis), E, V, beta).real
     assert got == pytest.approx(expected, abs=1e-7)
 
 
@@ -137,14 +138,14 @@ def test_lanczos_matches_ed_reference(
 ):
     labels, H = model()
     basis = enumerate_basis({space: labels})
+    H_mat = to_matrix(H, basis)
     got_e = lanczos_thermal_expectation(
-        H, H, basis, beta, n_samples=200, n_lanczos=basis.dim, method=method, seed=0
+        H_mat, H_mat, beta, n_samples=200, n_lanczos=basis.dim, method=method, seed=0
     ).real
     assert got_e == pytest.approx(ref_e, abs=4e-2)
     got_obs = lanczos_thermal_expectation(
-        obs_factory(),
-        H,
-        basis,
+        to_matrix(obs_factory(), basis),
+        H_mat,
         beta,
         n_samples=200,
         n_lanczos=basis.dim,
@@ -162,12 +163,14 @@ def test_lanczos_matches_ed_reference(
 def test_kpm_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_obs):
     labels, H = model()
     basis = enumerate_basis({space: labels})
+    H_mat = to_matrix(H, basis)
     got_e = kpm_thermal_expectation(
-        H, H, basis, beta, n_moments=100, n_samples=1000, seed=0
+        H_mat, H_mat, beta, n_moments=100, n_samples=1000, seed=0
     ).real
     assert got_e == pytest.approx(ref_e, abs=5e-2)
+    obs = to_matrix(obs_factory(), basis)
     got_obs = kpm_thermal_expectation(
-        obs_factory(), H, basis, beta, n_moments=100, n_samples=1000, seed=0
+        obs, H_mat, beta, n_moments=100, n_samples=1000, seed=0
     ).real
     assert got_obs == pytest.approx(ref_obs, abs=5e-2)
 
@@ -180,9 +183,9 @@ def test_kpm_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_ob
 def test_tpq_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_obs):
     labels, H = model()
     basis = enumerate_basis({space: labels})
-    got_e = tpq_thermal_expectation(H, H, basis, beta, n_samples=200, seed=0).real
+    H_mat = to_matrix(H, basis)
+    got_e = tpq_thermal_expectation(H_mat, H_mat, beta, n_samples=200, seed=0).real
     assert got_e == pytest.approx(ref_e, abs=5e-2)
-    got_obs = tpq_thermal_expectation(
-        obs_factory(), H, basis, beta, n_samples=200, seed=0
-    ).real
+    obs = to_matrix(obs_factory(), basis)
+    got_obs = tpq_thermal_expectation(obs, H_mat, beta, n_samples=200, seed=0).real
     assert got_obs == pytest.approx(ref_obs, abs=5e-2)

@@ -133,12 +133,14 @@ def test_risb_embedding_matches_risb(model):
     basis = enumerate_basis(
         {FermionSpace(): modes}, sectors={total_n(modes): n_orb * 2}
     )
-    e0, v0 = groundstate(h_emb, basis)
+    e0, v0 = groundstate(to_matrix(h_emb, basis))
     orbs = range(n_orb)
     rho_f = np.array(
         [
             [
-                expectations(c("up", n_orb + b) * cdag("up", n_orb + a), v0, basis)
+                expectations(
+                    to_matrix(c("up", n_orb + b) * cdag("up", n_orb + a), basis), v0
+                )
                 for b in orbs
             ]
             for a in orbs
@@ -146,13 +148,19 @@ def test_risb_embedding_matches_risb(model):
     )
     rho_cf = np.array(
         [
-            [expectations(cdag("up", a) * c("up", n_orb + b), v0, basis) for b in orbs]
+            [
+                expectations(to_matrix(cdag("up", a) * c("up", n_orb + b), basis), v0)
+                for b in orbs
+            ]
             for a in orbs
         ]
     )
     rho_c = np.array(
         [
-            [expectations(cdag("up", a) * c("up", b), v0, basis) for b in orbs]
+            [
+                expectations(to_matrix(cdag("up", a) * c("up", b), basis), v0)
+                for b in orbs
+            ]
             for a in orbs
         ]
     )
@@ -160,9 +168,9 @@ def test_risb_embedding_matches_risb(model):
     assert rho_f == pytest.approx(expected["rho_f"], abs=1e-10)
     assert rho_cf == pytest.approx(expected["rho_cf"], abs=1e-10)
     assert rho_c == pytest.approx(expected["rho_c"], abs=1e-10)
-    num_c = expectations(total_n(c_modes), v0, basis)
+    num_c = expectations(to_matrix(total_n(c_modes), basis), v0)
     assert num_c == pytest.approx(expected["num_c"], abs=1e-10)
-    s2 = expectations(total_s2(c_modes), v0, basis)
+    s2 = expectations(to_matrix(total_s2(c_modes), basis), v0)
     assert s2 == pytest.approx(expected["s2"], abs=1e-10)
 
 
@@ -195,7 +203,7 @@ def test_two_site_half_filling_matches_analytic():
     basis = enumerate_basis(
         {FermionSpace(): modes}, sectors={total_n(modes): 2, total_sz(modes): 0}
     )
-    e0, _ = groundstate(H, basis)
+    e0, _ = groundstate(to_matrix(H, basis))
     expected = (u - np.sqrt(u**2 + 16 * t**2)) / 2
     assert e0 == pytest.approx(expected, abs=1e-10)
 
@@ -208,7 +216,7 @@ def test_two_site_quarter_filling_is_pure_hopping():
         sectors={total_n(modes): 1, total_sz(modes): 0.5},
     )
     assert basis.dim == 2
-    e0, _ = groundstate(H, basis)
+    e0, _ = groundstate(to_matrix(H, basis))
     assert e0 == pytest.approx(-t, abs=1e-10)
 
 
@@ -223,7 +231,7 @@ def test_three_site_half_filling_sparse_matches_dense():
     mat = 0.5 * (mat + mat.conj().T)
     dense_evals = np.sort(scipy.linalg.eigvalsh(mat))
 
-    energies, _ = eigenstates(H, basis, k=3)
+    energies, _ = eigenstates(to_matrix(H, basis), k=3)
     assert np.allclose(energies, dense_evals[:3], atol=1e-9)
 
 
@@ -232,7 +240,7 @@ def test_full_basis_groundstate_is_one_electron_sector():
     modes, H = hubbard_chain(2, t, u)
     basis = enumerate_basis({FermionSpace(): modes})
     assert basis.dim == 16
-    e0_full, _ = groundstate(H, basis)
+    e0_full, _ = groundstate(to_matrix(H, basis))
     assert e0_full == pytest.approx(-t, abs=1e-10)
 
 

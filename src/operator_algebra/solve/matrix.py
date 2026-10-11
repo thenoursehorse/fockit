@@ -48,31 +48,21 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     return mat
 
 
-def expectations(
-    op: OpSum,
-    states: ComplexArray,
-    basis: Basis,
-) -> ComplexArray | complex:
+def expectations(op: SparseMatrix, states: ComplexArray) -> ComplexArray | complex:
     """Compute ``⟨ψ|op|ψ⟩`` for each row of ``states``.
 
     ``states`` has shape ``(dim,)`` for a single state (returns a scalar)
     or ``(n, dim)`` for a batch (returns shape ``(n,)``).
     """
-    op_mat = to_matrix(op, basis)
     if states.ndim == 1:
-        return complex(states.conj() @ (op_mat @ states))
-    op_states = (op_mat @ states.T).T
+        return complex(states.conj() @ (op @ states))
+    op_states = (op @ states.T).T
     return np.asarray(np.sum(states.conj() * op_states, axis=1))
 
 
-def matrix_elements(
-    op: OpSum,
-    states: ComplexArray,
-    basis: Basis,
-) -> ComplexArray:
+def matrix_elements(op: SparseMatrix, states: ComplexArray) -> ComplexArray:
     """Return ``O_{mn} = ⟨m|op|n⟩`` for the column states in ``states``.
 
     ``states`` has shape ``(dim, k)`` (columns are the bra/ket states).
     """
-    op_mat = to_matrix(op, basis)
-    return np.asarray(states.conj().T @ (op_mat @ states))
+    return np.asarray(states.conj().T @ (op @ states))

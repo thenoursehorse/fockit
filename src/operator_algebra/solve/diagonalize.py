@@ -1,4 +1,4 @@
-"""Diagonalization of operators in a Fock basis."""
+"""Diagonalization of Hamiltonian matrices."""
 
 from __future__ import annotations
 
@@ -8,16 +8,14 @@ import scipy.sparse
 import scipy.sparse.linalg
 from numpy.typing import NDArray
 
-from operator_algebra.operators import OpSum
-from operator_algebra.solve.basis import Basis
-from operator_algebra.solve.matrix import CSRMatrix, to_matrix
+from operator_algebra.solve.matrix import SparseMatrix
 
 type RealArray = NDArray[np.float64]
 type ComplexArray = NDArray[np.complex128]
 
 
-def eigh_full(H: OpSum, basis: Basis) -> tuple[RealArray, ComplexArray]:
-    """Full dense diagonalization of ``H`` in ``basis``.
+def eigh_full(H: SparseMatrix) -> tuple[RealArray, ComplexArray]:
+    """Full dense diagonalization of ``H``.
 
     Returns
     -------
@@ -27,14 +25,14 @@ def eigh_full(H: OpSum, basis: Basis) -> tuple[RealArray, ComplexArray]:
         Column ``i`` is the i-th eigenvector.
 
     """
-    dense = to_matrix(H, basis).toarray()
+    dense = H.toarray()
     dense = 0.5 * (dense + dense.conj().T)
     evals, evecs = scipy.linalg.eigh(dense)
     return np.asarray(evals.real), np.asarray(evecs)
 
 
-def eigenstates(H: OpSum, basis: Basis, k: int = 1) -> tuple[RealArray, ComplexArray]:
-    """Compute the ``k`` lowest eigenpairs of ``H`` in ``basis``.
+def eigenstates(H: SparseMatrix, k: int = 1) -> tuple[RealArray, ComplexArray]:
+    """Compute the ``k`` lowest eigenpairs of ``H``.
 
     Returns
     -------
@@ -43,15 +41,12 @@ def eigenstates(H: OpSum, basis: Basis, k: int = 1) -> tuple[RealArray, ComplexA
         Column ``i`` is the i-th eigenvector.
 
     """
-    mat = to_matrix(H, basis)
-    dim = basis.dim
-
-    if k >= dim - 1:
-        dense = mat.toarray()
+    if k >= H.shape[0] - 1:
+        dense = H.toarray()
         dense = 0.5 * (dense + dense.conj().T)
         evals, evecs = scipy.linalg.eigh(dense)
     else:
-        evals, evecs = scipy.sparse.linalg.eigsh(mat, k=k, which="SA")
+        evals, evecs = scipy.sparse.linalg.eigsh(H, k=k, which="SA")
         order = np.argsort(evals)
         evals = evals[order]
         evecs = evecs[:, order]
@@ -59,14 +54,14 @@ def eigenstates(H: OpSum, basis: Basis, k: int = 1) -> tuple[RealArray, ComplexA
     return np.asarray(evals[:k].real), np.asarray(evecs[:, :k])
 
 
-def groundstate(H: OpSum, basis: Basis) -> tuple[float, ComplexArray]:
+def groundstate(H: SparseMatrix) -> tuple[float, ComplexArray]:
     """Return ``(E0, psi0)``, the lowest eigenvalue and eigenvector."""
-    evals, evecs = eigenstates(H, basis, k=1)
+    evals, evecs = eigenstates(H, k=1)
     return float(evals[0]), evecs[:, 0]
 
 
 def lanczos(
-    H: CSRMatrix,
+    H: SparseMatrix,
     v0: ComplexArray,
     m: int,
 ) -> tuple[RealArray, RealArray, ComplexArray]:

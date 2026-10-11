@@ -54,14 +54,16 @@ def test_free_fermion_single_particle_matches_analytic():
     psi0[state_index(basis, (1, 0, 0, 0))] = 1.0  # particle on site 0
 
     times = np.linspace(0.0, 2.0, 5)
-    traj = expm_multiply_evolve(H, psi0, basis, times)
+    traj = expm_multiply_evolve(to_matrix(H, basis), psi0, times)
 
     evals, evecs = np.linalg.eigh(h)
     for k, t in enumerate(times):
         amp = (evecs * np.exp(-1j * t * evals)) @ evecs[0].conj()
         ref = np.abs(amp) ** 2
         for j in range(L):
-            obs = expectations(cdag(j) * c(j), traj[k : k + 1], basis)[0].real
+            obs = expectations(to_matrix(cdag(j) * c(j), basis), traj[k : k + 1])[
+                0
+            ].real
             assert obs == pytest.approx(ref[j], abs=1e-10)
 
 
@@ -73,9 +75,10 @@ def test_evolvers_agree_on_heisenberg():
     psi /= np.linalg.norm(psi)
 
     times = np.linspace(0.0, 1.5, 8)
-    traj_em = expm_multiply_evolve(H, psi, basis, times)
-    traj_kr = krylov_evolve(H, psi, basis, times, n_krylov=20)
-    traj_ch = chebyshev_evolve(H, psi, basis, times)
+    H_mat = to_matrix(H, basis)
+    traj_em = expm_multiply_evolve(H_mat, psi, times)
+    traj_kr = krylov_evolve(H_mat, psi, times, n_krylov=20)
+    traj_ch = chebyshev_evolve(H_mat, psi, times)
 
     assert np.allclose(traj_em, traj_kr, atol=1e-9)
     assert np.allclose(traj_em, traj_ch, atol=1e-9)
@@ -91,7 +94,7 @@ def test_evolver_unitary(evolver):
     psi = rng.standard_normal(basis.dim) + 1j * rng.standard_normal(basis.dim)
     psi /= np.linalg.norm(psi)
     times = np.linspace(0.0, 2.0, 6)
-    traj = evolver(H, psi, basis, times)
+    traj = evolver(to_matrix(H, basis), psi, times)
     norms = np.linalg.norm(traj, axis=1)
     assert norms == pytest.approx(np.ones_like(norms), abs=1e-9)
 
@@ -137,10 +140,11 @@ def test_trotter_evolve_matches_exact(order, tol):
 
     n_steps, dt = 20, 0.05
     schedule = suzuki_trotter_sequence(len(frags), -1j * dt, order=order)
-    traj = trotter_evolve(frags, psi, basis, schedule, n_steps)
+    frag_mats = [to_matrix(f, basis) for f in frags]
+    traj = trotter_evolve(frag_mats, psi, schedule, n_steps)
 
     times = np.arange(n_steps + 1) * dt
-    ref = expm_multiply_evolve(H, psi, basis, times)
+    ref = expm_multiply_evolve(to_matrix(H, basis), psi, times)
     assert np.allclose(traj, ref, atol=tol)
 
 
@@ -158,7 +162,7 @@ def test_trotter_evolve_imaginary_time_matches_tpq():
     n_steps = 200
     dtau = beta / (2 * n_steps)
     schedule = suzuki_trotter_sequence(len(frags), -dtau, order=4)
-    traj = trotter_evolve(frags, r, basis, schedule, n_steps)
+    traj = trotter_evolve([to_matrix(f, basis) for f in frags], r, schedule, n_steps)
 
     ref = scipy.sparse.linalg.expm_multiply(-0.5 * beta * H_mat, r)
     assert np.allclose(traj[-1], ref, atol=1e-6)
@@ -167,50 +171,50 @@ def test_trotter_evolve_imaginary_time_matches_tpq():
 def test_matrix_elements_and_boltzmann_reproduce_thermal_expectation():
     labels, H = heisenberg_chain(3)
     basis = enumerate_basis({PauliSpace(): labels})
-    E, V = eigh_full(H, basis)
-    op = sigma_z(0) * sigma_z(1)
+    E, V = eigh_full(to_matrix(H, basis))
+    op_mat = to_matrix(sigma_z(0) * sigma_z(1), basis)
     beta = 0.8
 
-    op_eb = matrix_elements(op, V, basis)
+    op_eb = matrix_elements(op_mat, V)
     p = boltzmann_weights(E, beta)
     got = float((p * np.diag(op_eb).real).sum())
 
-    ref = thermal_expectation(op, E, V, basis, beta).real
+    ref = thermal_expectation(op_mat, E, V, beta).real
     assert got == pytest.approx(ref, abs=1e-12)
 
 
 def test_tpq_state_averages_to_thermal_expectation():
     labels, H = heisenberg_chain(2)
     basis = enumerate_basis({PauliSpace(): labels})
-    E, V = eigh_full(H, basis)
-    op = sigma_z(0) * sigma_z(1)
-    op_mat = to_matrix(op, basis)
+    H_mat = to_matrix(H, basis)
+    E, V = eigh_full(H_mat)
+    op_mat = to_matrix(sigma_z(0) * sigma_z(1), basis)
     beta = 0.7
 
     rng = np.random.default_rng(0)
     num, denom = 0j, 0.0
     for _ in range(400):
-        phi = tpq_state(H, basis, beta, rng=rng)
+        phi = tpq_state(H_mat, beta, rng=rng, e0=E[0])
         num += complex(phi.conj() @ (op_mat @ phi))
         denom += float((phi.conj() @ phi).real)
     got = (num / denom).real
 
-    ref = thermal_expectation(op, E, V, basis, beta).real
+    ref = thermal_expectation(op_mat, E, V, beta).real
     assert got == pytest.approx(ref, abs=5e-2)
 
 
 def test_lanczos_eigenpairs_compose_to_ftlm():
     labels, H = heisenberg_chain(3)
     basis = enumerate_basis({PauliSpace(): labels})
-    E, V = eigh_full(H, basis)
-    op = sigma_z(0) * sigma_z(1)
-    op_mat = to_matrix(op, basis)
+    H_mat = to_matrix(H, basis)
+    E, V = eigh_full(H_mat)
+    op_mat = to_matrix(sigma_z(0) * sigma_z(1), basis)
     beta = 0.6
 
     rng = np.random.default_rng(0)
     num, denom = 0j, 0.0
     for _ in range(200):
-        eps, psi, r = lanczos_eigenpairs(H, basis, n_lanczos=basis.dim, rng=rng)
+        eps, psi, r = lanczos_eigenpairs(H_mat, n_lanczos=basis.dim, rng=rng)
         c_k = psi.conj().T @ r
         op_kr = psi.conj().T @ (op_mat @ r)
         w = np.exp(-beta * (eps - eps.min()))
@@ -218,5 +222,15 @@ def test_lanczos_eigenpairs_compose_to_ftlm():
         denom += float(np.sum(w * np.abs(c_k) ** 2).real)
     got = (num / denom).real
 
-    ref = thermal_expectation(op, E, V, basis, beta).real
+    ref = thermal_expectation(op_mat, E, V, beta).real
     assert got == pytest.approx(ref, abs=5e-2)
+
+
+def test_krylov_warns_when_step_is_too_long_for_its_krylov_space():
+    labels, H = heisenberg_chain(8)
+    basis = enumerate_basis({PauliSpace(): labels})
+    rng = np.random.default_rng(0)
+    psi = rng.standard_normal(basis.dim) + 1j * rng.standard_normal(basis.dim)
+    psi /= np.linalg.norm(psi)
+    with pytest.warns(RuntimeWarning, match="not converged"):
+        krylov_evolve(to_matrix(H, basis), psi, [0.0, 5.0], n_krylov=5)

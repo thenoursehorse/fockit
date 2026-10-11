@@ -20,6 +20,7 @@ from operator_algebra import (
 )
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigh_full
+from operator_algebra.solve.matrix import to_matrix
 from operator_algebra.solve.spaces import BosonSpace, FermionSpace, PauliSpace
 
 SPINS = ("up", "dn")
@@ -36,7 +37,7 @@ def hubbard_chain(sites, t=1.0, u=4.0):
 
 
 def spectrum(H, spaces, **kwargs):
-    energies, _ = eigh_full(H, enumerate_basis(spaces, **kwargs))
+    energies, _ = eigh_full(to_matrix(H, enumerate_basis(spaces, **kwargs)))
     return energies
 
 

@@ -8,7 +8,7 @@ import pytest
 from operator_algebra import normal_order, sigma_x, sigma_y, sigma_z, sm, sp
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigenstates, eigh_full, groundstate
-from operator_algebra.solve.matrix import expectations
+from operator_algebra.solve.matrix import expectations, to_matrix
 from operator_algebra.solve.spaces import PauliSpace
 
 
@@ -27,16 +27,16 @@ def heisenberg_chain(sites: int, j: float):
 def test_heisenberg_dimer_matches_singlet_triplet():
     labels, H = heisenberg_chain(2, j=1.0)
     basis = enumerate_basis({PauliSpace(): labels})
-    energies, _ = eigenstates(H, basis, k=4)
+    energies, _ = eigenstates(to_matrix(H, basis), k=4)
     assert np.allclose(np.sort(energies), [-0.75, 0.25, 0.25, 0.25])
 
 
 def test_zeeman_groundstate_aligns_with_field():
     h = 1.7
     basis = enumerate_basis({PauliSpace(): ["A"]})
-    e0, psi = groundstate(-h * sigma_z("A"), basis)
+    e0, psi = groundstate(to_matrix(-h * sigma_z("A"), basis))
     assert e0 == pytest.approx(-h, abs=1e-12)
-    assert expectations(sp("A") * sm("A"), psi, basis) == pytest.approx(1.0)
+    assert expectations(to_matrix(sp("A") * sm("A"), basis), psi) == pytest.approx(1.0)
 
 
 def test_two_spin_total_spin_squared():
@@ -44,7 +44,7 @@ def test_two_spin_total_spin_squared():
         (0.5 * (sigma(0) + sigma(1))) ** 2 for sigma in (sigma_x, sigma_y, sigma_z)
     )
     basis = enumerate_basis({PauliSpace(): [0, 1]})
-    energies, _ = eigh_full(normal_order(S2), basis)
+    energies, _ = eigh_full(to_matrix(normal_order(S2), basis))
     assert np.sort(energies) == pytest.approx([0.0, 2.0, 2.0, 2.0])
 
 
@@ -60,6 +60,6 @@ def test_xxz_chain_in_ladder_form_has_same_spectrum():
         2 * (sp(i) * sm(i + 1) + sm(i) * sp(i + 1)) for i in range(sites - 1)
     )
     basis = enumerate_basis({PauliSpace(): labels})
-    e_xy, _ = eigh_full(H_xy, basis)
-    e_ladder, _ = eigh_full(normal_order(H_ladder), basis)
+    e_xy, _ = eigh_full(to_matrix(H_xy, basis))
+    e_ladder, _ = eigh_full(to_matrix(normal_order(H_ladder), basis))
     assert e_ladder == pytest.approx(e_xy)
