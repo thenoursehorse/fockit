@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 
 from operator_algebra import b, bdag, c, cdag, n, sigma_x, sigma_y, sigma_z
-from operator_algebra.algebra import BOSON, FERMION, PAULI
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigh_full
+from operator_algebra.solve.spaces import BosonSpace, FermionSpace, PauliSpace
 from operator_algebra.solve.thermal import (
     kpm_thermal_expectation,
     lanczos_thermal_expectation,
@@ -65,7 +65,7 @@ def heisenberg_4site():
 def test_two_level_matches_tanh():
     delta = 1.7
     H = 0.5 * delta * sigma_z(0)
-    basis = enumerate_basis([0], PAULI)
+    basis = enumerate_basis([0], PauliSpace())
     E, V = eigh_full(H, basis)
     for beta in (0.01, 0.5, 2.0, 50.0):
         expected = -np.tanh(0.5 * beta * delta)
@@ -76,7 +76,7 @@ def test_two_level_matches_tanh():
 def test_free_fermions_match_fermi_dirac():
     t = 1.3
     H = -t * (cdag(0) * c(1) + cdag(1) * c(0))
-    basis = enumerate_basis([0, 1], FERMION)
+    basis = enumerate_basis([0, 1], FermionSpace())
     E, V = eigh_full(H, basis)
     beta = 0.7
     fd_plus = 1.0 / (1.0 + np.exp(+beta * t))
@@ -87,7 +87,7 @@ def test_free_fermions_match_fermi_dirac():
 
 
 def test_harmonic_oscillator_matches_bose_einstein():
-    basis = enumerate_basis([0], BOSON, n_max=20)
+    basis = enumerate_basis([0], BosonSpace(n_max=20))
     H = bdag(0) * b(0)
     E, V = eigh_full(H, basis)
     beta = 1.0
@@ -99,8 +99,7 @@ def test_harmonic_oscillator_matches_bose_einstein():
 MODELS = [
     (
         hubbard_2site,
-        FERMION,
-        {},
+        FermionSpace(),
         HUBBARD_BETA,
         HUBBARD_E,
         lambda: n(0, "up") * n(0, "dn"),
@@ -108,8 +107,7 @@ MODELS = [
     ),
     (
         bose_hubbard_2site,
-        BOSON,
-        {"n_max": 3},
+        BosonSpace(n_max=3),
         BOSE_HUBBARD_BETA,
         BOSE_HUBBARD_E,
         lambda: bdag(0) * b(0),
@@ -117,8 +115,7 @@ MODELS = [
     ),
     (
         heisenberg_4site,
-        PAULI,
-        {},
+        PauliSpace(),
         HEIS_BETA,
         HEIS_E,
         lambda: sigma_z(0) * sigma_z(1),
@@ -130,16 +127,16 @@ MODEL_IDS = ["hubbard", "bose_hubbard", "heisenberg"]
 
 
 @pytest.mark.parametrize(
-    ("model", "stat", "basis_kwargs", "beta", "ref_e", "obs_factory", "ref_obs"),
+    ("model", "space", "beta", "ref_e", "obs_factory", "ref_obs"),
     MODELS,
     ids=MODEL_IDS,
 )
 @pytest.mark.parametrize("method", ["ftlm", "ltlm"])
 def test_lanczos_matches_ed_reference(
-    model, stat, basis_kwargs, beta, ref_e, obs_factory, ref_obs, method
+    model, space, beta, ref_e, obs_factory, ref_obs, method
 ):
     labels, H = model()
-    basis = enumerate_basis(labels, stat, **basis_kwargs)
+    basis = enumerate_basis(labels, space)
     got_e = lanczos_thermal_expectation(
         H, H, basis, beta, n_samples=200, n_lanczos=basis.dim, method=method, seed=0
     ).real
@@ -158,15 +155,13 @@ def test_lanczos_matches_ed_reference(
 
 
 @pytest.mark.parametrize(
-    ("model", "stat", "basis_kwargs", "beta", "ref_e", "obs_factory", "ref_obs"),
+    ("model", "space", "beta", "ref_e", "obs_factory", "ref_obs"),
     MODELS,
     ids=MODEL_IDS,
 )
-def test_kpm_matches_ed_reference(
-    model, stat, basis_kwargs, beta, ref_e, obs_factory, ref_obs
-):
+def test_kpm_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_obs):
     labels, H = model()
-    basis = enumerate_basis(labels, stat, **basis_kwargs)
+    basis = enumerate_basis(labels, space)
     got_e = kpm_thermal_expectation(
         H, H, basis, beta, n_moments=100, n_samples=1000, seed=0
     ).real
@@ -178,15 +173,13 @@ def test_kpm_matches_ed_reference(
 
 
 @pytest.mark.parametrize(
-    ("model", "stat", "basis_kwargs", "beta", "ref_e", "obs_factory", "ref_obs"),
+    ("model", "space", "beta", "ref_e", "obs_factory", "ref_obs"),
     MODELS,
     ids=MODEL_IDS,
 )
-def test_tpq_matches_ed_reference(
-    model, stat, basis_kwargs, beta, ref_e, obs_factory, ref_obs
-):
+def test_tpq_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_obs):
     labels, H = model()
-    basis = enumerate_basis(labels, stat, **basis_kwargs)
+    basis = enumerate_basis(labels, space)
     got_e = tpq_thermal_expectation(H, H, basis, beta, n_samples=200, seed=0).real
     assert got_e == pytest.approx(ref_e, abs=5e-2)
     got_obs = tpq_thermal_expectation(

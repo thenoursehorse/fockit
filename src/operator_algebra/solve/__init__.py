@@ -18,6 +18,12 @@ from operator_algebra.solve.evolve import (
     trotter_evolve,
 )
 from operator_algebra.solve.matrix import to_matrix
+from operator_algebra.solve.spaces import (
+    BosonSpace,
+    FermionSpace,
+    LocalSpace,
+    PauliSpace,
+)
 from operator_algebra.solve.thermal import (
     kpm_thermal_expectation,
     lanczos_thermal_expectation,
@@ -27,6 +33,10 @@ from operator_algebra.solve.thermal import (
 
 __all__ = [
     "Basis",
+    "BosonSpace",
+    "FermionSpace",
+    "LocalSpace",
+    "PauliSpace",
     "boltzmann_weights",
     "chebyshev_evolve",
     "eigenstates",

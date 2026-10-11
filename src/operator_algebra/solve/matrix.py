@@ -10,7 +10,7 @@ from operator_algebra._types import as_complex
 from operator_algebra.inspection import modes as op_modes
 from operator_algebra.operators import OpSum
 from operator_algebra.solve.basis import Basis
-from operator_algebra.solve.states import apply_op
+from operator_algebra.solve.spaces import apply_op
 
 type SparseMatrix = sp.spmatrix
 type CSRMatrix = sp.csr_matrix
@@ -25,8 +25,9 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     scipy.sparse.csr_matrix
 
     """
-    if type(op.rules) is not type(basis.rules):
-        msg = f"Operator rules {op.rules!r} do not match basis rules {basis.rules!r}."
+    space = basis.space
+    if type(op.rules) is not type(space.rules):
+        msg = f"Operator rules {op.rules!r} do not match basis rules {space.rules!r}."
         raise ValueError(msg)
     for mode in op_modes(op):
         if mode not in basis.mode_index:
@@ -36,9 +37,7 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     rows: list[int] = []
     cols: list[int] = []
     data: list[complex] = []
-    rules = basis.rules
     mode_index = basis.mode_index
-    n_max = basis.n_max
     lookup = basis.lookup
 
     for j, state in enumerate(basis.states):
@@ -46,7 +45,7 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
             amp: complex = as_complex(coeff)
             cur = state
             for op_single in reversed(mono.ops):
-                res = apply_op(rules, op_single, mode_index[op_single.mode], cur, n_max)
+                res = apply_op(space, op_single, mode_index[op_single.mode], cur)
                 if res is None:
                     amp = 0j
                     break

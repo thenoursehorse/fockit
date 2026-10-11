@@ -12,10 +12,10 @@ import pytest
 import scipy.linalg
 
 from operator_algebra import c, cdag, hc, n, normal_order
-from operator_algebra.algebra import FERMION
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigenstates, groundstate
 from operator_algebra.solve.matrix import expectations, to_matrix
+from operator_algebra.solve.spaces import FermionSpace
 
 
 def hubbard_chain(sites: int, t: float, u: float):
@@ -130,7 +130,7 @@ def test_risb_embedding_matches_risb(model):
     modes = [(s, i) for i in range(2 * n_orb) for s in ("up", "dn")]
     c_modes = [(s, i) for i in range(n_orb) for s in ("up", "dn")]
     # risb solves in the half-filled sector of the embedding space
-    basis = enumerate_basis(modes, FERMION, sectors={total_n(modes): n_orb * 2})
+    basis = enumerate_basis(modes, FermionSpace(), sectors={total_n(modes): n_orb * 2})
     e0, v0 = groundstate(h_emb, basis)
     orbs = range(n_orb)
     rho_f = np.array(
@@ -191,7 +191,7 @@ def test_two_site_half_filling_matches_analytic():
     t, u = 1.0, 4.0
     modes, H = hubbard_chain(2, t, u)
     basis = enumerate_basis(
-        modes, FERMION, sectors={total_n(modes): 2, total_sz(modes): 0}
+        modes, FermionSpace(), sectors={total_n(modes): 2, total_sz(modes): 0}
     )
     e0, _ = groundstate(H, basis)
     expected = (u - np.sqrt(u**2 + 16 * t**2)) / 2
@@ -203,7 +203,7 @@ def test_two_site_quarter_filling_is_pure_hopping():
     modes, H = hubbard_chain(2, t, u)
     basis = enumerate_basis(
         modes,
-        FERMION,
+        FermionSpace(),
         sectors={total_n(modes): 1, total_sz(modes): 0.5},
     )
     assert basis.dim == 2
@@ -216,7 +216,7 @@ def test_three_site_half_filling_sparse_matches_dense():
     modes, H = hubbard_chain(3, t, u)
     basis = enumerate_basis(
         modes,
-        FERMION,
+        FermionSpace(),
         sectors={total_n(modes): 3, total_sz(modes): 0.5},
     )
     mat = to_matrix(H, basis).toarray()
@@ -230,7 +230,7 @@ def test_three_site_half_filling_sparse_matches_dense():
 def test_full_basis_groundstate_is_one_electron_sector():
     t, u = 1.0, 4.0
     modes, H = hubbard_chain(2, t, u)
-    basis = enumerate_basis(modes, FERMION)
+    basis = enumerate_basis(modes, FermionSpace())
     assert basis.dim == 16
     e0_full, _ = groundstate(H, basis)
     assert e0_full == pytest.approx(-t, abs=1e-10)
@@ -238,7 +238,7 @@ def test_full_basis_groundstate_is_one_electron_sector():
 
 def test_normal_ordered_h_squared_matches_matrix_square():
     modes, H = hubbard_chain(2, t=1.0, u=4.0)
-    basis = enumerate_basis(modes, FERMION)
+    basis = enumerate_basis(modes, FermionSpace())
     h = to_matrix(H, basis).toarray()
     h2 = to_matrix(normal_order(H * H), basis).toarray()
     assert h2 == pytest.approx(h @ h)

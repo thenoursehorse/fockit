@@ -5,15 +5,13 @@ from __future__ import annotations
 import cmath
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from dataclasses import dataclass
+from itertools import product
 
 from operator_algebra._types import as_complex
-from operator_algebra.algebra import (
-    AlgebraRules,
-    _mode_sort_key,
-)
+from operator_algebra.algebra import _mode_sort_key
 from operator_algebra.inspection import modes as op_modes
 from operator_algebra.operators import OpSum
-from operator_algebra.solve.states import State, apply_op, enumerate_states
+from operator_algebra.solve.spaces import LocalSpace, State, apply_op
 
 
 @dataclass
@@ -24,37 +22,34 @@ class Basis:
     ----------
     modes : tuple[Hashable, ...]
         Mode labels in canonical order.
-    rules : AlgebraRules
-        The algebra (instance) governing this basis.
+    space : LocalSpace
+        Hilbert space of each mode.
     states : tuple[State, ...]
-        Ordered basis states (ints for fermion/Pauli, tuples for boson).
+        Ordered basis states. Each is a tuple of levels, one per mode, in
+        ``modes`` order.
     lookup : dict[State, int]
         Inverse map ``state -> index``.
     dim : int
         Number of basis states.
-    n_max : int | None
-        Bosonic occupation cutoff (``None`` for fermion/Pauli).
     mode_index : dict[Hashable, int]
         Map ``mode label -> position`` in canonical order.
 
     """
 
     modes: tuple[Hashable, ...]
-    rules: AlgebraRules
+    space: LocalSpace
     states: tuple[State, ...]
     lookup: dict[State, int]
     dim: int
-    n_max: int | None
     mode_index: dict[Hashable, int]
 
 
 def enumerate_basis(
     modes: Sequence[Hashable],
-    rules: AlgebraRules | type[AlgebraRules],
+    space: LocalSpace,
     *,
     sectors: Mapping[OpSum, complex] | None = None,
     predicate: Callable[[State], bool] | None = None,
-    n_max: int | None = None,
 ) -> Basis:
     """Construct an ordered basis for the Fock space of the given modes.
 
@@ -62,41 +57,33 @@ def enumerate_basis(
     ----------
     modes : Sequence[Hashable]
         Mode labels. Reordered into canonical order internally.
-    rules : AlgebraRules or type[AlgebraRules]
-        Algebra rules instance (or class — instantiated automatically).
+    space : LocalSpace
+        Hilbert space of each mode, e.g. ``BosonSpace(n_max=5)``.
     sectors : Mapping[OpSum, complex], optional
         Quantum-number operators mapped to their target eigenvalues. Each
         operator must be diagonal in the occupation basis.
     predicate : Callable[[State], bool], optional
-        Extra filter applied after sector restriction. Receives the raw
-        basis state (int for fermion/Pauli, tuple for boson).
-    n_max : int | None
-        Bosonic occupation cutoff (``None`` for fermion/Pauli).
+        Extra filter applied after sector restriction. Receives the
+        basis state.
 
     """
-    rules_inst = rules() if isinstance(rules, type) else rules
     sorted_modes = tuple(sorted(modes, key=_mode_sort_key))
     mode_index = {m: i for i, m in enumerate(sorted_modes)}
 
-    states: list[State] = enumerate_states(rules_inst, len(sorted_modes), n_max)
+    states: list[State] = list(product(range(space.dim), repeat=len(sorted_modes)))
 
     if sectors:
-        states = [
-            s
-            for s in states
-            if _matches_sectors(s, sectors, rules_inst, mode_index, n_max)
-        ]
+        states = [s for s in states if _matches_sectors(s, sectors, space, mode_index)]
     if predicate is not None:
         states = [s for s in states if predicate(s)]
 
     states_t = tuple(states)
     return Basis(
         modes=sorted_modes,
-        rules=rules_inst,
+        space=space,
         states=states_t,
         lookup={s: i for i, s in enumerate(states_t)},
         dim=len(states_t),
-        n_max=n_max,
         mode_index=mode_index,
     )
 
@@ -104,15 +91,14 @@ def enumerate_basis(
 def _matches_sectors(
     state: State,
     sectors: Mapping[OpSum, complex],
-    rules: AlgebraRules,
+    space: LocalSpace,
     mode_index: dict[Hashable, int],
-    n_max: int | None,
 ) -> bool:
     for qn_op, target in sectors.items():
-        if type(qn_op.rules) is not type(rules):
+        if type(qn_op.rules) is not type(space.rules):
             msg = (
                 f"Sector operator rules {qn_op.rules!r} do not match "
-                f"basis rules {rules!r}."
+                f"basis rules {space.rules!r}."
             )
             raise ValueError(msg)
         for mode in op_modes(qn_op):
@@ -122,7 +108,7 @@ def _matches_sectors(
                     f"{mode!r} which is not in the basis."
                 )
                 raise ValueError(msg)
-        value = _diagonal_value(qn_op, state, rules, mode_index, n_max)
+        value = _diagonal_value(qn_op, state, space, mode_index)
         if not cmath.isclose(value, complex(target), abs_tol=1e-10):
             return False
     return True
@@ -131,16 +117,15 @@ def _matches_sectors(
 def _diagonal_value(
     op: OpSum,
     state: State,
-    rules: AlgebraRules,
+    space: LocalSpace,
     mode_index: dict[Hashable, int],
-    n_max: int | None,
 ) -> complex:
     total: complex = 0j
     for mono, coeff in op.terms.items():
         amp: complex = as_complex(coeff)
         cur: State = state
         for op_single in reversed(mono.ops):
-            res = apply_op(rules, op_single, mode_index[op_single.mode], cur, n_max)
+            res = apply_op(space, op_single, mode_index[op_single.mode], cur)
             if res is None:
                 amp = 0j
                 break
