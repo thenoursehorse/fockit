@@ -1,4 +1,7 @@
-"""End-to-end tests against analytic / cross-checked Hubbard spectra."""
+"""End-to-end tests against analytic / cross-checked Hubbard spectra.
+
+Includes RISB embedding problems from https://github.com/thenoursehorse/risb.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +11,7 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from operator_algebra import c, cdag, n
+from operator_algebra import c, cdag, hc, n
 from operator_algebra.algebra import FERMION
 from operator_algebra.solve.basis import enumerate_basis
 from operator_algebra.solve.diagonalize import eigenstates, groundstate
@@ -26,79 +29,139 @@ def hubbard_chain(sites: int, t: float, u: float):
     return modes, H
 
 
-def risb_bilayer_impurity():
-    U = 1
-    V = 0.25
-    J = 0
-    bath_offdiag = -0.00460398
-    hybr_diag = -2.59694448e-01
-    mu = U / 2.0  # half-filling
-    imp_orbs = (0, 1)
-    spin_names = ("up", "dn")
+# The RISB embedding tests below are ported from `tests/test_atomdiag.py` in
+# https://github.com/thenoursehorse/risb, including the expected values.
+
+
+def risb_one_band():
+    u = 1
+    mu = u / 2  # half-filling
+    h_int = u * n("up", 0) * n("dn", 0)
+    lambda_c = np.array([[-mu]])
+    d = np.array([[-0.3333]])
+    h0_loc = np.array([[0]])
+    expected = {
+        "e0": -0.9619378905494498,
+        "rho_f": np.array([[0.5]]),
+        "rho_cf": np.array([[0.4681588161332029]]),
+        "rho_c": np.array([[0.5]]),
+        "num_c": 1.0,
+        "s2": 0.5066828353209953,
+    }
+    return h_int, lambda_c, d, h0_loc, expected
+
+
+def risb_bilayer():
+    u = 1
+    v = 0.25
+    j = 0
+    mu = u / 2  # half-filling
+    spins = ("up", "dn")
     h_int = 0 * n("up", 0)
-    for o in imp_orbs:
-        h_int += U * n("up", o) * n("dn", o)
-    for s1, s2 in product(spin_names, spin_names):
-        h_int += 0.5 * J * cdag(s1, 0) * c(s2, 0) * cdag(s2, 1) * c(s1, 1)
-    h0 = 0 * n("up", 0)
-    for spin in spin_names:
-        h0 += V * cdag(spin, 0) * c(spin, 1)
-        h0 += V * cdag(spin, 1) * c(spin, 0)
-        # bath is f Lambda f^dag (annihilator first), as in risb
-        h0 -= mu * c(spin, 2) * cdag(spin, 2)
-        h0 -= mu * c(spin, 3) * cdag(spin, 3)
-        h0 += bath_offdiag * c(spin, 2) * cdag(spin, 3)
-        h0 += bath_offdiag * c(spin, 3) * cdag(spin, 2)
-        h0 += hybr_diag * cdag(spin, 0) * c(spin, 2)
-        h0 += hybr_diag * cdag(spin, 2) * c(spin, 0)
-        h0 += hybr_diag * cdag(spin, 1) * c(spin, 3)
-        h0 += hybr_diag * cdag(spin, 3) * c(spin, 1)
-    modes = [(s, i) for i in range(2 * len(imp_orbs)) for s in spin_names]
-    return modes, h0 + h_int
+    for o in (0, 1):
+        h_int += u * n("up", o) * n("dn", o)
+    for s1, s2 in product(spins, spins):
+        h_int += 0.5 * j * cdag(s1, 0) * c(s2, 0) * cdag(s2, 1) * c(s1, 1)
+    lambda_c = np.array([[-mu, -0.00460398], [-0.00460398, -mu]])
+    d = np.array([[-2.59694448e-01, 0], [0, -2.59694448e-01]])
+    h0_loc = np.array([[0, v], [v, 0]])
+    expected = {
+        "e0": -1.7429249197415944,
+        "rho_f": np.array([[0.5, -0.1999913941210893], [-0.1999913941210893, 0.5]]),
+        "rho_cf": np.array([[0.42326519677453511, 0], [0, 0.42326519677453511]]),
+        "rho_c": np.array([[0.5, -0.1836332097072352], [-0.1836332097072352, 0.5]]),
+        "num_c": 2.0,
+        "s2": 0.8247577338845973,
+    }
+    return h_int, lambda_c, d, h0_loc, expected
 
 
-def test_risb_bilayer_impurity():
-    modes, h_emb = risb_bilayer_impurity()
-    num_op = total_n(modes)
-    sz_op = total_sz(modes)
-    num_elec_emb = int(len(modes) / 2)
-    sz = 0
-    basis = enumerate_basis(modes, FERMION, sectors={num_op: num_elec_emb, sz_op: sz})
+def risb_dh_trimer():
+    # two-thirds filling, Hubbard interaction in the momentum basis
+    u = 1
+    tk = 1
+    n_orb = 3
+    h_int = 0 * n("up", 0)
+    for m, mm, mmm in product(range(n_orb), repeat=3):
+        h_int += (
+            (u / n_orb)
+            * cdag("up", m)
+            * c("up", mm)
+            * cdag("dn", mmm)
+            * c("dn", (m + mmm - mm) % n_orb)
+        )
+    lambda_c = np.diag([-1.91730088, -1.69005946, -1.69005946])
+    d = np.diag([-0.26504931, -0.39631238, -0.39631238])
+    h0_loc = np.diag([-2 * tk, tk, tk])
+    expected = {
+        "e0": -9.555511743344764,
+        "rho_f": np.diag([0.9932309740187902, 0.5033842231804342, 0.5033842231804342]),
+        "rho_cf": np.diag([0.0811187181751014, 0.4910360103357626, 0.4910360103357626]),
+        "rho_c": np.diag([0.9909259681893234, 0.5045367260951683, 0.5045367260951683]),
+        "num_c": 3.99999884075932,
+        "s2": 0.9171025003755656,
+    }
+    return h_int, lambda_c, d, h0_loc, expected
+
+
+def risb_h_emb(h_int, lambda_c, d, h0_loc):
+    """Embedding Hamiltonian as built by risb's ``EmbeddingAtomDiag.set_h_emb``.
+
+    c-electrons are orbitals ``0..n_orb-1`` and bath f-electrons are orbitals
+    ``n_orb..2*n_orb-1``, with the same matrices for both spins. The bath term
+    is ``f Lambda_c f^dag`` (annihilator first), as in risb.
+    """
+    n_orb = len(lambda_c)
+    h = h_int
+    for s in ("up", "dn"):
+        for a, b in product(range(n_orb), repeat=2):
+            f_a, f_b = n_orb + a, n_orb + b
+            h += h0_loc[a, b] * cdag(s, a) * c(s, b)
+            h += lambda_c[a, b] * c(s, f_a) * cdag(s, f_b)
+            h += d[a, b] * (cdag(s, a) * c(s, f_b) + cdag(s, f_b) * c(s, a))
+    return h
+
+
+@pytest.mark.parametrize("model", [risb_one_band, risb_bilayer, risb_dh_trimer])
+def test_risb_embedding_matches_risb(model):
+    h_int, lambda_c, d, h0_loc, expected = model()
+    n_orb = len(lambda_c)
+    h_emb = risb_h_emb(h_int, lambda_c, d, h0_loc)
+    modes = [(s, i) for i in range(2 * n_orb) for s in ("up", "dn")]
+    c_modes = [(s, i) for i in range(n_orb) for s in ("up", "dn")]
+    # risb solves in the half-filled sector of the embedding space
+    basis = enumerate_basis(modes, FERMION, sectors={total_n(modes): n_orb * 2})
     e0, v0 = groundstate(h_emb, basis)
-    n0 = expectations(num_op, v0, basis)
-    sz0 = expectations(sz_op, v0, basis)
-    # bath f-electrons are orbitals 2, 3
+    orbs = range(n_orb)
     rho_f = np.array(
         [
             [
-                expectations(c("up", 2 + b) * cdag("up", 2 + a), v0, basis)
-                for b in (0, 1)
+                expectations(c("up", n_orb + b) * cdag("up", n_orb + a), v0, basis)
+                for b in orbs
             ]
-            for a in (0, 1)
+            for a in orbs
         ]
     )
     rho_cf = np.array(
         [
-            [expectations(cdag("up", a) * c("up", 2 + b), v0, basis) for b in (0, 1)]
-            for a in (0, 1)
+            [expectations(cdag("up", a) * c("up", n_orb + b), v0, basis) for b in orbs]
+            for a in orbs
         ]
     )
     rho_c = np.array(
         [
-            [expectations(cdag("up", a) * c("up", b), v0, basis) for b in (0, 1)]
-            for a in (0, 1)
+            [expectations(cdag("up", a) * c("up", b), v0, basis) for b in orbs]
+            for a in orbs
         ]
     )
-    rho_f_expected = np.array([[0.5, -0.1999913941210893], [-0.1999913941210893, 0.5]])
-    rho_cf_expected = np.array([[0.42326519677453511, 0], [0, 0.42326519677453511]])
-    rho_c_expected = np.array([[0.5, -0.1836332097072352], [-0.1836332097072352, 0.5]])
-    e0_expected = -1.7429249197415944
-    assert n0 == pytest.approx(num_elec_emb)
-    assert sz0 == pytest.approx(sz)
-    assert e0 == pytest.approx(e0_expected, abs=1e-10)
-    assert rho_f == pytest.approx(rho_f_expected, abs=1e-10)
-    assert rho_cf == pytest.approx(rho_cf_expected, abs=1e-10)
-    assert rho_c == pytest.approx(rho_c_expected, abs=1e-10)
+    assert e0 == pytest.approx(expected["e0"], abs=1e-10)
+    assert rho_f == pytest.approx(expected["rho_f"], abs=1e-10)
+    assert rho_cf == pytest.approx(expected["rho_cf"], abs=1e-10)
+    assert rho_c == pytest.approx(expected["rho_c"], abs=1e-10)
+    num_c = expectations(total_n(c_modes), v0, basis)
+    assert num_c == pytest.approx(expected["num_c"], abs=1e-10)
+    s2 = expectations(total_s2(c_modes), v0, basis)
+    assert s2 == pytest.approx(expected["s2"], abs=1e-10)
 
 
 def total_n(modes):
@@ -113,6 +176,15 @@ def total_sz(modes):
     for s, i in modes:
         op = op + (0.5 if s == "up" else -0.5) * n(s, i)
     return op
+
+
+def total_s2(modes):
+    sz = total_sz(modes)
+    s_plus = 0 * cdag(*modes[0]) * c(*modes[0])
+    for i in {i for _, i in modes}:
+        s_plus = s_plus + cdag("up", i) * c("dn", i)
+    s_minus = hc(s_plus)
+    return sz * sz + 0.5 * (s_plus * s_minus + s_minus * s_plus)
 
 
 def test_two_site_half_filling_matches_analytic():
