@@ -9,7 +9,7 @@ import pytest
 import scipy.sparse.linalg
 
 from operator_algebra import c, cdag, sigma_x, sigma_y, sigma_z
-from operator_algebra.solve.basis import enumerate_basis
+from operator_algebra.solve.basis import enumerate_basis, state_index
 from operator_algebra.solve.diagonalize import eigh_full
 from operator_algebra.solve.evolve import (
     boltzmann_weights,
@@ -51,7 +51,7 @@ def test_free_fermion_single_particle_matches_analytic():
     h = -t_hop * (np.diag(np.ones(L - 1), 1) + np.diag(np.ones(L - 1), -1))
 
     psi0 = np.zeros(basis.dim, dtype=complex)
-    psi0[basis.lookup[(1, 0, 0, 0)]] = 1.0  # particle on site 0
+    psi0[state_index(basis, (1, 0, 0, 0))] = 1.0  # particle on site 0
 
     times = np.linspace(0.0, 2.0, 5)
     traj = expm_multiply_evolve(H, psi0, basis, times)

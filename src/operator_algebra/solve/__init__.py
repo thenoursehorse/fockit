@@ -1,6 +1,6 @@
 """Numerical solvers built on top of operator-algebra."""
 
-from operator_algebra.solve.basis import Basis, enumerate_basis
+from operator_algebra.solve.basis import Basis, enumerate_basis, state_index
 from operator_algebra.solve.diagonalize import (
     eigenstates,
     eigh_full,
@@ -49,6 +49,7 @@ __all__ = [
     "lanczos",
     "lanczos_eigenpairs",
     "lanczos_thermal_expectation",
+    "state_index",
     "suzuki_trotter_sequence",
     "thermal_expectation",
     "to_matrix",

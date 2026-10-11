@@ -1,6 +1,6 @@
 """Single-mode Hilbert spaces and how operators act on them.
 
-A basis state is a tuple of levels, one per mode. Each algebra provides a
+A basis state is a row of levels, one per mode. Each algebra provides a
 ``LocalSpace`` describing one mode; the basis is their product.
 """
 
@@ -9,14 +9,22 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar, Protocol
 
+import numpy as np
+from numpy.typing import NDArray
+
 from operator_algebra.algebra import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
 from operator_algebra.operators import Op
 
-type State = tuple[int, ...]
+type IntArray = NDArray[np.int64]
+type ComplexArray = NDArray[np.complex128]
 
 
 class LocalSpace(Protocol):
-    """Hilbert space of a single mode."""
+    """Hilbert space of a single mode.
+
+    Each operator kind must send a level to at most one level. Build other
+    local operators as sums in constructors, as ``sp``/``sm`` do.
+    """
 
     @property
     def rules(self) -> AlgebraRules:
@@ -28,12 +36,18 @@ class LocalSpace(Protocol):
         """Number of levels."""
         ...
 
-    def apply(self, op: Op, level: int) -> tuple[complex, int] | None:
-        """Return ``(amplitude, new_level)``, or None if ``op`` gives zero."""
+    def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
+        """For each level: the level ``op`` sends it to, and the amplitude.
+
+        An amplitude of 0 means ``op`` annihilates that level.
+        """
         ...
 
-    def string_phase(self, op: Op, earlier: State) -> complex:
-        """Phase ``op`` picks up from the levels of the modes before it."""
+    def string_factor(self, op: Op) -> ComplexArray:
+        """Factor ``op`` picks up from each earlier mode of this space.
+
+        Indexed by the level of that earlier mode.
+        """
         ...
 
 
@@ -44,15 +58,15 @@ class FermionSpace:
     rules: ClassVar[AlgebraRules] = FERMION
     dim: ClassVar[int] = 2
 
-    def apply(self, op: Op, level: int) -> tuple[complex, int] | None:
+    def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
         """Apply c† or c."""
         if op.kind is Ladder.CREATE:
-            return None if level else (1, 1)
-        return (1, 0) if level else None
+            return np.array([1, 1]), np.array([1, 0], dtype=complex)
+        return np.array([0, 0]), np.array([0, 1], dtype=complex)
 
-    def string_phase(self, op: Op, earlier: State) -> complex:  # noqa: ARG002
-        """Jordan-Wigner sign."""
-        return -1 if sum(earlier) & 1 else 1
+    def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
+        """Jordan-Wigner sign from each occupied earlier mode."""
+        return np.array([1, -1], dtype=complex)
 
 
 @dataclass(frozen=True)
@@ -67,19 +81,18 @@ class BosonSpace:
         """Number of levels, ``0..n_max``."""
         return self.n_max + 1
 
-    def apply(self, op: Op, level: int) -> tuple[complex, int] | None:
-        """Apply b† or b."""
+    def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
+        """Apply b† or b; b† on ``n_max`` gives zero."""
+        level = np.arange(self.dim)
         if op.kind is Ladder.CREATE:
-            if level == self.n_max:
-                return None
-            return (level + 1) ** 0.5, level + 1
-        if level == 0:
-            return None
-        return level**0.5, level - 1
+            amp = np.sqrt(level + 1).astype(complex)
+            amp[-1] = 0
+            return np.minimum(level + 1, self.n_max), amp
+        return np.maximum(level - 1, 0), np.sqrt(level).astype(complex)
 
-    def string_phase(self, op: Op, earlier: State) -> complex:  # noqa: ARG002
+    def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
         """Bosons commute across modes."""
-        return 1
+        return np.ones(self.dim, dtype=complex)
 
 
 @dataclass(frozen=True)
@@ -89,34 +102,17 @@ class PauliSpace:
     rules: ClassVar[AlgebraRules] = PAULI
     dim: ClassVar[int] = 2
 
-    def apply(self, op: Op, level: int) -> tuple[complex, int] | None:
+    def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
         """Apply σx, σy or σz."""
         if op.kind is Pauli.X:
-            return 1, 1 - level
+            return np.array([1, 0]), np.array([1, 1], dtype=complex)
         if op.kind is Pauli.Y:
-            return (1j if level else -1j), 1 - level
+            return np.array([1, 0]), np.array([-1j, 1j])
         if op.kind is Pauli.Z:
-            return (1 if level else -1), level
+            return np.array([0, 1]), np.array([-1, 1], dtype=complex)
         msg = f"Unsupported Pauli kind: {op.kind!r}"
         raise ValueError(msg)
 
-    def string_phase(self, op: Op, earlier: State) -> complex:  # noqa: ARG002
+    def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
         """Spins on different sites commute."""
-        return 1
-
-
-def apply_op(
-    space: LocalSpace, op: Op, index: int, state: State, start: int
-) -> tuple[complex, State] | None:
-    """Apply ``op`` to the mode at ``index``.
-
-    ``start`` is the first mode of the same space, so the string phase only
-    sees modes of that space. Returns ``(amplitude, new_state)``, or None if
-    the result is zero.
-    """
-    res = space.apply(op, state[index])
-    if res is None:
-        return None
-    amp, level = res
-    phase = space.string_phase(op, state[start:index])
-    return amp * phase, (*state[:index], level, *state[index + 1 :])
+        return np.ones(2, dtype=complex)

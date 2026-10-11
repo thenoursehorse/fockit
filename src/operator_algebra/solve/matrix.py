@@ -1,4 +1,4 @@
-"""Build sparse matrix representations of operators in a Fock basis."""
+"""Build sparse matrix representations of operators in a product basis."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from numpy.typing import NDArray
 
 from operator_algebra._types import as_complex
 from operator_algebra.operators import OpSum
-from operator_algebra.solve.basis import Basis, check_modes
-from operator_algebra.solve.spaces import apply_op
+from operator_algebra.solve.basis import Basis, apply_monomial, check_modes
+from operator_algebra.solve.spaces import IntArray
 
 type SparseMatrix = sp.spmatrix
 type CSRMatrix = sp.csr_matrix
@@ -26,42 +26,22 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
     """
     check_modes(op, basis.mode_index)
 
-    rows: list[int] = []
-    cols: list[int] = []
-    data: list[complex] = []
-    lookup = basis.lookup
-
-    # resolve each operator's mode position once, not once per state
-    terms = []
+    rows: list[IntArray] = [np.empty(0, dtype=np.int64)]
+    cols: list[IntArray] = [np.empty(0, dtype=np.int64)]
+    data: list[ComplexArray] = [np.empty(0, dtype=complex)]
     for mono, coeff in op.terms.items():
-        steps = []
-        for op_single in reversed(mono.ops):
-            k = basis.mode_index[(op_single.rules, op_single.mode)]
-            steps.append((basis.spaces[k], op_single, k, basis.starts[k]))
-        terms.append((as_complex(coeff), steps))
-
-    for j, state in enumerate(basis.states):
-        for coeff, steps in terms:
-            amp: complex = coeff
-            cur = state
-            for space, op_single, k, start in steps:
-                res = apply_op(space, op_single, k, cur, start)
-                if res is None:
-                    amp = 0j
-                    break
-                a, cur = res
-                amp *= a
-            if amp == 0:
-                continue
-            i = lookup.get(cur)
-            if i is None:
-                continue
-            rows.append(i)
-            cols.append(j)
-            data.append(amp)
+        source, new, amp = apply_monomial(
+            mono, basis.levels, basis.mode_index, basis.spaces, basis.starts
+        )
+        codes = new @ basis.strides
+        pos = np.minimum(np.searchsorted(basis.codes, codes), basis.dim - 1)
+        keep = basis.codes[pos] == codes
+        rows.append(pos[keep])
+        cols.append(source[keep])
+        data.append(as_complex(coeff) * amp[keep])
 
     mat = sp.coo_matrix(
-        (np.asarray(data, dtype=complex), (rows, cols)),
+        (np.concatenate(data), (np.concatenate(rows), np.concatenate(cols))),
         shape=(basis.dim, basis.dim),
     ).tocsr()
     mat.sum_duplicates()
