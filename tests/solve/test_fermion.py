@@ -44,10 +44,11 @@ def risb_bilayer_impurity():
     for spin in spin_names:
         h0 += V * cdag(spin, 0) * c(spin, 1)
         h0 += V * cdag(spin, 1) * c(spin, 0)
-        h0 -= mu * cdag(spin, 2) * c(spin, 2)
-        h0 -= mu * cdag(spin, 3) * c(spin, 3)
-        h0 += bath_offdiag * cdag(spin, 2) * c(spin, 3)
-        h0 += bath_offdiag * cdag(spin, 3) * c(spin, 2)
+        # bath is f Lambda f^dag (annihilator first), as in risb
+        h0 -= mu * c(spin, 2) * cdag(spin, 2)
+        h0 -= mu * c(spin, 3) * cdag(spin, 3)
+        h0 += bath_offdiag * c(spin, 2) * cdag(spin, 3)
+        h0 += bath_offdiag * c(spin, 3) * cdag(spin, 2)
         h0 += hybr_diag * cdag(spin, 0) * c(spin, 2)
         h0 += hybr_diag * cdag(spin, 2) * c(spin, 0)
         h0 += hybr_diag * cdag(spin, 1) * c(spin, 3)
@@ -66,17 +67,38 @@ def test_risb_bilayer_impurity():
     e0, v0 = groundstate(h_emb, basis)
     n0 = expectations(num_op, v0, basis)
     sz0 = expectations(sz_op, v0, basis)
+    # bath f-electrons are orbitals 2, 3
+    rho_f = np.array(
+        [
+            [
+                expectations(c("up", 2 + b) * cdag("up", 2 + a), v0, basis)
+                for b in (0, 1)
+            ]
+            for a in (0, 1)
+        ]
+    )
+    rho_cf = np.array(
+        [
+            [expectations(cdag("up", a) * c("up", 2 + b), v0, basis) for b in (0, 1)]
+            for a in (0, 1)
+        ]
+    )
+    rho_c = np.array(
+        [
+            [expectations(cdag("up", a) * c("up", b), v0, basis) for b in (0, 1)]
+            for a in (0, 1)
+        ]
+    )
     rho_f_expected = np.array([[0.5, -0.1999913941210893], [-0.1999913941210893, 0.5]])
     rho_cf_expected = np.array([[0.42326519677453511, 0], [0, 0.42326519677453511]])
     rho_c_expected = np.array([[0.5, -0.1836332097072352], [-0.1836332097072352, 0.5]])
-    # num_elec_expected = 2.0
-    # S2_expected = 0.8247577338845973
-
     e0_expected = -1.7429249197415944
     assert n0 == pytest.approx(num_elec_emb)
     assert sz0 == pytest.approx(sz)
-    # FIXME: this is not giving expected, am I constructing h_emb like in risb?
-    # assert e0 == pytest.approx(e0_expected, abs=1e-10)
+    assert e0 == pytest.approx(e0_expected, abs=1e-10)
+    assert rho_f == pytest.approx(rho_f_expected, abs=1e-10)
+    assert rho_cf == pytest.approx(rho_cf_expected, abs=1e-10)
+    assert rho_c == pytest.approx(rho_c_expected, abs=1e-10)
 
 
 def total_n(modes):
