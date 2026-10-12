@@ -408,6 +408,34 @@ def test_tfim_ordered_phase_has_an_even_ground_state_and_a_closing_odd_partner()
     assert splittings[1] < splittings[0]
 
 
+def test_total_spin_from_a_penalty_and_from_sz_sectors_agree():
+    # singlets appear at Sz=0 but not at Sz=1, so they are the Sz=0 levels
+    # left after removing the Sz=1 ones; adding 10 S^2 lifts every other S
+    sites = 10
+    H = heisenberg_ring(sites)
+    total_spin = [
+        0.5 * sum(f(i) for i in range(sites)) for f in (sigma_x, sigma_y, sigma_z)
+    ]
+    S2 = sum(s * s for s in total_spin)
+    space = {PauliSpace(): range(sites)}
+    sz0 = enumerate_basis(space, diagonal_symmetries={total_spin[2]: 0})
+
+    spin_one_or_more = spectrum(H, space, diagonal_symmetries={total_spin[2]: 1})
+    singlets = list(eigh_full(to_matrix(H, sz0))[0])
+    for level in spin_one_or_more:
+        singlets.pop(int(np.argmin(np.abs(np.array(singlets) - level))))
+    singlets.sort()
+
+    penalized, _ = eigh_full(to_matrix(H + 10 * S2, sz0))
+    assert penalized[:3] == pytest.approx(singlets[:3])
+
+    energy, psi = groundstate(to_matrix(H, sz0))
+    assert expectations(to_matrix(S2, sz0), psi).real == pytest.approx(0, abs=1e-9)
+    assert singlets[0] == pytest.approx(energy)
+    # the lowest triplet lies between the two lowest singlets
+    assert singlets[0] < spin_one_or_more[0] < singlets[1]
+
+
 def test_heisenberg_ground_state_lies_in_its_spin_inversion_sector():
     sites = 8
     H = heisenberg_ring(sites)
