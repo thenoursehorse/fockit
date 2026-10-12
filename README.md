@@ -8,7 +8,8 @@ Build many-body models, write your own operator algebras, and test algorithms
 on them. Quick and simple.
 
 Comes with fermions, bosons and Pauli operators, and you can add your own.
-Simple exact solvers check your ideas on small systems.
+Particles must have abelian statistics. Simple exact solvers check your ideas
+on small systems.
 
 ## Where to start?
 
