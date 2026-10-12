@@ -54,3 +54,8 @@ uv run pytest
 ```shell
 uv sync --group all --extra sympy --extra solve
 ```
+
+## AI use
+
+This code was written with AI coding assistants (Claude Code and Codex). All of
+it is reviewed and tested.
