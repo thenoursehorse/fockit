@@ -8,8 +8,9 @@ Build many-body models, write your own operator algebras, and test algorithms
 on them. Quick and simple.
 
 Comes with fermions, bosons and Pauli operators, and you can add your own.
-Particles must have abelian statistics. Simple exact solvers check your ideas
-on small systems.
+Simple exact solvers check your ideas on small systems.
+
+Particles must have abelian statistics.
 
 ## Where to start?
 
@@ -47,10 +48,10 @@ basis = build_basis(
 )
 
 # The matrix representation of H in the above basis
-mat = to_matrix(H, basis)
+H_mat = to_matrix(H, basis)
 
 # The ground state
-energy, state = groundstate(mat)
+energy, state = groundstate(H_mat)
 ```
 
 ## Your own algebra
