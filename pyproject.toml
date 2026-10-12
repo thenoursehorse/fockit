@@ -31,35 +31,28 @@ solve = [
 ]
 
 [build-system]
-# hatchling 1.32 writes metadata 2.5, which twine doesn't accept yet
-requires = ["hatchling<1.32", "hatch-vcs"]
+requires = ["hatchling>=1.27", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch]
 version.source = "vcs"
-build.hooks.vcs.version-file = "src/fockit/_version.py"
-build.targets.sdist.include = ["src", "tests", "README.md", "LICENSE", "pyproject.toml"]
-metadata.allow-direct-references = true
+version.fallback-version = "0.0.0"
+build.targets.sdist.include = ["/src", "/tests", "/examples"]
 
 [dependency-groups]
 test = [
-  "pytest>=8.3",
-  "pytest-subtests>=0.14",
-  "pytest-cov>=6.0",
+  "pytest>=9.0",
 ]
 dev = [
-  { include-group = "test" },
-  "pre-commit>=4.0",
-  "ruff>=0.8.0",
-  "mypy>=1.13",
-]
-all = [
   {include-group = "test"},
-  {include-group = "dev"},
+  "mypy",
+  "pre-commit",
+  "ruff",
+  "scipy-stubs",
 ]
 
 [tool.pytest]
-minversion = "8.3"
+minversion = "9.0"
 addopts = ["-ra", "--showlocals"]
 strict = true
 filterwarnings = ["error"]
@@ -70,9 +63,7 @@ testpaths = [
 
 [tool.ruff]
 src = ["src"]
-target-version = "py314"
 line-length = 88
-extend-exclude = ["src/fockit/_version.py"]
 
 [tool.ruff.format]
 exclude = ["*.md"]
@@ -132,9 +123,15 @@ files = "src"
 python_version = "3.14"
 strict = true
 show_error_codes = true
-enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+enable_error_code = [
+  "ignore-without-code",
+  "redundant-expr",
+  "truthy-bool",
+  "explicit-override",
+  "possibly-undefined",
+]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["scipy.*", "sympy.*", "triqs.*"]
+module = ["sympy.*", "triqs.*"]
 ignore_missing_imports = true

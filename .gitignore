@@ -45,5 +45,4 @@ dist/
 .DS_Store
 
 # project specific
-src/fockit/_version.py
 to-do.md

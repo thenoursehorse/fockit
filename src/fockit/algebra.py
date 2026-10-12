@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Hashable
 from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 
 from fockit._types import Coefficient
 
@@ -110,6 +110,7 @@ class AlgebraRules(Protocol):
         """
         ...
 
+    @override
     def __hash__(self) -> int:
         """Return hash for use as ``lru_cache`` key."""
         ...
@@ -149,13 +150,16 @@ class FermionRules:
         flipped = Ladder.CREATE if op.kind is Ladder.ANNIHILATE else Ladder.ANNIHILATE
         return replace(op, kind=flipped)
 
-    def __eq__(self, other: object) -> bool:  # noqa: D105
+    @override
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, FermionRules)
 
-    def __hash__(self) -> int:  # noqa: D105
+    @override
+    def __hash__(self) -> int:
         return hash(type(self))
 
-    def __repr__(self) -> str:  # noqa: D105
+    @override
+    def __repr__(self) -> str:
         return "FermionRules()"
 
 
@@ -186,13 +190,16 @@ class BosonRules:
         flipped = Ladder.CREATE if op.kind is Ladder.ANNIHILATE else Ladder.ANNIHILATE
         return replace(op, kind=flipped)
 
-    def __eq__(self, other: object) -> bool:  # noqa: D105
+    @override
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, BosonRules)
 
-    def __hash__(self) -> int:  # noqa: D105
+    @override
+    def __hash__(self) -> int:
         return hash(type(self))
 
-    def __repr__(self) -> str:  # noqa: D105
+    @override
+    def __repr__(self) -> str:
         return "BosonRules()"
 
 
@@ -228,13 +235,16 @@ class PauliRules:
         """Pauli operators are Hermitian: dagger is identity."""
         return op
 
-    def __eq__(self, other: object) -> bool:  # noqa: D105
+    @override
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, PauliRules)
 
-    def __hash__(self) -> int:  # noqa: D105
+    @override
+    def __hash__(self) -> int:
         return hash(type(self))
 
-    def __repr__(self) -> str:  # noqa: D105
+    @override
+    def __repr__(self) -> str:
         return "PauliRules()"
 
 

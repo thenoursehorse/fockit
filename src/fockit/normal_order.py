@@ -107,7 +107,7 @@ def _insert(op: Op, tail: Monomial) -> tuple[tuple[Monomial, Coefficient], ...]:
             return ((Monomial((*passed, op, *ops[i:])), sign),)
         rest[Monomial((op, *ops[i:]))] = sign
     else:
-        for coeff, repl in terms:
+        for coeff, repl in _swap(op, ops[i]).terms:
             scale = as_coefficient(sign * coeff)
             for m, c in _order(repl, Monomial(ops[i + 1 :])).items():
                 _accumulate(rest, m, as_coefficient(scale * c))

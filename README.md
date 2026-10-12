@@ -116,14 +116,16 @@ Add `--extra sympy` for symbolic coefficients.
 ## Tests
 
 ```shell
-uv sync --group test --extra sympy --extra solve
+uv sync --extra sympy --extra solve
 uv run pytest
 ```
 
 ## Development
 
+After installing as for the tests, set up the pre-commit hooks:
+
 ```shell
-uv sync --group all --extra sympy --extra solve
+uv run pre-commit install
 ```
 
 ## AI use

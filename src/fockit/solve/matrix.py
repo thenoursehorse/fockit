@@ -17,12 +17,11 @@ from fockit.solve.basis import (
 )
 from fockit.solve.spaces import IntArray
 
-type SparseMatrix = sp.spmatrix
-type CSRMatrix = sp.csr_matrix
+type SparseMatrix = sp.csr_matrix
 type ComplexArray = NDArray[np.complex128]
 
 
-def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
+def to_matrix(op: OpSum, basis: Basis) -> SparseMatrix:
     """Build the sparse matrix representation of ``op`` in ``basis``.
 
     With permutation symmetries, ``op`` must commute with them.

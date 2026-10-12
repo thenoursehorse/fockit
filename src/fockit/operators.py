@@ -6,6 +6,7 @@ import operator as py_operator
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from types import MappingProxyType
+from typing import override
 
 from fockit._types import Coefficient, as_coefficient
 from fockit.algebra import AlgebraRules
@@ -45,10 +46,12 @@ class Op:
             self, "_hash", hash((self.mode, self.kind, type(self.rules)))
         )
 
+    @override
     def __hash__(self) -> int:
         """Return the hash computed at creation."""
         return self._hash
 
+    @override
     def __repr__(self) -> str:
         """Show mode, kind and algebra, e.g. ``Op(0, <Ladder.CREATE: '+'>, ...)``."""
         return f"Op({format_mode(self.mode)}, {self.kind!r}, {self.rules!r})"
@@ -76,10 +79,12 @@ class Monomial:
         """Return the number of ladder operators in the product."""
         return len(self.ops)
 
+    @override
     def __hash__(self) -> int:
         """Return the hash of the operator tuple, computed at creation."""
         return self._hash
 
+    @override
     def __eq__(self, other: object) -> bool:
         """Compare by operator sequence.
 
@@ -89,6 +94,7 @@ class Monomial:
             return NotImplemented
         return self.ops == other.ops
 
+    @override
     def __repr__(self) -> str:
         """Show the operator product, or ``I`` for the empty monomial."""
         if not self.ops:
@@ -112,6 +118,7 @@ class OpSum:
         else:
             self._terms = {m: c for m, c in terms.items() if not is_zero(c)}
 
+    @override
     def __hash__(self) -> int:
         """Hash by the frozen set of (monomial, coefficient) pairs."""
         return hash(frozenset(self._terms.items()))
@@ -221,6 +228,7 @@ class OpSum:
             result = result * self
         return result
 
+    @override
     def __eq__(self, other: object) -> bool:
         """Two OpSums are equal iff monomial-coefficient pairs match."""
         if not isinstance(other, OpSum):
@@ -231,12 +239,14 @@ class OpSum:
         """Return False when no terms remain (zero operator)."""
         return bool(self._terms)
 
+    @override
     def __repr__(self) -> str:
         """Delegate to ``to_text`` for human-readable display."""
         from fockit.display import to_text
 
         return to_text(self)
 
+    @override
     def __str__(self) -> str:
         """Delegate to ``__repr__``."""
         return repr(self)

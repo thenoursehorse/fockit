@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import Protocol, SupportsComplex, SupportsFloat, SupportsIndex, cast
+from typing import (
+    Protocol,
+    SupportsComplex,
+    SupportsFloat,
+    SupportsIndex,
+    cast,
+    override,
+)
 
 type Mode = Hashable
 
@@ -11,6 +18,7 @@ type Mode = Hashable
 class SymbolicCoefficient(Protocol):
     """Protocol for symbolic coefficient objects."""
 
+    @override
     def __hash__(self) -> int: ...
 
     def __add__(self, other: object, /) -> object: ...
@@ -29,6 +37,7 @@ class SymbolicCoefficient(Protocol):
 
     def __abs__(self) -> object: ...
 
+    @override
     def __eq__(self, other: object, /) -> bool: ...
 
     def conjugate(self) -> object: ...

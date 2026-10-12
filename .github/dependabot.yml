@@ -1,0 +1,31 @@
+version: 2
+
+multi-ecosystem-groups:
+  dependencies:
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(deps)"
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    patterns: ["*"]
+    multi-ecosystem-group: "dependencies"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "uv"
+    directory: "/"
+    patterns: ["*"]
+    multi-ecosystem-group: "dependencies"
+    versioning-strategy: "lockfile-only"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    patterns: ["*"]
+    multi-ecosystem-group: "dependencies"
+    cooldown:
+      default-days: 7
