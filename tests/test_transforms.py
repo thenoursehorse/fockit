@@ -2,13 +2,22 @@
 
 import warnings
 
+import pytest
+
 from fockit import (
     c,
     cdag,
     commutator,
     hc,
+    identity,
     n,
     normal_order,
+    sigma_x,
+    sigma_y,
+    sigma_z,
+    sm,
+    sp,
+    substitute,
     substitute_modes,
     zero,
 )
@@ -62,3 +71,25 @@ class TestSubstituteModes:
         op = cdag(1) * cdag(2)
         result = substitute_modes(op, {1: "x", 2: "x"}, reorder=True)
         assert result == zero()
+
+
+def test_jordan_wigner_turns_a_fermion_chain_into_the_xy_chain():
+    sites = 5
+    jordan_wigner = {}
+    for j in range(sites):
+        string = identity()
+        for k in range(j):
+            string = string * sigma_z(k)
+        jordan_wigner[c(j)] = string * sm(j)
+        jordan_wigner[cdag(j)] = string * sp(j)
+    hopping = -sum(cdag(j + 1) * c(j) + cdag(j) * c(j + 1) for j in range(sites - 1))
+    xy = 0.5 * sum(
+        sigma_x(j) * sigma_x(j + 1) + sigma_y(j) * sigma_y(j + 1)
+        for j in range(sites - 1)
+    )
+    assert normal_order(substitute(hopping, jordan_wigner)) == normal_order(xy)
+
+
+def test_substitute_keys_must_be_single_operators():
+    with pytest.raises(ValueError, match="single operator"):
+        substitute(n(0), {n(0): cdag(0)})

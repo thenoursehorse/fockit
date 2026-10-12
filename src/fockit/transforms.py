@@ -6,7 +6,7 @@ from dataclasses import replace
 
 from fockit._types import Coefficient, as_coefficient
 from fockit.normal_order import normal_order
-from fockit.operators import Monomial, OpSum
+from fockit.operators import Monomial, Op, OpSum, identity
 
 
 def _conjugate(coeff: Coefficient) -> Coefficient:
@@ -100,6 +100,47 @@ def anticommutator(a: OpSum, b: OpSum) -> OpSum:
 
     """
     return a * b + b * a
+
+
+def substitute(op: OpSum, mapping: Mapping[OpSum, OpSum]) -> OpSum:
+    """Replace single operators by expressions.
+
+    Parameters
+    ----------
+    op : OpSum
+        The operator expression.
+    mapping : Mapping[OpSum, OpSum]
+        Each key is a single operator, e.g. ``c(0)``, mapped to what replaces
+        it, e.g. ``(gamma(0) + 1j * gamma(1)) / 2``. Operators not in the
+        mapping are unchanged.
+
+    Returns
+    -------
+    OpSum
+        The result, not normal ordered.
+
+    """
+    images: dict[Op, OpSum] = {}
+    for key, value in mapping.items():
+        terms = list(key.terms.items())
+        if len(terms) != 1 or len(terms[0][0].ops) != 1 or terms[0][1] != 1:
+            msg = f"Each key must be a single operator, e.g. c(0), not {key}."
+            raise ValueError(msg)
+        images[terms[0][0].ops[0]] = value
+
+    new_terms: dict[Monomial, Coefficient] = {}
+    for mono, coeff in op.terms.items():
+        product = identity() * coeff
+        for single_op in mono.ops:
+            product = product * images.get(
+                single_op, OpSum({Monomial((single_op,)): 1})
+            )
+        for new_mono, new_coeff in product.terms.items():
+            if new_mono in new_terms:
+                new_terms[new_mono] = as_coefficient(new_terms[new_mono] + new_coeff)
+            else:
+                new_terms[new_mono] = new_coeff
+    return OpSum(new_terms)
 
 
 def substitute_modes(

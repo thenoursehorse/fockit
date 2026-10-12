@@ -21,7 +21,13 @@ from fockit.operators import (
     zero,
 )
 from fockit.simplify import drop_zeros, simplify_coeffs
-from fockit.transforms import anticommutator, commutator, hc, substitute_modes
+from fockit.transforms import (
+    anticommutator,
+    commutator,
+    hc,
+    substitute,
+    substitute_modes,
+)
 
 __all__ = [
     "anticommutator",
@@ -46,6 +52,7 @@ __all__ = [
     "simplify_coeffs",
     "sm",
     "sp",
+    "substitute",
     "substitute_modes",
     "to_latex",
     "to_text",
