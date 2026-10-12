@@ -15,20 +15,22 @@ Simple exact solvers check your ideas on small systems.
 The example below builds a model and solves it; the section after it adds your
 own algebra. More examples are in `examples/` and in the tests:
 
-- `tests/test_integration.py` for the operator algebra.
-- `tests/solve/` for matrices and solvers.
-- `tests/solve/test_symmetries.py` for symmetry sectors (momentum, reflection,
-  spin flip, spin inversion, particle-hole, point groups).
+- `tests/algebra/` for the operator algebra.
+- `tests/hilbert/` for Hilbert spaces and matrices; `test_symmetries.py` there
+  for symmetry sectors (momentum, reflection, spin flip, spin inversion,
+  particle-hole, point groups).
+- `tests/solve/` for the solvers.
 
 ## Example
 
 An electron hopping between two sites. Each site has a phonon and a spin.
 
 ```python
-from fockit import b, bdag, c, cdag, n, sigma_x, sigma_z
-from fockit.solve import (
-    BosonSpace, FermionSpace, PauliSpace, enumerate_basis, groundstate, to_matrix,
+from fockit.algebra import b, bdag, c, cdag, n, sigma_x, sigma_z
+from fockit.hilbert import (
+    BosonSpace, FermionSpace, PauliSpace, enumerate_basis, to_matrix,
 )
+from fockit.solve import groundstate
 
 # The operator
 H = -(cdag(0) * c(1) + cdag(1) * c(0)) + 0.2 * sigma_z(0) * sigma_z(1)
@@ -58,9 +60,7 @@ and the adjoint. For example Majorana fermions:
 ```python
 from dataclasses import dataclass
 
-from fockit import normal_order
-from fockit.algebra import SwapResult, mode_sort_key
-from fockit.operators import Monomial, Op, OpSum
+from fockit.algebra import Monomial, Op, OpSum, SwapResult, mode_sort_key, normal_order
 
 
 @dataclass(frozen=True)

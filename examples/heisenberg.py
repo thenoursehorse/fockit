@@ -2,15 +2,15 @@
 
 import numpy as np
 
-from fockit import sigma_x, sigma_y, sigma_z
-from fockit.solve import (
+from fockit.algebra import sigma_x, sigma_y, sigma_z
+from fockit.hilbert import (
     PauliSpace,
     enumerate_basis,
     expand_state,
     expectations,
-    groundstate,
     to_matrix,
 )
+from fockit.solve import groundstate
 
 L = 16
 space = {PauliSpace(): range(L)}

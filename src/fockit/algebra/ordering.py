@@ -11,8 +11,8 @@ from __future__ import annotations
 import functools
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.algebra import SwapResult
-from fockit.operators import Monomial, Op, OpSum
+from fockit.algebra.operators import Monomial, Op, OpSum
+from fockit.algebra.rules import SwapResult
 
 
 def normal_order(op: OpSum) -> OpSum:

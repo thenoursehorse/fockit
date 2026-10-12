@@ -1,11 +1,5 @@
-"""Numerical solvers built on the operator algebra."""
+"""Solvers for ground states, excited states, thermal states and time evolution."""
 
-from fockit.solve.basis import (
-    Basis,
-    enumerate_basis,
-    expand_state,
-    state_index,
-)
 from fockit.solve.diagonalize import (
     eigenstates,
     eigh_full,
@@ -22,13 +16,6 @@ from fockit.solve.evolve import (
     tpq_state,
     trotter_evolve,
 )
-from fockit.solve.matrix import expectations, matrix_elements, to_matrix
-from fockit.solve.spaces import (
-    BosonSpace,
-    FermionSpace,
-    LocalSpace,
-    PauliSpace,
-)
 from fockit.solve.thermal import (
     kpm_thermal_expectation,
     lanczos_thermal_expectation,
@@ -37,18 +24,10 @@ from fockit.solve.thermal import (
 )
 
 __all__ = [
-    "Basis",
-    "BosonSpace",
-    "FermionSpace",
-    "LocalSpace",
-    "PauliSpace",
     "boltzmann_weights",
     "chebyshev_evolve",
     "eigenstates",
     "eigh_full",
-    "enumerate_basis",
-    "expand_state",
-    "expectations",
     "expm_multiply_evolve",
     "groundstate",
     "kpm_thermal_expectation",
@@ -56,11 +35,8 @@ __all__ = [
     "lanczos",
     "lanczos_eigenpairs",
     "lanczos_thermal_expectation",
-    "matrix_elements",
-    "state_index",
     "suzuki_trotter_sequence",
     "thermal_expectation",
-    "to_matrix",
     "tpq_state",
     "tpq_thermal_expectation",
     "trotter_evolve",

@@ -21,8 +21,8 @@ import scipy.sparse.linalg
 from numpy.typing import NDArray
 from scipy.special import jv
 
+from fockit.hilbert.matrix import SparseMatrix
 from fockit.solve.diagonalize import lanczos
-from fockit.solve.matrix import SparseMatrix
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

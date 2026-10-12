@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import cast
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.operators import Monomial, OpSum
+from fockit.algebra.operators import Monomial, OpSum
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -7,11 +7,9 @@ import math
 import numpy as np
 import pytest
 
-from fockit import b, bdag, normal_order
-from fockit.solve.basis import enumerate_basis
-from fockit.solve.diagonalize import eigenstates, groundstate
-from fockit.solve.matrix import expectations, to_matrix
-from fockit.solve.spaces import BosonSpace
+from fockit.algebra import b, bdag, normal_order
+from fockit.hilbert import BosonSpace, enumerate_basis, expectations, to_matrix
+from fockit.solve import eigenstates, groundstate
 
 
 def test_harmonic_oscillator_ladder():

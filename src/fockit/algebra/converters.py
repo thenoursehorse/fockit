@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from fockit._types import as_complex
-from fockit.algebra import FermionRules, Ladder
-from fockit.operators import OpSum
+from fockit.algebra.operators import OpSum
+from fockit.algebra.rules import FermionRules, Ladder
 
 if TYPE_CHECKING:
     from triqs.operators import Operator as TriqsOperator

@@ -7,15 +7,17 @@ A basis state is a row of levels, one per mode. Each algebra provides a
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar, Protocol
+from typing import Any, ClassVar, Protocol
 
 import numpy as np
 from numpy.typing import NDArray
 
-from fockit.algebra import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
-from fockit.operators import Op
+from fockit.algebra.operators import Op
+from fockit.algebra.rules import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
 
 type IntArray = NDArray[np.int64]
+type FloatArray = NDArray[np.float64]
+type Levels = NDArray[np.integer[Any]]
 type ComplexArray = NDArray[np.complex128]
 
 

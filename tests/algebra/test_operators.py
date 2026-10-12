@@ -1,6 +1,6 @@
 """Tests for core data types."""
 
-from fockit import bdag, cdag, identity, num_terms, zero
+from fockit.algebra import bdag, cdag, identity, num_terms, zero
 
 
 class TestOpSum:

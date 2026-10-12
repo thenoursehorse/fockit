@@ -5,21 +5,17 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from fockit import (
-    b,
-    bdag,
-    c,
-    cdag,
-    n,
-    nb,
-    sigma_x,
-    sigma_y,
-    sigma_z,
+from fockit.algebra import b, bdag, c, cdag, n, nb, sigma_x, sigma_y, sigma_z
+from fockit.hilbert import (
+    BosonSpace,
+    FermionSpace,
+    PauliSpace,
+    enumerate_basis,
+    expand_state,
+    expectations,
+    to_matrix,
 )
-from fockit.solve.basis import enumerate_basis, expand_state
-from fockit.solve.diagonalize import eigenstates, eigh_full, groundstate
-from fockit.solve.matrix import expectations, to_matrix
-from fockit.solve.spaces import BosonSpace, FermionSpace, PauliSpace
+from fockit.solve import eigenstates, eigh_full, groundstate
 
 SPINS = ("up", "dn")
 

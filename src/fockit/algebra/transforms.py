@@ -5,8 +5,8 @@ from collections.abc import Hashable, Mapping
 from dataclasses import replace
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.normal_order import normal_order
-from fockit.operators import Monomial, Op, OpSum, identity
+from fockit.algebra.operators import Monomial, Op, OpSum, identity
+from fockit.algebra.ordering import normal_order
 
 
 def _conjugate(coeff: Coefficient) -> Coefficient:

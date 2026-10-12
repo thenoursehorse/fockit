@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from fockit import (
+from fockit.algebra import (
     anticommutator,
     b,
     bdag,

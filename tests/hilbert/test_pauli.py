@@ -5,11 +5,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from fockit import normal_order, sigma_x, sigma_y, sigma_z, sm, sp
-from fockit.solve.basis import enumerate_basis
-from fockit.solve.diagonalize import eigenstates, eigh_full, groundstate
-from fockit.solve.matrix import expectations, to_matrix
-from fockit.solve.spaces import PauliSpace
+from fockit.algebra import normal_order, sigma_x, sigma_y, sigma_z, sm, sp
+from fockit.hilbert import PauliSpace, enumerate_basis, expectations, to_matrix
+from fockit.solve import eigenstates, eigh_full, groundstate
 
 
 def heisenberg_chain(sites: int, j: float):

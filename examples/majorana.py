@@ -6,10 +6,19 @@ So to solve a Majorana model, substitute fermions for each pair.
 
 from dataclasses import dataclass
 
-from fockit import c, cdag, normal_order, substitute
-from fockit.algebra import SwapResult, mode_sort_key
-from fockit.operators import Monomial, Op, OpSum
-from fockit.solve import FermionSpace, eigh_full, enumerate_basis, to_matrix
+from fockit.algebra import (
+    Monomial,
+    Op,
+    OpSum,
+    SwapResult,
+    c,
+    cdag,
+    mode_sort_key,
+    normal_order,
+    substitute,
+)
+from fockit.hilbert import FermionSpace, enumerate_basis, to_matrix
+from fockit.solve import eigh_full
 
 
 @dataclass(frozen=True)

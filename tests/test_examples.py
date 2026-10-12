@@ -6,15 +6,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from fockit import b, bdag, c, cdag, commutator, normal_order, zero
-from fockit.solve import (
-    BosonSpace,
-    FermionSpace,
-    eigh_full,
-    enumerate_basis,
-    groundstate,
-    to_matrix,
-)
+from fockit.algebra import b, bdag, c, cdag, commutator, normal_order, zero
+from fockit.hilbert import BosonSpace, FermionSpace, enumerate_basis, to_matrix
+from fockit.solve import eigh_full, groundstate
 
 EXAMPLES = Path(__file__).parents[1] / "examples"
 

@@ -1,6 +1,6 @@
 """Tests for inspection utilities."""
 
-from fockit import c, cdag, degree, modes, num_terms, zero
+from fockit.algebra import c, cdag, degree, modes, num_terms, zero
 
 
 def test_modes():

@@ -7,15 +7,10 @@ import scipy.sparse as sp
 from numpy.typing import NDArray
 
 from fockit._types import as_complex
-from fockit.operators import OpSum
-from fockit.solve.basis import (
-    Basis,
-    apply_monomial,
-    check_modes,
-    check_symmetric,
-    representatives,
-)
-from fockit.solve.spaces import IntArray
+from fockit.algebra.operators import OpSum
+from fockit.hilbert.basis import Basis, apply_monomial, check_modes
+from fockit.hilbert.spaces import IntArray
+from fockit.hilbert.symmetries import check_symmetric, representatives
 
 type SparseMatrix = sp.csr_matrix
 type ComplexArray = NDArray[np.complex128]

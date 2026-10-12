@@ -9,7 +9,7 @@ from types import MappingProxyType
 from typing import override
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.algebra import AlgebraRules
+from fockit.algebra.rules import AlgebraRules
 
 _POW_MSG = "Exponent must be a non-negative integer, got {}"
 
@@ -242,7 +242,7 @@ class OpSum:
     @override
     def __repr__(self) -> str:
         """Delegate to ``to_text`` for human-readable display."""
-        from fockit.display import to_text
+        from fockit.algebra.display import to_text
 
         return to_text(self)
 

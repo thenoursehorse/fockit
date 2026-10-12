@@ -11,9 +11,9 @@ from enum import StrEnum
 
 import numpy as np
 
-from fockit.algebra import SwapResult, mode_sort_key
-from fockit.operators import Monomial, Op, OpSum
-from fockit.solve import enumerate_basis, groundstate, to_matrix
+from fockit.algebra import Monomial, Op, OpSum, SwapResult, mode_sort_key
+from fockit.hilbert import enumerate_basis, to_matrix
+from fockit.solve import groundstate
 
 
 class Anyon(StrEnum):

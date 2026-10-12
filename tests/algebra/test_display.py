@@ -2,11 +2,16 @@
 
 from enum import StrEnum
 
-from fockit import (
+from fockit.algebra import (
+    Monomial,
+    Op,
+    OpSum,
+    SwapResult,
     b,
     bdag,
     c,
     cdag,
+    mode_sort_key,
     normal_order,
     sigma_x,
     sigma_z,
@@ -16,8 +21,6 @@ from fockit import (
     to_text,
     zero,
 )
-from fockit.algebra import SwapResult, mode_sort_key
-from fockit.operators import Monomial, Op, OpSum
 
 
 def test_fermion_display():

@@ -4,7 +4,7 @@ import warnings
 
 import pytest
 
-from fockit import (
+from fockit.algebra import (
     c,
     cdag,
     commutator,

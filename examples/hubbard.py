@@ -1,14 +1,14 @@
 """Hubbard ring at half filling: ground energy, double occupancy and spin gap."""
 
-from fockit import c, cdag, n
-from fockit.solve import (
+from fockit.algebra import c, cdag, n
+from fockit.hilbert import (
     FermionSpace,
     enumerate_basis,
     expand_state,
     expectations,
-    groundstate,
     to_matrix,
 )
+from fockit.solve import groundstate
 
 L, t, U = 6, 1.0, 4.0
 spins = ("up", "dn")

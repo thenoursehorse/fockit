@@ -5,7 +5,8 @@ the ones that commute (they can be measured together), and get the exact ground
 energy as a reference.
 """
 
-from fockit import (
+from fockit.algebra import (
+    OpSum,
     c,
     cdag,
     commutator,
@@ -18,15 +19,14 @@ from fockit import (
     substitute,
     zero,
 )
-from fockit.operators import OpSum
-from fockit.solve import (
+from fockit.hilbert import (
     FermionSpace,
     PauliSpace,
     enumerate_basis,
     expectations,
-    groundstate,
     to_matrix,
 )
+from fockit.solve import groundstate
 
 # spinless fermions on an open chain with nearest-neighbour repulsion
 L, V = 4, 1.0

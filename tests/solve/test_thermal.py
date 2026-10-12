@@ -5,12 +5,16 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from fockit import b, bdag, c, cdag, n, sigma_x, sigma_y, sigma_z
-from fockit.solve.basis import enumerate_basis
-from fockit.solve.diagonalize import eigh_full
-from fockit.solve.matrix import to_matrix
-from fockit.solve.spaces import BosonSpace, FermionSpace, PauliSpace
-from fockit.solve.thermal import (
+from fockit.algebra import b, bdag, c, cdag, n, sigma_x, sigma_y, sigma_z
+from fockit.hilbert import (
+    BosonSpace,
+    FermionSpace,
+    PauliSpace,
+    enumerate_basis,
+    to_matrix,
+)
+from fockit.solve import (
+    eigh_full,
     kpm_thermal_expectation,
     lanczos_thermal_expectation,
     thermal_expectation,

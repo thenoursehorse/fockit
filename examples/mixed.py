@@ -6,8 +6,19 @@ is conserved, and with one excitation the polariton bands are known exactly.
 
 import numpy as np
 
-from fockit import b, bdag, commutator, drop_zeros, normal_order, sigma_z, sm, sp, zero
-from fockit.solve import BosonSpace, PauliSpace, eigh_full, enumerate_basis, to_matrix
+from fockit.algebra import (
+    b,
+    bdag,
+    commutator,
+    drop_zeros,
+    normal_order,
+    sigma_z,
+    sm,
+    sp,
+    zero,
+)
+from fockit.hilbert import BosonSpace, PauliSpace, enumerate_basis, to_matrix
+from fockit.solve import eigh_full
 
 L, omega, delta, g, J = 6, 1.0, 1.0, 0.3, 0.2
 

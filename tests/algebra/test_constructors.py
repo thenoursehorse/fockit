@@ -1,8 +1,6 @@
 """Tests for constructor functions."""
 
-from fockit import c, cdag, identity, n, zero
-from fockit.algebra import FERMION
-from fockit.constructors import create
+from fockit.algebra import FERMION, c, cdag, create, identity, n, zero
 
 
 def test_n_equals_cdag_times_c():

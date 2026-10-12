@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 from fockit._types import Coefficient
 
 if TYPE_CHECKING:
-    from fockit.operators import Op
+    from fockit.algebra.operators import Op
 
 
 class Ladder(StrEnum):

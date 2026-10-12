@@ -8,22 +8,28 @@ import numpy as np
 import pytest
 import scipy.sparse.linalg
 
-from fockit import c, cdag, sigma_x, sigma_y, sigma_z
-from fockit.solve.basis import enumerate_basis, state_index
-from fockit.solve.diagonalize import eigh_full
-from fockit.solve.evolve import (
+from fockit.algebra import c, cdag, sigma_x, sigma_y, sigma_z
+from fockit.hilbert import (
+    FermionSpace,
+    PauliSpace,
+    enumerate_basis,
+    expectations,
+    matrix_elements,
+    state_index,
+    to_matrix,
+)
+from fockit.solve import (
     boltzmann_weights,
     chebyshev_evolve,
+    eigh_full,
     expm_multiply_evolve,
     krylov_evolve,
     lanczos_eigenpairs,
     suzuki_trotter_sequence,
+    thermal_expectation,
     tpq_state,
     trotter_evolve,
 )
-from fockit.solve.matrix import expectations, matrix_elements, to_matrix
-from fockit.solve.spaces import FermionSpace, PauliSpace
-from fockit.solve.thermal import thermal_expectation
 
 
 def free_hopping_chain(L: int, t: float = 1.0):

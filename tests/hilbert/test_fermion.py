@@ -11,11 +11,9 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from fockit import c, cdag, hc, n, normal_order
-from fockit.solve.basis import enumerate_basis
-from fockit.solve.diagonalize import eigenstates, eigh_full, groundstate
-from fockit.solve.matrix import expectations, to_matrix
-from fockit.solve.spaces import FermionSpace
+from fockit.algebra import c, cdag, hc, n, normal_order
+from fockit.hilbert import FermionSpace, enumerate_basis, expectations, to_matrix
+from fockit.solve import eigenstates, eigh_full, groundstate
 
 
 def hubbard_chain(sites: int, t: float, u: float):

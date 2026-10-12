@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from fockit.algebra import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
-from fockit.operators import Monomial, Op, OpSum
+from fockit.algebra.operators import Monomial, Op, OpSum
+from fockit.algebra.rules import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
 
 
 def _mode(*labels: Hashable) -> Hashable:
