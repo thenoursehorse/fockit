@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import math
 import warnings
 from collections.abc import Callable, Hashable, Mapping, Sequence
@@ -14,20 +15,24 @@ from numpy.typing import ArrayLike, NDArray
 from operator_algebra._types import as_complex
 from operator_algebra.algebra import AlgebraRules, mode_sort_key
 from operator_algebra.normal_order import normal_order
-from operator_algebra.operators import Monomial, OpSum, zero
+from operator_algebra.operators import Monomial, Op, OpSum, identity, zero
 from operator_algebra.simplify import drop_zeros
 from operator_algebra.solve.spaces import ComplexArray, IntArray, LocalSpace
-from operator_algebra.transforms import substitute_modes
+from operator_algebra.transforms import hc, substitute_modes
 
 _CHUNK = 2**20
 _LARGE_PRODUCT = 2**22
 _TOL = 1e-9
+_MAX_ORDER = 64
 
-type Levels = NDArray[np.unsignedinteger[Any]]
+type Levels = NDArray[np.integer[Any]]
 type FloatArray = NDArray[np.float64]
 type ChargeTables = tuple[list[FloatArray], float]
 type PermutationSymmetry = tuple[Mapping[Hashable, Hashable], complex]
+type OnsiteSymmetry = tuple[Sequence[OpSum], complex]
+type OnsiteTable = tuple[int, IntArray, ComplexArray, ComplexArray]
 type Swaps = tuple[IntArray, IntArray]
+type Action = Callable[[Levels], tuple[Levels, ComplexArray]]
 
 
 @dataclass
@@ -56,13 +61,21 @@ class Basis:
     permutation_symmetries : tuple[PermutationSymmetry, ...]
         The ``(label_map, eigenvalue)`` pairs the basis was built with.
     group : tuple[ndarray, ...]
-        Every symmetry operation as a column permutation, identity first.
-        ``group[g][k]`` is where mode ``k`` is sent.
+        Mode permutation of every symmetry operation, identity first.
+        Operation ``g`` applies its on-site symmetries, then sends mode ``k``
+        to ``group[g][k]``.
     characters : ndarray
         Eigenvalue of each operation in ``group``.
     swaps : tuple[tuple[ndarray, ndarray], ...]
         For each operation, the pairs of modes whose order it reverses and
         whose space has a nontrivial exchange phase.
+    onsite_symmetries : tuple[OnsiteSymmetry, ...]
+        The ``(factors, eigenvalue)`` pairs the basis was built with.
+    onsite_tables : tuple[tuple[OnsiteTable, ...], ...]
+        For each on-site symmetry and each mode it acts on: the mode, and per
+        level the new level, the amplitude and the string factors.
+    onsite_powers : tuple[tuple[int, ...], ...]
+        Power of each on-site symmetry in each operation of ``group``.
     norms : ndarray
         Norm of the symmetric state built on each basis state.
 
@@ -86,6 +99,9 @@ class Basis:
     group: tuple[IntArray, ...]
     characters: ComplexArray
     swaps: tuple[Swaps, ...]
+    onsite_symmetries: tuple[OnsiteSymmetry, ...]
+    onsite_tables: tuple[tuple[OnsiteTable, ...], ...]
+    onsite_powers: tuple[tuple[int, ...], ...]
     norms: FloatArray
 
 
@@ -94,6 +110,7 @@ def enumerate_basis(
     *,
     diagonal_symmetries: Mapping[OpSum, complex] | None = None,
     permutation_symmetries: Sequence[PermutationSymmetry] = (),
+    onsite_symmetries: Sequence[OnsiteSymmetry] = (),
     predicate_function: Callable[[Levels], NDArray[np.bool_]] | None = None,
 ) -> Basis:
     """Construct the product basis of the given modes.
@@ -118,6 +135,14 @@ def enumerate_basis(
         stay. The maps must commute with each other and map the states
         selected by ``diagonal_symmetries`` and ``predicate_function`` onto
         themselves.
+    onsite_symmetries : Sequence[tuple[Sequence[OpSum], complex]], optional
+        Products of single-mode operators and the eigenvalue to keep, e.g.
+        spin inversion ``([sigma_x(i) for i in range(L)], 1)`` or
+        particle-hole ``([c(i) + (-1) ** i * cdag(i) for i in range(L)], 1)``.
+        Each factor acts on one mode and sends every level to one level with
+        a phase; the product is taken in the basis's mode order. They must
+        commute with each other and with the permutation symmetries on the
+        selected states, and map those states onto themselves.
     predicate_function : Callable, optional
         Extra filter applied last. Receives an array of states (one row of
         levels each) and returns which to keep.
@@ -136,8 +161,13 @@ def enumerate_basis(
     if len(mode_index) < len(modes):
         msg = "A mode is listed more than once."
         raise ValueError(msg)
-    group, characters = _group(permutation_symmetries, modes, mode_index, mode_spaces)
-    swaps = tuple(_swaps(perm, mode_spaces, starts) for perm in group)
+    group, characters, generators = _group(
+        permutation_symmetries, modes, mode_index, mode_spaces
+    )
+    onsite_tables = tuple(
+        _onsite_tables(factors, mode_index, mode_spaces)
+        for factors, _ in onsite_symmetries
+    )
     additive: list[tuple[ChargeTables, float]] = []
     others: dict[OpSum, complex] = {}
     for qn_op, target in (diagonal_symmetries or {}).items():
@@ -175,10 +205,32 @@ def enumerate_basis(
             kept.append(chunk[keep])
         levels = np.concatenate(kept)
 
+    onsite_powers = tuple((0,) * len(onsite_tables) for _ in group)
+    if onsite_symmetries and len(levels):
+        group, characters, onsite_powers = _with_onsite(
+            levels,
+            group,
+            characters,
+            generators,
+            onsite_symmetries,
+            onsite_tables,
+            mode_spaces,
+            starts,
+        )
+    swaps = tuple(_swaps(perm, mode_spaces, starts) for perm in group)
+
     norms = np.ones(len(levels))
     if len(group) > 1:
         levels, norms = _orbit_representatives(
-            levels, group, characters, swaps, mode_spaces, strides
+            levels,
+            group,
+            characters,
+            swaps,
+            onsite_powers,
+            onsite_tables,
+            mode_spaces,
+            starts,
+            strides,
         )
 
     return Basis(
@@ -194,6 +246,9 @@ def enumerate_basis(
         group=group,
         characters=characters,
         swaps=swaps,
+        onsite_symmetries=tuple(onsite_symmetries),
+        onsite_tables=onsite_tables,
+        onsite_powers=onsite_powers,
         norms=norms,
     )
 
@@ -262,16 +317,22 @@ def expand_state(state: ArrayLike, basis: Basis, full_basis: Basis) -> ComplexAr
     psi = np.asarray(state)
     weights = psi / np.sqrt(basis.norms).reshape(-1, *[1] * (psi.ndim - 1))
     out = np.zeros((full_basis.dim, *psi.shape[1:]), dtype=complex)
+    images = _onsite_images(
+        basis.levels, basis.onsite_powers, basis.onsite_tables, basis.starts
+    )
     for g, perm in enumerate(basis.group):
-        codes = basis.levels @ basis.strides[perm]
+        moved, onsite_phase = images[basis.onsite_powers[g]]
+        codes = moved @ basis.strides[perm]
         pos = np.searchsorted(full_basis.codes, codes)
         if np.any(pos == full_basis.dim) or np.any(
             full_basis.codes[pos % full_basis.dim] != codes
         ):
             msg = "full_basis is missing states that basis is built from."
             raise ValueError(msg)
-        phase = np.conj(basis.characters[g]) * _exchange_phase(
-            basis.levels, basis.swaps[g], basis.spaces
+        phase = (
+            np.conj(basis.characters[g])
+            * onsite_phase
+            * _exchange_phase(moved, basis.swaps[g], basis.spaces)
         )
         np.add.at(out, pos, weights * phase.reshape(-1, *[1] * (psi.ndim - 1)))
     return out
@@ -285,23 +346,41 @@ def representatives(
     Returns the representative's code, the operation that reaches it, and
     the phase that operation picks up: ``g|row> = phase |representative>``.
     """
-    codes = np.stack([levels @ basis.strides[perm] for perm in basis.group])
+    images = _onsite_images(
+        levels, basis.onsite_powers, basis.onsite_tables, basis.starts
+    )
+    codes = np.stack(
+        [
+            images[powers][0] @ basis.strides[perm]
+            for perm, powers in zip(basis.group, basis.onsite_powers, strict=True)
+        ]
+    )
     element = codes.argmin(axis=0)
     phase = np.ones(len(levels), dtype=complex)
     for g in np.unique(element):
         rows = element == g
-        phase[rows] = _exchange_phase(levels[rows], basis.swaps[g], basis.spaces)
+        moved, onsite_phase = images[basis.onsite_powers[g]]
+        phase[rows] = onsite_phase[rows] * _exchange_phase(
+            moved[rows], basis.swaps[g], basis.spaces
+        )
     return codes[element, np.arange(len(levels))], phase, element
 
 
 def check_symmetric(
-    op: OpSum, permutation_symmetries: Sequence[PermutationSymmetry]
+    op: OpSum,
+    permutation_symmetries: Sequence[PermutationSymmetry],
+    onsite_symmetries: Sequence[OnsiteSymmetry] = (),
 ) -> None:
-    """Raise ValueError if ``op`` changes under any of the mode relabellings."""
+    """Raise ValueError if ``op`` changes under any of the symmetries."""
     for label_map, _ in permutation_symmetries:
         change = normal_order(substitute_modes(op, label_map) - op)
         if drop_zeros(change, tol=1e-10) != zero():
             msg = f"Operator is not symmetric under the relabelling {label_map!r}."
+            raise ValueError(msg)
+    for factors, _ in onsite_symmetries:
+        change = normal_order(_conjugate(op, factors) - op)
+        if drop_zeros(change, tol=1e-10) != zero():
+            msg = "Operator is not symmetric under an on-site symmetry."
             raise ValueError(msg)
 
 
@@ -406,8 +485,11 @@ def _group(
     modes: Sequence[tuple[AlgebraRules, Hashable]],
     mode_index: Mapping[tuple[AlgebraRules, Hashable], int],
     spaces: Sequence[LocalSpace],
-) -> tuple[tuple[IntArray, ...], ComplexArray]:
-    """Every product of the generating relabellings, with its eigenvalue."""
+) -> tuple[tuple[IntArray, ...], ComplexArray, list[IntArray]]:
+    """Every product of the generating relabellings, with its eigenvalue.
+
+    Also returns the generating relabellings themselves.
+    """
     identity = np.arange(len(modes))
     generators = []
     for label_map, eigenvalue in permutation_symmetries:
@@ -451,7 +533,187 @@ def _group(
                 grown[key] = value
         elements = grown
     group = tuple(np.array(key) for key in elements)
-    return group, np.array(list(elements.values()), dtype=complex)
+    characters = np.array(list(elements.values()), dtype=complex)
+    return group, characters, [perm for perm, _, _ in generators]
+
+
+def _onsite_tables(
+    factors: Sequence[OpSum],
+    mode_index: Mapping[tuple[AlgebraRules, Hashable], int],
+    spaces: Sequence[LocalSpace],
+) -> tuple[OnsiteTable, ...]:
+    """Per mode: the new level, amplitude and string factors of each level."""
+    tables = []
+    for factor in factors:
+        check_modes(factor, mode_index)
+        touched = {
+            mode_index[(o.rules, o.mode)] for mono in factor.terms for o in mono.ops
+        }
+        if len(touched) != 1:
+            msg = "Each on-site factor must act on exactly one mode."
+            raise ValueError(msg)
+        (k,) = touched
+        space = spaces[k]
+        hits = np.zeros(space.dim, dtype=int)
+        new_level = np.zeros(space.dim, dtype=int)
+        amplitude = np.zeros(space.dim, dtype=complex)
+        strings = np.ones((space.dim, space.dim), dtype=complex)
+        for mono, coeff in factor.terms.items():
+            level = np.arange(space.dim)
+            amp = np.full(space.dim, as_complex(coeff))
+            string = np.ones(space.dim, dtype=complex)
+            for op in reversed(mono.ops):
+                new, step = space.action(op)
+                amp = amp * step[level]
+                string = string * space.string_factor(op)
+                level = new[level]
+            hit = amp != 0
+            hits += hit
+            new_level[hit], amplitude[hit], strings[hit] = level[hit], amp[hit], string
+        one_to_one = sorted(new_level.tolist()) == list(range(space.dim))
+        if np.any(hits != 1) or not one_to_one or not np.allclose(abs(amplitude), 1):
+            msg = "An on-site factor must send each level to one level with a phase."
+            raise ValueError(msg)
+        tables.append((k, new_level, amplitude, strings))
+    if len({k for k, _, _, _ in tables}) < len(tables):
+        msg = "An on-site symmetry has more than one factor on a mode."
+        raise ValueError(msg)
+    return tuple(sorted(tables, key=lambda table: table[0]))
+
+
+def _with_onsite(
+    levels: Levels,
+    group: Sequence[IntArray],
+    characters: ComplexArray,
+    generators: Sequence[IntArray],
+    onsite_symmetries: Sequence[OnsiteSymmetry],
+    onsite_tables: Sequence[Sequence[OnsiteTable]],
+    spaces: Sequence[LocalSpace],
+    starts: Sequence[int],
+) -> tuple[tuple[IntArray, ...], ComplexArray, tuple[tuple[int, ...], ...]]:
+    """Add the on-site symmetries to the group, checked on ``levels``."""
+    actions = [
+        functools.partial(_apply_onsite, tables=tables, starts=starts)
+        for tables in onsite_tables
+    ]
+    others: list[Action] = [
+        functools.partial(
+            _permute, perm=perm, swaps=_swaps(perm, spaces, starts), spaces=spaces
+        )
+        for perm in generators
+    ]
+    for action in actions:
+        if not all(_commute(action, other, levels) for other in others):
+            msg = "Symmetries must commute with each other."
+            raise ValueError(msg)
+        others.append(action)
+
+    elements: list[tuple[IntArray, complex, tuple[int, ...]]] = [
+        (perm, complex(character), ())
+        for perm, character in zip(group, characters, strict=True)
+    ]
+    for action, (_, eigenvalue) in zip(actions, onsite_symmetries, strict=True):
+        order, constant = _order_on(action, levels)
+        if not np.isclose(complex(eigenvalue) ** order, constant):
+            msg = (
+                f"Eigenvalue {eigenvalue} is not allowed: the on-site symmetry "
+                f"to the power {order} is {constant:.3g}."
+            )
+            raise ValueError(msg)
+        elements = [
+            (perm, character * complex(eigenvalue) ** n, (*powers, n))
+            for perm, character, powers in elements
+            for n in range(order)
+        ]
+    return (
+        tuple(perm for perm, _, _ in elements),
+        np.array([character for _, character, _ in elements]),
+        tuple(powers for _, _, powers in elements),
+    )
+
+
+def _order_on(action: Action, levels: Levels) -> tuple[int, complex]:
+    """Smallest ``n`` with ``action**n`` a constant on ``levels``, and that constant."""
+    moved, phase = levels, np.ones(len(levels), dtype=complex)
+    for n in range(1, _MAX_ORDER + 1):
+        moved, step = action(moved)
+        phase = phase * step
+        if np.array_equal(moved, levels) and np.allclose(phase, phase[0]):
+            return n, complex(phase[0])
+    msg = "An on-site symmetry has no finite order on the selected states."
+    raise ValueError(msg)
+
+
+def _commute(a: Action, b: Action, levels: Levels) -> bool:
+    """Whether applying ``a`` then ``b`` agrees with ``b`` then ``a``."""
+    ab, ab_first = a(levels)
+    ab, ab_second = b(ab)
+    ba, ba_first = b(levels)
+    ba, ba_second = a(ba)
+    same_levels = np.array_equal(ab, ba)
+    return same_levels and np.allclose(ab_first * ab_second, ba_first * ba_second)
+
+
+def _apply_onsite(
+    levels: Levels, tables: Sequence[OnsiteTable], starts: Sequence[int]
+) -> tuple[Levels, ComplexArray]:
+    """Apply a product of on-site factors to every row, last mode first."""
+    levels = levels.copy()
+    phase = np.ones(len(levels), dtype=complex)
+    for k, new_level, amplitude, strings in reversed(tables):
+        level = levels[:, k].astype(np.int64)
+        phase *= amplitude[level]
+        if starts[k] < k and np.any(strings != 1):
+            earlier = levels[:, starts[k] : k]
+            phase *= np.prod(strings[level[:, None], earlier], axis=1)
+        levels[:, k] = new_level[level]
+    return levels, phase
+
+
+def _onsite_images(
+    levels: Levels,
+    onsite_powers: Sequence[tuple[int, ...]],
+    onsite_tables: Sequence[Sequence[OnsiteTable]],
+    starts: Sequence[int],
+) -> dict[tuple[int, ...], tuple[Levels, ComplexArray]]:
+    """Apply each combination of on-site powers once."""
+    images: dict[tuple[int, ...], tuple[Levels, ComplexArray]] = {}
+    for powers in onsite_powers:
+        if powers in images:
+            continue
+        moved, phase = levels, np.ones(len(levels), dtype=complex)
+        for tables, power in zip(onsite_tables, powers, strict=True):
+            for _ in range(power):
+                moved, step = _apply_onsite(moved, tables, starts)
+                phase = phase * step
+        images[powers] = (moved, phase)
+    return images
+
+
+def _permute(
+    levels: Levels, perm: IntArray, swaps: Swaps, spaces: Sequence[LocalSpace]
+) -> tuple[Levels, ComplexArray]:
+    """Send mode ``k`` of every row to ``perm[k]``."""
+    moved = np.empty_like(levels)
+    moved[:, perm] = levels
+    return moved, _exchange_phase(levels, swaps, spaces)
+
+
+def _conjugate(op: OpSum, factors: Sequence[OpSum]) -> OpSum:
+    """``U op U†`` for ``U`` the product of the unitary ``factors``."""
+    images: dict[Op, OpSum] = {}
+    result = zero()
+    for mono, coeff in op.terms.items():
+        term = identity() * coeff
+        for single in mono.ops:
+            if single not in images:
+                image = OpSum({Monomial((single,)): 1})
+                for factor in reversed(factors):
+                    image = normal_order(factor * image * hc(factor))
+                images[single] = image
+            term = term * images[single]
+        result = result + term
+    return result
 
 
 def _swaps(
@@ -480,7 +742,10 @@ def _orbit_representatives(
     group: Sequence[IntArray],
     characters: ComplexArray,
     swaps: Sequence[Swaps],
+    onsite_powers: Sequence[tuple[int, ...]],
+    onsite_tables: Sequence[Sequence[OnsiteTable]],
     spaces: Sequence[LocalSpace],
+    starts: Sequence[int],
     strides: IntArray,
 ) -> tuple[Levels, FloatArray]:
     """Keep orbit representatives whose symmetric combination is nonzero.
@@ -496,15 +761,23 @@ def _orbit_representatives(
     found = []
     for first in range(0, len(levels), _CHUNK):
         chunk = levels[first : first + _CHUNK].astype(np.int64)
+        images = _onsite_images(chunk, onsite_powers, onsite_tables, starts)
         own = selected[first : first + _CHUNK]
         rows = np.arange(len(chunk))
-        for perm in group[1:]:
-            rows = rows[chunk[rows] @ strides[perm] >= own[rows]]
+        for perm, powers in zip(group[1:], onsite_powers[1:], strict=True):
+            moved = images[powers][0]
+            rows = rows[moved[rows] @ strides[perm] >= own[rows]]
         found.append(first + rows)
     reps = levels[np.concatenate(found)]
 
     own = reps @ strides
-    codes = np.stack([reps @ strides[perm] for perm in group])
+    images = _onsite_images(reps, onsite_powers, onsite_tables, starts)
+    codes = np.stack(
+        [
+            images[powers][0] @ strides[perm]
+            for perm, powers in zip(group, onsite_powers, strict=True)
+        ]
+    )
     fixed = codes == own
     # every representative's orbit is selected, and the orbits add up to all
     # selected states, so nothing else is selected
@@ -512,16 +785,18 @@ def _orbit_representatives(
     orbit_sizes = len(group) / fixed.sum(axis=0)
     if np.any(selected[pos] != codes) or not np.isclose(orbit_sizes.sum(), len(levels)):
         msg = (
-            "A permutation symmetry maps some selected states outside those "
-            "kept by diagonal_symmetries or predicate_function."
+            "A symmetry maps some selected states outside those kept by "
+            "diagonal_symmetries or predicate_function."
         )
         raise ValueError(msg)
 
     # norm = |G| sum over operations that fix the state
     norm = np.zeros(len(reps), dtype=complex)
     for g in range(len(group)):
-        phase = _exchange_phase(reps[fixed[g]], swaps[g], spaces)
-        norm[fixed[g]] += np.conj(characters[g]) * phase
+        moved, onsite_phase = images[onsite_powers[g]]
+        rows = fixed[g]
+        phase = onsite_phase[rows] * _exchange_phase(moved[rows], swaps[g], spaces)
+        norm[rows] += np.conj(characters[g]) * phase
     norm = norm.real * len(group)
     nonzero = norm > _TOL
     return reps[nonzero], norm[nonzero]

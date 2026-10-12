@@ -1,4 +1,4 @@
-"""Symmetry-adapted bases: momentum and spin-flip sectors."""
+"""Symmetry-adapted bases: momentum, spin flip, spin inversion, particle-hole."""
 
 from __future__ import annotations
 
@@ -301,3 +301,148 @@ def test_symmetry_that_leaves_the_selected_states_is_rejected():
             permutation_symmetries=[(shift(sites), 1)],
             predicate_function=lambda lv: lv[:, 0] == 1,
         )
+    # spin inversion turns Sz = 1 into Sz = -1
+    with pytest.raises(ValueError, match="outside"):
+        enumerate_basis(
+            {PauliSpace(): range(sites)},
+            diagonal_symmetries={0.5 * sum(sigma_z(i) for i in range(sites)): 1},
+            onsite_symmetries=[(spin_inversion(sites), 1)],
+        )
+
+
+def tfim_ring(sites, h):
+    return -sum(sigma_z(i) * sigma_z((i + 1) % sites) for i in range(sites)) - h * sum(
+        sigma_x(i) for i in range(sites)
+    )
+
+
+def spin_inversion(sites):
+    return [sigma_x(i) for i in range(sites)]
+
+
+def test_tfim_momentum_and_parity_sectors_rebuild_spectrum():
+    sites = 6
+    H = tfim_ring(sites, 0.7)
+    space = {PauliSpace(): range(sites)}
+    parts = [
+        spectrum(
+            H,
+            space,
+            permutation_symmetries=[(shift(sites), momentum(k, sites))],
+            onsite_symmetries=[(spin_inversion(sites), parity)],
+        )
+        for k in range(sites)
+        for parity in (1, -1)
+    ]
+    assert np.sort(np.concatenate(parts)) == pytest.approx(spectrum(H, space))
+
+
+def test_tfim_ordered_phase_has_an_even_ground_state_and_a_closing_odd_partner():
+    splittings = []
+    for sites in (6, 8):
+        H = tfim_ring(sites, 0.3)
+        space = {PauliSpace(): range(sites)}
+        even, odd = (
+            spectrum(H, space, onsite_symmetries=[(spin_inversion(sites), parity)])[0]
+            for parity in (1, -1)
+        )
+        assert even < odd
+        splittings.append(odd - even)
+    assert splittings[1] < splittings[0]
+
+
+def test_heisenberg_ground_state_lies_in_its_spin_inversion_sector():
+    sites = 8
+    H = heisenberg_ring(sites)
+    space = {PauliSpace(): range(sites)}
+    sz0 = {0.5 * sum(sigma_z(i) for i in range(sites)): 0}
+    full = enumerate_basis(space, diagonal_symmetries=sz0)
+    energy, psi = groundstate(to_matrix(H, full))
+    flip_all = 1
+    for i in range(sites):
+        flip_all = flip_all * sigma_x(i)
+    parity = expectations(to_matrix(flip_all, full), psi).real
+    assert abs(parity) == pytest.approx(1)
+
+    sym = enumerate_basis(
+        space,
+        diagonal_symmetries=sz0,
+        permutation_symmetries=[(shift(sites), momentum(0, sites))],
+        onsite_symmetries=[(spin_inversion(sites), round(parity))],
+    )
+    sym_energy, sym_psi = groundstate(to_matrix(H, sym))
+    assert sym_energy == pytest.approx(energy)
+    v = expand_state(sym_psi, sym, full)
+    assert to_matrix(H, full) @ v == pytest.approx(energy * v)
+
+
+def test_hubbard_particle_hole_spin_flip_and_momentum_sectors_rebuild_spectrum():
+    sites = 4
+    modes = [(i, s) for i in range(sites) for s in SPINS]
+    H = hopping_ring(sites, SPINS) + 4 * sum(
+        (n(i, "up") - 0.5) * (n(i, "dn") - 0.5) for i in range(sites)
+    )
+    sz = 0.5 * sum(n(i, "up") - n(i, "dn") for i in range(sites))
+    half_filling = {sum(n(*m) for m in modes): sites, sz: 0}
+    flip = {(i, "up"): (i, "dn") for i in range(sites)}
+    flip |= {(i, "dn"): (i, "up") for i in range(sites)}
+    particle_hole = [c(i, s) + (-1) ** i * cdag(i, s) for i, s in modes]
+    space = {FermionSpace(): modes}
+
+    parts = [
+        spectrum(
+            H,
+            space,
+            diagonal_symmetries=half_filling,
+            permutation_symmetries=[
+                (shift(sites, SPINS), momentum(k, sites)),
+                (flip, spin_parity),
+            ],
+            onsite_symmetries=[(particle_hole, ph_parity)],
+        )
+        for k in range(sites)
+        for spin_parity in (1, -1)
+        for ph_parity in (1, -1)
+    ]
+    full = spectrum(H, space, diagonal_symmetries=half_filling)
+    assert np.sort(np.concatenate(parts)) == pytest.approx(full)
+
+
+def test_spinless_particle_hole_and_momentum_sectors_rebuild_spectrum():
+    sites = 6
+    H = hopping_ring(sites) + 2 * sum(
+        (n(i) - 0.5) * (n((i + 1) % sites) - 0.5) for i in range(sites)
+    )
+    space = {FermionSpace(): range(sites)}
+    half_filling = {sum(n(i) for i in range(sites)): sites // 2}
+    particle_hole = [c(i) + (-1) ** i * cdag(i) for i in range(sites)]
+    parts = [
+        spectrum(
+            H,
+            space,
+            diagonal_symmetries=half_filling,
+            permutation_symmetries=[(shift(sites), momentum(k, sites))],
+            onsite_symmetries=[(particle_hole, parity)],
+        )
+        for k in range(sites)
+        for parity in (1, -1)
+    ]
+    full = spectrum(H, space, diagonal_symmetries=half_filling)
+    assert np.sort(np.concatenate(parts)) == pytest.approx(full)
+
+
+def test_onsite_symmetry_that_is_not_a_symmetry_is_rejected():
+    sites = 4
+    space = {PauliSpace(): range(sites)}
+    # flipping only even sites doesn't commute with translation
+    with pytest.raises(ValueError, match="commute"):
+        enumerate_basis(
+            space,
+            permutation_symmetries=[(shift(sites), 1)],
+            onsite_symmetries=[([sigma_x(i) for i in range(0, sites, 2)], 1)],
+        )
+    # a longitudinal field breaks spin inversion
+    basis = enumerate_basis(space, onsite_symmetries=[(spin_inversion(sites), 1)])
+    field = 0.1 * sum(sigma_z(i) for i in range(sites))
+    with pytest.raises(ValueError, match="not symmetric"):
+        to_matrix(tfim_ring(sites, 0.5) + field, basis)

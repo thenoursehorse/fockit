@@ -34,7 +34,7 @@ def to_matrix(op: OpSum, basis: Basis) -> CSRMatrix:
 
     """
     check_modes(op, basis.mode_index)
-    check_symmetric(op, basis.permutation_symmetries)
+    check_symmetric(op, basis.permutation_symmetries, basis.onsite_symmetries)
     symmetric = len(basis.group) > 1
 
     rows: list[IntArray] = [np.empty(0, dtype=np.int64)]
