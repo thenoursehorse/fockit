@@ -168,6 +168,37 @@ class TestPauliIntegration:
         for sigma in (sigma_x, sigma_y, sigma_z):
             assert hc(sigma(0)) == sigma(0)
 
+    def test_jordan_wigner_strings_obey_fermion_anticommutation(self):
+        def jordan_wigner(j):
+            string = identity()
+            for k in range(j):
+                string = string * sigma_z(k)
+            return string * sm(j)
+
+        last = 59
+        for i, j in [(0, 0), (0, last), (17, 42), (last, last)]:
+            ci, cj = jordan_wigner(i), jordan_wigner(j)
+            expected = identity() if i == j else zero()
+            assert normal_order(anticommutator(ci, hc(cj))) == expected
+            assert normal_order(anticommutator(ci, cj)) == zero()
+
+    def test_long_pauli_strings_square_to_one_and_commute_by_parity(self):
+        sites = 400
+        kinds = [(sigma_x, sigma_y, sigma_z)[i % 3] for i in range(sites)]
+
+        def string(kinds):
+            out = identity()
+            for i, sigma in enumerate(kinds):
+                out = out * sigma(i)
+            return out
+
+        A = string(kinds)
+        one_differs = string([sigma_z, *kinds[1:]])
+        two_differ = string([sigma_z, *kinds[1:-1], sigma_y])
+        assert normal_order(A * A) == identity()
+        assert normal_order(anticommutator(A, one_differs)) == zero()
+        assert normal_order(commutator(A, two_differ)) == zero()
+
 
 class TestMixedAlgebras:
     def test_different_algebras_commute(self):

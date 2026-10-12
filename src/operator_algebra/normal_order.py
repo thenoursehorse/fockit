@@ -1,4 +1,10 @@
-"""Normal ordering algorithm."""
+"""Normal ordering algorithm.
+
+Every algebra goes through the same path, using only its ``swap`` and
+``is_normal_ordered_pair`` rules. Pauli strings could be multiplied faster site
+by site, or stored as bitmasks, but that would treat one algebra differently
+from the rest.
+"""
 
 from __future__ import annotations
 
@@ -78,13 +84,43 @@ def _order(prefix: tuple[Op, ...], tail: Monomial) -> dict[Monomial, Coefficient
 
 @functools.lru_cache(maxsize=2**16)
 def _insert(op: Op, tail: Monomial) -> tuple[tuple[Monomial, Coefficient], ...]:
-    """Normal-order ``op * tail``, where ``tail`` is already normal ordered."""
-    if not tail.ops or _is_ordered(op, tail.ops[0]):
-        return ((Monomial((op, *tail.ops)), 1),)
+    """Normal-order ``op * tail``, where ``tail`` is already normal ordered.
+
+    ``op`` moves right past plain exchanges, picking up only their sign. The
+    first swap that does anything else is expanded, and the operators ``op``
+    passed are put back in front.
+    """
+    ops = tail.ops
+    sign: Coefficient = 1
+    i = 0
+    while i < len(ops) and not _is_ordered(op, ops[i]):
+        terms = _swap(op, ops[i]).terms
+        if len(terms) != 1 or terms[0][1] != (ops[i], op):
+            break
+        sign = as_coefficient(sign * terms[0][0])
+        i += 1
+
+    passed = ops[:i]
+    rest: dict[Monomial, Coefficient] = {}
+    if i == len(ops) or _is_ordered(op, ops[i]):
+        if not passed or _is_ordered(passed[-1], op):
+            return ((Monomial((*passed, op, *ops[i:])), sign),)
+        rest[Monomial((op, *ops[i:]))] = sign
+    else:
+        for coeff, repl in terms:
+            scale = as_coefficient(sign * coeff)
+            for m, c in _order(repl, Monomial(ops[i + 1 :])).items():
+                _accumulate(rest, m, as_coefficient(scale * c))
+
     acc: dict[Monomial, Coefficient] = {}
-    for coeff, repl in _swap(op, tail.ops[0]).terms:
-        for m, c in _order(repl, Monomial(tail.ops[1:])).items():
-            _accumulate(acc, m, as_coefficient(coeff * c))
+    for m, c in rest.items():
+        if not passed:
+            _accumulate(acc, m, c)
+        elif not m.ops or _is_ordered(passed[-1], m.ops[0]):
+            _accumulate(acc, Monomial(passed + m.ops), c)
+        else:
+            for ordered, c2 in _order(passed, m).items():
+                _accumulate(acc, ordered, as_coefficient(c * c2))
     return tuple(acc.items())
 
 
