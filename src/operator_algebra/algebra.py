@@ -110,34 +110,6 @@ class AlgebraRules(Protocol):
         """
         ...
 
-    def format_op_text(self, op: Op) -> str:
-        """Format a single operator for human-readable text display.
-
-        Parameters
-        ----------
-        op : Op
-
-        Returns
-        -------
-        str
-
-        """
-        ...
-
-    def format_op_latex(self, op: Op) -> str:
-        r"""Format a single operator for LaTeX display.
-
-        Parameters
-        ----------
-        op : Op
-
-        Returns
-        -------
-        str
-
-        """
-        ...
-
     def __hash__(self) -> int:
         """Return hash for use as ``lru_cache`` key."""
         ...
@@ -177,16 +149,6 @@ class FermionRules:
         flipped = Ladder.CREATE if op.kind is Ladder.ANNIHILATE else Ladder.ANNIHILATE
         return replace(op, kind=flipped)
 
-    def format_op_text(self, op: Op) -> str:
-        """Format as ``c†(k)`` or ``c(k)``."""
-        symbol = "c†" if op.kind is Ladder.CREATE else "c"
-        return f"{symbol}({_format_mode(op.mode)})"
-
-    def format_op_latex(self, op: Op) -> str:
-        r"""Format as ``c^{\dagger}_{k}`` or ``c_{k}``."""
-        symbol = r"c^{\dagger}" if op.kind is Ladder.CREATE else "c"
-        return f"{symbol}_{{{_format_mode_latex(op.mode)}}}"
-
     def __eq__(self, other: object) -> bool:  # noqa: D105
         return isinstance(other, FermionRules)
 
@@ -223,16 +185,6 @@ class BosonRules:
         """Flip creation ↔ annihilation."""
         flipped = Ladder.CREATE if op.kind is Ladder.ANNIHILATE else Ladder.ANNIHILATE
         return replace(op, kind=flipped)
-
-    def format_op_text(self, op: Op) -> str:
-        """Format as ``b†(k)`` or ``b(k)``."""
-        symbol = "b†" if op.kind is Ladder.CREATE else "b"
-        return f"{symbol}({_format_mode(op.mode)})"
-
-    def format_op_latex(self, op: Op) -> str:
-        r"""Format as ``b^{\dagger}_{k}`` or ``b_{k}``."""
-        symbol = r"b^{\dagger}" if op.kind is Ladder.CREATE else "b"
-        return f"{symbol}_{{{_format_mode_latex(op.mode)}}}"
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
         return isinstance(other, BosonRules)
@@ -275,14 +227,6 @@ class PauliRules:
     def dagger(self, op: Op) -> Op:
         """Pauli operators are Hermitian: dagger is identity."""
         return op
-
-    def format_op_text(self, op: Op) -> str:
-        """Format as ``σ_x(k)``."""
-        return f"σ_{op.kind}({_format_mode(op.mode)})"
-
-    def format_op_latex(self, op: Op) -> str:
-        r"""Format as ``\sigma^{x}_{k}``."""
-        return rf"\sigma^{{{op.kind}}}_{{{_format_mode_latex(op.mode)}}}"
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
         return isinstance(other, PauliRules)
@@ -329,16 +273,3 @@ def mode_sort_key(mode: Hashable) -> tuple[object, ...]:
             return (2, *(mode_sort_key(m) for m in mode))
         case _:
             return (3, repr(mode))
-
-
-def _format_mode(mode: Hashable) -> str:
-    """Format a mode label for display."""
-    if isinstance(mode, tuple):
-        return ", ".join(str(m) for m in mode)
-    return str(mode)
-
-
-def _format_mode_latex(mode: Hashable) -> str:
-    """Format a mode label for LaTeX subscript."""
-    raw = _format_mode(mode)
-    return raw.replace("up", r"\uparrow").replace("dn", r"\downarrow")

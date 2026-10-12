@@ -1,5 +1,7 @@
 """Tests for display functions."""
 
+from enum import StrEnum
+
 from operator_algebra import (
     b,
     bdag,
@@ -14,7 +16,7 @@ from operator_algebra import (
     to_text,
     zero,
 )
-from operator_algebra.algebra import SwapResult
+from operator_algebra.algebra import SwapResult, mode_sort_key
 from operator_algebra.operators import Monomial, Op, OpSum
 
 
@@ -35,36 +37,42 @@ def test_pauli_display():
     assert "σ_x(0)" in s
 
 
-def test_custom_rules_display():
-    """Custom rules with format_op_text get custom notation."""
+def test_new_algebra_displays_without_display_code():
+    class Majorana(StrEnum):
+        GAMMA = "gamma"
 
-    class CustomRules:
+    class MajoranaRules:
         def swap(self, left: Op, right: Op) -> SwapResult:
-            return SwapResult(terms=((1, (right, left)),))
+            if left == right:
+                return SwapResult(terms=((1, ()),))
+            return SwapResult(terms=((-1, (right, left)),))
 
-        def is_normal_ordered_pair(self, _left: Op, _right: Op) -> bool:
-            return True
+        def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
+            return mode_sort_key(left.mode) < mode_sort_key(right.mode)
 
         def dagger(self, op: Op) -> Op:
-            return Op(op.mode, not op.kind, self)
-
-        def format_op_text(self, op: Op) -> str:
-            symbol = "a†" if op.kind else "a"
-            return f"{symbol}({op.mode})"
-
-        def format_op_latex(self, op: Op) -> str:
-            symbol = r"a^{\dagger}" if op.kind else "a"
-            return f"{symbol}_{{{op.mode}}}"
+            return op
 
         def __eq__(self, other: object) -> bool:
-            return isinstance(other, CustomRules)
+            return isinstance(other, MajoranaRules)
 
         def __hash__(self) -> int:
             return hash(type(self))
 
-    op = OpSum({Monomial((Op(1, True, CustomRules()),)): 1})
-    s = repr(op)
-    assert "a†(1)" in s
+    def gamma(mode):
+        return OpSum({Monomial((Op(mode, Majorana.GAMMA, MajoranaRules()),)): 1})
+
+    op = normal_order(gamma(1) * gamma(0) + 2 * gamma(2) * gamma(2))
+    assert to_text(op) == "2 - gamma(0) gamma(1)"
+    assert to_latex(op) == "2 - gamma_{0} gamma_{1}"
+
+
+def test_latex_spin_labels():
+    assert (
+        to_latex(cdag(0, "up") * c(1, "dn"))
+        == r"c^{\dagger}_{0, \uparrow} c_{1, \downarrow}"
+    )
+    assert to_latex(cdag("update")) == r"c^{\dagger}_{update}"
 
 
 def test_to_latex_fermion():
