@@ -211,7 +211,7 @@ class OpSum:
 
         """
         if not isinstance(n, int):
-            raise ValueError(_POW_MSG.format(n))
+            raise TypeError(_POW_MSG.format(n))
         if n < 0:
             raise ValueError(_POW_MSG.format(n))
         if n == 0:

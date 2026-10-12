@@ -132,9 +132,12 @@ def _kind_sort_key(kind: Hashable) -> tuple[object, ...]:
 
 
 def _real_if_possible(coeff: Coefficient) -> Coefficient:
-    """Show a complex number with no imaginary part as a real one."""
-    if isinstance(coeff, complex) and coeff.imag == 0:
-        return coeff.real
+    """Show a complex number without its zero part, e.g. ``0.5`` or ``-0.5j``."""
+    if isinstance(coeff, complex):
+        if coeff.imag == 0:
+            return coeff.real
+        if coeff.real == 0:
+            return complex(0.0, coeff.imag)
     return coeff
 
 

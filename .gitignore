@@ -41,7 +41,7 @@ dist/
 *.tmp
 *.swp
 
-# macOS 
+# macOS
 .DS_Store
 
 # project specific
