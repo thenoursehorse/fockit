@@ -46,3 +46,4 @@ dist/
 
 # project specific
 src/fockit/_version.py
+to-do.md

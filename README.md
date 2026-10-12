@@ -12,16 +12,87 @@ Simple exact solvers check your ideas on small systems.
 
 ## Where to start?
 
-The tests are examples:
+The example below builds a model and solves it; the section after it adds your
+own algebra. More examples are in `examples/` and in the tests:
 
 - `tests/test_integration.py` for the operator algebra.
 - `tests/solve/` for matrices and solvers.
 - `tests/solve/test_symmetries.py` for symmetry sectors (momentum, reflection,
   spin flip, spin inversion, particle-hole, point groups).
 
+## Example
+
+An electron hopping between two sites. Each site has a phonon and a spin.
+
+```python
+from fockit import b, bdag, c, cdag, n, sigma_x, sigma_z
+from fockit.solve import (
+    BosonSpace, FermionSpace, PauliSpace, enumerate_basis, groundstate, to_matrix,
+)
+
+# The operator
+H = -(cdag(0) * c(1) + cdag(1) * c(0)) + 0.2 * sigma_z(0) * sigma_z(1)
+for i in (0, 1):
+    H += bdag(i) * b(i) + 0.5 * n(i) * (b(i) + bdag(i)) + 0.3 * n(i) * sigma_x(i)
+
+# A symmetry reduced basis H acts on
+basis = enumerate_basis(
+    {FermionSpace(): [0, 1], BosonSpace(n_max=6): [0, 1], PauliSpace(): [0, 1]},
+    diagonal_symmetries={n(0) + n(1): 1},                 # one electron
+    permutation_symmetries=[({0: 1, 1: 0}, 1)],           # even under swapping the sites
+    onsite_symmetries=[([sigma_x(0), sigma_x(1)], 1)],    # even under flipping both spins
+)
+
+# The matrix representation of H in the above basis
+mat = to_matrix(H, basis)
+
+# The ground state
+energy, state = groundstate(mat)
+```
+
+## Your own algebra
+
+Give the rules for swapping two neighbouring operators, which order is normal,
+and the adjoint. For example Majorana fermions:
+
+```python
+from dataclasses import dataclass
+
+from fockit import normal_order
+from fockit.algebra import SwapResult, mode_sort_key
+from fockit.operators import Monomial, Op, OpSum
+
+
+@dataclass(frozen=True)
+class MajoranaRules:
+    """γ_i γ_j + γ_j γ_i = 2 δ_ij."""
+
+    def swap(self, left, right):
+        if left == right:
+            return SwapResult(terms=((1, ()),))  # γ γ = 1
+        return SwapResult(terms=((-1, (right, left)),))  # anticommute
+
+    def is_normal_ordered_pair(self, left, right):
+        return mode_sort_key(left.mode) < mode_sort_key(right.mode)
+
+    def dagger(self, op):
+        return op
+
+
+def gamma(mode):
+    return OpSum({Monomial((Op(mode, "γ", MajoranaRules()),)): 1})
+
+
+normal_order(gamma(1) * gamma(0) * gamma(1))  # -γ(0)
+normal_order((gamma(0) + gamma(1)) ** 2)  # 2
+```
+
+`examples/majorana.py` solves a Majorana model with it, and `examples/anyons.py`
+also gives anyons their own Hilbert space.
+
 ## Dependencies
 
-- [python](https://www.python.org/) version `>= 3.12`
+- [python](https://www.python.org/) version `>= 3.14`
 - [numpy](https://numpy.org/) and [scipy](https://scipy.org/) for the solvers
 - [sympy](https://www.sympy.org/) for symbolic coefficients (optional)
 
