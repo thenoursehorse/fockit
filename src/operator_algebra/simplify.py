@@ -2,21 +2,33 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import cast
 
 from operator_algebra._types import Coefficient, as_coefficient
 from operator_algebra.operators import Monomial, OpSum
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     """Drop terms with negligible coefficients.
+
+    Float coefficients that should cancel leave round-off behind, e.g.
+    ``0.1 * n(0) + 0.2 * n(0) - 0.3 * n(0)`` keeps a ``5.6e-17`` term. Only
+    exact zeros are removed automatically, so call this before comparing
+    a result with ``zero()``.
+
+    Logs, at INFO level, how many terms were dropped and the largest
+    dropped coefficient, to check ``tol`` didn't remove a real term.
 
     Parameters
     ----------
     op : OpSum
     tol : float, optional
-        Tolerance for zero detection. Default: 1e-15.
+        Absolute tolerance, so pick it for the scale of your coefficients.
+        Default: 1e-15.
 
     Returns
     -------
@@ -24,19 +36,19 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
 
     """
     kept: dict[Monomial, Coefficient] = {}
+    dropped: list[float] = []
     for mono, coeff in op.terms.items():
-        if coeff == 0:
-            continue
-        if isinstance(coeff, float | complex) and abs(coeff) <= tol:
-            continue
-        if not isinstance(coeff, int | float | complex):
-            try:
-                magnitude = abs(coeff)
-                if isinstance(magnitude, int | float) and magnitude <= tol:
-                    continue
-            except TypeError:
-                pass
-        kept[mono] = coeff
+        magnitude = _magnitude(coeff)
+        if coeff == 0 or (magnitude is not None and magnitude <= tol):
+            dropped.append(magnitude or 0.0)
+        else:
+            kept[mono] = coeff
+    _LOGGER.info(
+        "Dropped %d of %d terms, largest |coefficient| %.3g",
+        len(dropped),
+        len(op.terms),
+        max(dropped, default=0.0),
+    )
     return OpSum(kept)
 
 
@@ -64,3 +76,14 @@ def simplify_coeffs(op: OpSum) -> OpSum:
     for mono, coeff in op.terms.items():
         new_terms[mono] = as_coefficient(simplify(coeff))
     return OpSum(new_terms)
+
+
+def _magnitude(coeff: Coefficient) -> float | None:
+    """Return ``abs(coeff)`` as a float, or None if it isn't a number."""
+    try:
+        magnitude = abs(coeff)
+    except TypeError:
+        return None
+    if isinstance(magnitude, int | float):
+        return float(magnitude)
+    return None

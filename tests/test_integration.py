@@ -1,5 +1,7 @@
 """Integration tests."""
 
+import logging
+
 import pytest
 
 from operator_algebra import (
@@ -131,6 +133,21 @@ class TestPauliIntegration:
         )
         Sz = sum(sigma_z(i) for i in range(3))
         assert normal_order(commutator(H, Sz)) == zero()
+
+    def test_heisenberg_ring_conserves_total_spin_up_to_round_off(self, caplog):
+        sites, J = 4, 0.1
+        H = J * sum(
+            sigma(i) * sigma((i + 1) % sites)
+            for i in range(sites)
+            for sigma in (sigma_x, sigma_y, sigma_z)
+        )
+        S2 = sum(
+            sum(0.5 * sigma(i) for i in range(sites)) ** 2
+            for sigma in (sigma_x, sigma_y, sigma_z)
+        )
+        with caplog.at_level(logging.INFO):
+            assert drop_zeros(normal_order(commutator(H, S2))) == zero()
+        assert "Dropped 22 of 22 terms" in caplog.text
 
     def test_anticommutator_same_gives_two_identity(self):
         for sigma in (sigma_x, sigma_y, sigma_z):
