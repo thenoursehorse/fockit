@@ -32,7 +32,7 @@ jobs:
           enable-cache: true
 
       - name: Install fockit
-        run: uv sync --locked --extra sympy --extra solve
+        run: uv sync --locked --extra sympy
 
       - name: Lint
         run: uv run pre-commit run --all-files --show-diff-on-failure

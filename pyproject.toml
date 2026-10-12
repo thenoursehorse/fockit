@@ -10,6 +10,10 @@ keywords = ["quantum", "many-body", "operator", "algebra", "fermions", "bosons",
 authors = [
   {name = "Henry L. Nourse"},
 ]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11.4",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.14",
@@ -24,10 +28,6 @@ Homepage = "https://github.com/thenoursehorse/fockit"
 [project.optional-dependencies]
 sympy = [
   "sympy>=1.12",
-]
-solve = [
-  "numpy>=1.26",
-  "scipy>=1.11.4",
 ]
 
 [build-system]

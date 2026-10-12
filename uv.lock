@@ -41,12 +41,12 @@ wheels = [
 [[package]]
 name = "fockit"
 source = { editable = "." }
-
-[package.optional-dependencies]
-solve = [
+dependencies = [
     { name = "numpy" },
     { name = "scipy" },
 ]
+
+[package.optional-dependencies]
 sympy = [
     { name = "sympy" },
 ]
@@ -65,11 +65,11 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "numpy", marker = "extra == 'solve'", specifier = ">=1.26" },
-    { name = "scipy", marker = "extra == 'solve'", specifier = ">=1.11.4" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "scipy", specifier = ">=1.11.4" },
     { name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.12" },
 ]
-provides-extras = ["solve", "sympy"]
+provides-extras = ["sympy"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -94,7 +94,7 @@ also gives anyons their own Hilbert space.
 ## Dependencies
 
 - [python](https://www.python.org/) version `>= 3.14`
-- [numpy](https://numpy.org/) and [scipy](https://scipy.org/) for the solvers
+- [numpy](https://numpy.org/) and [scipy](https://scipy.org/)
 - [sympy](https://www.sympy.org/) for symbolic coefficients (optional)
 
 ## Installation
@@ -109,7 +109,7 @@ cd fockit
 Install with [uv](https://docs.astral.sh/uv)
 
 ```shell
-uv sync --extra solve
+uv sync
 ```
 
 Add `--extra sympy` for symbolic coefficients.
@@ -117,7 +117,7 @@ Add `--extra sympy` for symbolic coefficients.
 ## Tests
 
 ```shell
-uv sync --extra sympy --extra solve
+uv sync --extra sympy
 uv run pytest
 ```
 
