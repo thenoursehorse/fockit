@@ -1,4 +1,4 @@
-"""Symbolic operator algebra for fermions, bosons, and beyond."""
+"""Build many-body models, write your own operator algebras, and test algorithms."""
 
 from fockit.constructors import (
     b,
