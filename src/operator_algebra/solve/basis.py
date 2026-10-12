@@ -132,9 +132,11 @@ def enumerate_basis(
         Mode relabellings and the eigenvalue to keep for each, e.g.
         translation ``({(i, s): ((i + 1) % L, s), ...}, np.exp(2j * np.pi *
         k / L))``. A map applies to the labels of every space; unmapped labels
-        stay. The maps must commute with each other and map the states
-        selected by ``diagonal_symmetries`` and ``predicate_function`` onto
-        themselves.
+        stay. The maps must map the states selected by ``diagonal_symmetries``
+        and ``predicate_function`` onto themselves. They need not commute,
+        but the eigenvalues must fit together, e.g. reflection with
+        translation only at momentum 0 or pi. States that only appear in
+        degenerate multiplets of non-commuting symmetries are in no sector.
     onsite_symmetries : Sequence[tuple[Sequence[OpSum], complex]], optional
         Products of single-mode operators and the eigenvalue to keep, e.g.
         spin inversion ``([sigma_x(i) for i in range(L)], 1)`` or
@@ -505,36 +507,33 @@ def _group(
         if any(spaces[k] != spaces[j] for k, j in enumerate(perm)):
             msg = f"Relabelling {label_map!r} moves a mode to a different space."
             raise ValueError(msg)
-        order, power = 1, perm
-        while not np.array_equal(power, identity):
-            power, order = perm[power], order + 1
-        if not np.isclose(complex(eigenvalue) ** order, 1):
-            msg = f"Eigenvalue {eigenvalue} is not a root of unity of order {order}."
-            raise ValueError(msg)
-        generators.append((perm, complex(eigenvalue), order))
-    for a, _, _ in generators:
-        for b, _, _ in generators:
-            if not np.array_equal(a[b], b[a]):
-                msg = "Symmetries must commute with each other."
-                raise ValueError(msg)
+        generators.append((perm, complex(eigenvalue)))
 
+    # multiply the known operations by each generator until nothing new appears
     elements: dict[tuple[int, ...], complex] = {tuple(identity): 1}
-    for perm, eigenvalue, order in generators:
-        grown = dict(elements)
-        for element, character in elements.items():
-            power = np.asarray(element)
-            for n in range(1, order):
-                power = perm[power]
-                key = tuple(power.tolist())
-                value = character * eigenvalue**n
-                if key in grown and not np.isclose(grown[key], value):
-                    msg = "Eigenvalues are inconsistent: the sector is empty."
+    frontier = [identity]
+    while frontier:
+        grown = []
+        for element in frontier:
+            character = elements[tuple(element.tolist())]
+            for perm, eigenvalue in generators:
+                product = perm[element]
+                key = tuple(product.tolist())
+                if key not in elements:
+                    elements[key] = character * eigenvalue
+                    grown.append(product)
+                elif not np.isclose(elements[key], character * eigenvalue):
+                    msg = (
+                        "Eigenvalues don't fit the symmetries, so the sector is "
+                        "empty. For example, each eigenvalue must be a root of "
+                        "unity of its symmetry's order, and reflection with "
+                        "translation needs momentum 0 or pi."
+                    )
                     raise ValueError(msg)
-                grown[key] = value
-        elements = grown
+        frontier = grown
     group = tuple(np.array(key) for key in elements)
     characters = np.array(list(elements.values()), dtype=complex)
-    return group, characters, [perm for perm, _, _ in generators]
+    return group, characters, [perm for perm, _ in generators]
 
 
 def _onsite_tables(

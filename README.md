@@ -21,6 +21,7 @@ Diagonalize, time-evolve, find ground-states, and find thermal states of operato
 ```bash
 uv sync --extra solve
 ```
+Symmetry sectors (momentum, reflection, spin flip, spin inversion, particle-hole, point groups): see `tests/solve/test_symmetries.py`.
 
 ## Tests
 Remove any `--extra` not interested in testing.
