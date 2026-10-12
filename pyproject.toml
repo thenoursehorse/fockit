@@ -31,7 +31,8 @@ solve = [
 ]
 
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+# hatchling 1.32 writes metadata 2.5, which twine doesn't accept yet
+requires = ["hatchling<1.32", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch]
