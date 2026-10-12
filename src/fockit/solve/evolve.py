@@ -1,18 +1,7 @@
-"""Real-time evolution and finite-T dynamics primitives.
-
-Provides three T=0 evolvers (``expm_multiply_evolve``, ``krylov_evolve``,
-``chebyshev_evolve``) and lower-level helpers for composing finite-T
-dynamical correlators (``tpq_state``, ``lanczos_eigenpairs``,
-``boltzmann_weights``).
-
-The finite-T helpers expose building blocks rather than fixed n-point
-correlators so users can assemble arbitrary objects (2-point, OTOCs,
-regulated OTOCs, ...) by composition.
-"""
+"""Time evolution: scipy's expm_multiply, a Chebyshev expansion, or Trotter steps."""
 
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -22,7 +11,6 @@ from numpy.typing import NDArray
 from scipy.special import jv
 
 from fockit.hilbert.matrix import SparseMatrix
-from fockit.solve.diagonalize import lanczos
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -58,42 +46,6 @@ def expm_multiply_evolve(
     out = np.empty((t.size, H.shape[0]), dtype=complex)
     for i, ti in enumerate(t):
         out[i] = scipy.sparse.linalg.expm_multiply(-1j * ti * H, psi)
-    return out
-
-
-def krylov_evolve(
-    H: SparseMatrix,
-    psi: ComplexArray,
-    times: Sequence[float],
-    *,
-    n_krylov: int = 30,
-    tol: float = 1e-10,
-) -> ComplexArray:
-    """Evolve ``|ψ⟩`` via a Lanczos/Krylov approximation of ``e^{-i H dt}``.
-
-    Between consecutive ``times[i]`` and ``times[i+1]`` a
-    ``n_krylov``-step Lanczos run starts from the current state. The
-    tridiagonal is diagonalized and the propagator is applied in the
-    Krylov basis. A ``RuntimeWarning`` is raised when a step has not
-    converged (trailing Krylov coefficient above ``tol``); then pass closer
-    ``times`` or a larger ``n_krylov``.
-
-    Returns
-    -------
-    np.ndarray, shape ``(len(times), dim)``
-
-    """
-    t = np.asarray(times, dtype=float)
-    out = np.empty((t.size, H.shape[0]), dtype=complex)
-    psi_cur = np.asarray(psi, dtype=complex)
-    norm0 = float(np.linalg.norm(psi_cur))
-    out[0] = psi_cur if t[0] == 0.0 else _krylov_step(H, psi_cur, t[0], n_krylov, tol)
-    for i in range(1, t.size):
-        dt = float(t[i] - t[i - 1])
-        psi_cur = _krylov_step(H, out[i - 1], dt, n_krylov, tol)
-        out[i] = psi_cur
-    if abs(norm0 - 1.0) < 1e-12:
-        out /= np.linalg.norm(out, axis=1, keepdims=True)
     return out
 
 
@@ -226,69 +178,6 @@ def trotter_evolve(
     return out
 
 
-def tpq_state(
-    H: SparseMatrix,
-    beta: float,
-    *,
-    rng: np.random.Generator,
-    e0: float | None = None,
-) -> ComplexArray:
-    """Sample one TPQ state ``|φ⟩ = e^{-β H/2}|r⟩``.
-
-    The random input ``|r⟩`` is a unit vector. ``H`` is shifted by its
-    ground-state energy ``e0`` so the matrix exponential does not overflow;
-    pass ``e0`` when sampling many states so it is only computed once.
-    Caller handles sample averaging and the state-dependent norm.
-    """
-    dim = H.shape[0]
-    if e0 is None:
-        e0 = float(
-            scipy.sparse.linalg.eigsh(H, k=1, which="SA", return_eigenvectors=False)[0]
-        )
-    H_shift = H - e0 * scipy.sparse.eye(dim, dtype=complex, format="csr")
-    r = rng.standard_normal(dim) + 1j * rng.standard_normal(dim)
-    r /= np.linalg.norm(r)
-    return np.asarray(scipy.sparse.linalg.expm_multiply(-0.5 * beta * H_shift, r))
-
-
-def lanczos_eigenpairs(
-    H: SparseMatrix,
-    *,
-    n_lanczos: int,
-    rng: np.random.Generator,
-) -> tuple[RealArray, ComplexArray, ComplexArray]:
-    """Approximate eigenpairs from a single random-vector Lanczos run.
-
-    Returns
-    -------
-    eps : np.ndarray, shape ``(m,)``
-        Ritz values from the ``m``-step tridiagonal (``m <= n_lanczos``).
-    psi : np.ndarray, shape ``(dim, m)``
-        Ritz vectors ``V U`` in the original basis.
-    r : np.ndarray, shape ``(dim,)``
-        Starting random unit vector. ``psi.conj().T @ r`` gives
-        ``⟨ψ_k|r⟩``, useful for FTLM-style stochastic traces.
-
-    """
-    dim = H.shape[0]
-    r = rng.standard_normal(dim) + 1j * rng.standard_normal(dim)
-    r /= np.linalg.norm(r)
-    alphas, betas, V = lanczos(H, r, n_lanczos)
-    T = np.diag(alphas) + np.diag(betas, 1) + np.diag(betas, -1)
-    eps, U = np.linalg.eigh(T)
-    psi = V @ U
-    return eps, psi, r
-
-
-def boltzmann_weights(energies: RealArray, beta: float) -> RealArray:
-    """Return normalized Boltzmann weights ``e^{-β(E - E_min)} / Z``.
-
-    Subtracting ``E_min`` keeps the exponent finite at low temperature.
-    """
-    w = np.exp(-beta * (energies - energies.min()))
-    return np.asarray(w / w.sum())
-
-
 def _merge_adjacent(
     seq: Sequence[tuple[complex, int]],
 ) -> list[tuple[complex, int]]:
@@ -299,28 +188,3 @@ def _merge_adjacent(
         else:
             out.append((c, i))
     return out
-
-
-def _krylov_step(
-    H: SparseMatrix,
-    psi: ComplexArray,
-    dt: float,
-    m: int,
-    tol: float,
-) -> ComplexArray:
-    norm = float(np.linalg.norm(psi))
-    if norm == 0.0:
-        return psi.copy()
-    v0 = psi / norm
-    alphas, betas, V = lanczos(H, v0, m)
-    T = np.diag(alphas) + np.diag(betas, 1) + np.diag(betas, -1)
-    eps, U = np.linalg.eigh(T)
-    e1 = U[0, :]
-    coeffs = U @ (np.exp(-1j * dt * eps) * e1)
-    if len(coeffs) == m and abs(coeffs[-1]) > tol:
-        msg = (
-            f"Krylov step not converged (last coefficient {abs(coeffs[-1]):.1e} > "
-            f"tol={tol:.0e}); use smaller time steps or a larger n_krylov."
-        )
-        warnings.warn(msg, RuntimeWarning, stacklevel=3)
-    return np.asarray(norm * (V @ coeffs))

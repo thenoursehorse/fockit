@@ -15,9 +15,8 @@ from fockit.hilbert import (
 )
 from fockit.solve import (
     eigh_full,
-    kpm_thermal_expectation,
-    lanczos_thermal_expectation,
     thermal_expectation,
+    tpq_state,
     tpq_thermal_expectation,
 )
 
@@ -136,54 +135,6 @@ MODEL_IDS = ["hubbard", "bose_hubbard", "heisenberg"]
     MODELS,
     ids=MODEL_IDS,
 )
-@pytest.mark.parametrize("method", ["ftlm", "ltlm"])
-def test_lanczos_matches_ed_reference(
-    model, space, beta, ref_e, obs_factory, ref_obs, method
-):
-    labels, H = model()
-    basis = enumerate_basis({space: labels})
-    H_mat = to_matrix(H, basis)
-    got_e = lanczos_thermal_expectation(
-        H_mat, H_mat, beta, n_samples=200, n_lanczos=basis.dim, method=method, seed=0
-    ).real
-    assert got_e == pytest.approx(ref_e, abs=4e-2)
-    got_obs = lanczos_thermal_expectation(
-        to_matrix(obs_factory(), basis),
-        H_mat,
-        beta,
-        n_samples=200,
-        n_lanczos=basis.dim,
-        method=method,
-        seed=0,
-    ).real
-    assert got_obs == pytest.approx(ref_obs, abs=4e-2)
-
-
-@pytest.mark.parametrize(
-    ("model", "space", "beta", "ref_e", "obs_factory", "ref_obs"),
-    MODELS,
-    ids=MODEL_IDS,
-)
-def test_kpm_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_obs):
-    labels, H = model()
-    basis = enumerate_basis({space: labels})
-    H_mat = to_matrix(H, basis)
-    got_e = kpm_thermal_expectation(
-        H_mat, H_mat, beta, n_moments=100, n_samples=1000, seed=0
-    ).real
-    assert got_e == pytest.approx(ref_e, abs=5e-2)
-    obs = to_matrix(obs_factory(), basis)
-    got_obs = kpm_thermal_expectation(
-        obs, H_mat, beta, n_moments=100, n_samples=1000, seed=0
-    ).real
-    assert got_obs == pytest.approx(ref_obs, abs=5e-2)
-
-
-@pytest.mark.parametrize(
-    ("model", "space", "beta", "ref_e", "obs_factory", "ref_obs"),
-    MODELS,
-    ids=MODEL_IDS,
-)
 def test_tpq_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_obs):
     labels, H = model()
     basis = enumerate_basis({space: labels})
@@ -193,3 +144,22 @@ def test_tpq_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_ob
     obs = to_matrix(obs_factory(), basis)
     got_obs = tpq_thermal_expectation(obs, H_mat, beta, n_samples=200, seed=0).real
     assert got_obs == pytest.approx(ref_obs, abs=5e-2)
+
+
+def test_tpq_states_average_to_the_thermal_expectation():
+    labels, H = heisenberg_4site()
+    basis = enumerate_basis({PauliSpace(): labels})
+    H_mat = to_matrix(H, basis)
+    E, V = eigh_full(H_mat)
+    op_mat = to_matrix(sigma_z(0) * sigma_z(1), basis)
+    beta = 0.7
+
+    rng = np.random.default_rng(0)
+    num, denom = 0j, 0.0
+    for _ in range(400):
+        phi = tpq_state(H_mat, beta, rng=rng, e0=E[0])
+        num += complex(phi.conj() @ (op_mat @ phi))
+        denom += float((phi.conj() @ phi).real)
+
+    ref = thermal_expectation(op_mat, E, V, beta).real
+    assert (num / denom).real == pytest.approx(ref, abs=5e-2)

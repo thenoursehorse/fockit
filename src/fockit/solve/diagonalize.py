@@ -58,39 +58,3 @@ def groundstate(H: SparseMatrix) -> tuple[float, ComplexArray]:
     """Return ``(E0, psi0)``, the lowest eigenvalue and eigenvector."""
     evals, evecs = eigenstates(H, k=1)
     return float(evals[0]), evecs[:, 0]
-
-
-def lanczos(
-    H: SparseMatrix,
-    v0: ComplexArray,
-    m: int,
-) -> tuple[RealArray, RealArray, ComplexArray]:
-    """Plain m-step Lanczos from a unit vector ``v0``.
-
-    Returns ``(alphas, betas, V)`` with ``alphas`` length ``j``,
-    ``betas`` length ``j-1``, ``V`` shape ``(dim, j)``, where ``j <= m``
-    (early exit on breakdown).
-    """
-    dim = H.shape[0]
-    V = np.zeros((dim, m), dtype=complex)
-    alphas = np.zeros(m)
-    betas = np.zeros(m - 1)
-    v = v0
-    V[:, 0] = v
-    w = H @ v
-    a = float((v.conj() @ w).real)
-    alphas[0] = a
-    w = w - a * v
-    for j in range(1, m):
-        b = float(np.linalg.norm(w))
-        if b < 1e-12:
-            return alphas[:j], betas[: j - 1], V[:, :j]
-        v_new = w / b
-        V[:, j] = v_new
-        betas[j - 1] = b
-        w = H @ v_new - b * v
-        a = float((v_new.conj() @ w).real)
-        alphas[j] = a
-        w = w - a * v_new
-        v = v_new
-    return alphas, betas, V

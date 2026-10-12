@@ -1,4 +1,4 @@
-"""Real-time evolvers and finite-T dynamics primitives."""
+"""Time evolution."""
 
 from __future__ import annotations
 
@@ -19,15 +19,11 @@ from fockit.hilbert import (
     to_matrix,
 )
 from fockit.solve import (
-    boltzmann_weights,
     chebyshev_evolve,
     eigh_full,
     expm_multiply_evolve,
-    krylov_evolve,
-    lanczos_eigenpairs,
     suzuki_trotter_sequence,
     thermal_expectation,
-    tpq_state,
     trotter_evolve,
 )
 
@@ -83,16 +79,12 @@ def test_evolvers_agree_on_heisenberg():
     times = np.linspace(0.0, 1.5, 8)
     H_mat = to_matrix(H, basis)
     traj_em = expm_multiply_evolve(H_mat, psi, times)
-    traj_kr = krylov_evolve(H_mat, psi, times, n_krylov=20)
     traj_ch = chebyshev_evolve(H_mat, psi, times)
 
-    assert np.allclose(traj_em, traj_kr, atol=1e-9)
     assert np.allclose(traj_em, traj_ch, atol=1e-9)
 
 
-@pytest.mark.parametrize(
-    "evolver", [expm_multiply_evolve, krylov_evolve, chebyshev_evolve]
-)
+@pytest.mark.parametrize("evolver", [expm_multiply_evolve, chebyshev_evolve])
 def test_evolver_unitary(evolver):
     labels, H = heisenberg_chain(3)
     basis = enumerate_basis({PauliSpace(): labels})
@@ -174,7 +166,7 @@ def test_trotter_evolve_imaginary_time_matches_tpq():
     assert np.allclose(traj[-1], ref, atol=1e-6)
 
 
-def test_matrix_elements_and_boltzmann_reproduce_thermal_expectation():
+def test_matrix_elements_reproduce_thermal_expectation():
     labels, H = heisenberg_chain(3)
     basis = enumerate_basis({PauliSpace(): labels})
     E, V = eigh_full(to_matrix(H, basis))
@@ -182,61 +174,9 @@ def test_matrix_elements_and_boltzmann_reproduce_thermal_expectation():
     beta = 0.8
 
     op_eb = matrix_elements(op_mat, V)
-    p = boltzmann_weights(E, beta)
+    p = np.exp(-beta * (E - E.min()))
+    p /= p.sum()
     got = float((p * np.diag(op_eb).real).sum())
 
     ref = thermal_expectation(op_mat, E, V, beta).real
     assert got == pytest.approx(ref, abs=1e-12)
-
-
-def test_tpq_state_averages_to_thermal_expectation():
-    labels, H = heisenberg_chain(2)
-    basis = enumerate_basis({PauliSpace(): labels})
-    H_mat = to_matrix(H, basis)
-    E, V = eigh_full(H_mat)
-    op_mat = to_matrix(sigma_z(0) * sigma_z(1), basis)
-    beta = 0.7
-
-    rng = np.random.default_rng(0)
-    num, denom = 0j, 0.0
-    for _ in range(400):
-        phi = tpq_state(H_mat, beta, rng=rng, e0=E[0])
-        num += complex(phi.conj() @ (op_mat @ phi))
-        denom += float((phi.conj() @ phi).real)
-    got = (num / denom).real
-
-    ref = thermal_expectation(op_mat, E, V, beta).real
-    assert got == pytest.approx(ref, abs=5e-2)
-
-
-def test_lanczos_eigenpairs_compose_to_ftlm():
-    labels, H = heisenberg_chain(3)
-    basis = enumerate_basis({PauliSpace(): labels})
-    H_mat = to_matrix(H, basis)
-    E, V = eigh_full(H_mat)
-    op_mat = to_matrix(sigma_z(0) * sigma_z(1), basis)
-    beta = 0.6
-
-    rng = np.random.default_rng(0)
-    num, denom = 0j, 0.0
-    for _ in range(200):
-        eps, psi, r = lanczos_eigenpairs(H_mat, n_lanczos=basis.dim, rng=rng)
-        c_k = psi.conj().T @ r
-        op_kr = psi.conj().T @ (op_mat @ r)
-        w = np.exp(-beta * (eps - eps.min()))
-        num += complex(np.sum(w * c_k.conj() * op_kr))
-        denom += float(np.sum(w * np.abs(c_k) ** 2).real)
-    got = (num / denom).real
-
-    ref = thermal_expectation(op_mat, E, V, beta).real
-    assert got == pytest.approx(ref, abs=5e-2)
-
-
-def test_krylov_warns_when_step_is_too_long_for_its_krylov_space():
-    labels, H = heisenberg_chain(8)
-    basis = enumerate_basis({PauliSpace(): labels})
-    rng = np.random.default_rng(0)
-    psi = rng.standard_normal(basis.dim) + 1j * rng.standard_normal(basis.dim)
-    psi /= np.linalg.norm(psi)
-    with pytest.warns(RuntimeWarning, match="not converged"):
-        krylov_evolve(to_matrix(H, basis), psi, [0.0, 5.0], n_krylov=5)
