@@ -1,18 +1,18 @@
-"""Numerical solvers built on top of operator-algebra."""
+"""Numerical solvers built on the operator algebra."""
 
-from operator_algebra.solve.basis import (
+from fockit.solve.basis import (
     Basis,
     enumerate_basis,
     expand_state,
     state_index,
 )
-from operator_algebra.solve.diagonalize import (
+from fockit.solve.diagonalize import (
     eigenstates,
     eigh_full,
     groundstate,
     lanczos,
 )
-from operator_algebra.solve.evolve import (
+from fockit.solve.evolve import (
     boltzmann_weights,
     chebyshev_evolve,
     expm_multiply_evolve,
@@ -22,14 +22,14 @@ from operator_algebra.solve.evolve import (
     tpq_state,
     trotter_evolve,
 )
-from operator_algebra.solve.matrix import expectations, matrix_elements, to_matrix
-from operator_algebra.solve.spaces import (
+from fockit.solve.matrix import expectations, matrix_elements, to_matrix
+from fockit.solve.spaces import (
     BosonSpace,
     FermionSpace,
     LocalSpace,
     PauliSpace,
 )
-from operator_algebra.solve.thermal import (
+from fockit.solve.thermal import (
     kpm_thermal_expectation,
     lanczos_thermal_expectation,
     thermal_expectation,

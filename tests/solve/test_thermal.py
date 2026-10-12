@@ -5,12 +5,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from operator_algebra import b, bdag, c, cdag, n, sigma_x, sigma_y, sigma_z
-from operator_algebra.solve.basis import enumerate_basis
-from operator_algebra.solve.diagonalize import eigh_full
-from operator_algebra.solve.matrix import to_matrix
-from operator_algebra.solve.spaces import BosonSpace, FermionSpace, PauliSpace
-from operator_algebra.solve.thermal import (
+from fockit import b, bdag, c, cdag, n, sigma_x, sigma_y, sigma_z
+from fockit.solve.basis import enumerate_basis
+from fockit.solve.diagonalize import eigh_full
+from fockit.solve.matrix import to_matrix
+from fockit.solve.spaces import BosonSpace, FermionSpace, PauliSpace
+from fockit.solve.thermal import (
     kpm_thermal_expectation,
     lanczos_thermal_expectation,
     thermal_expectation,

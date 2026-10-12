@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from operator_algebra import (
+from fockit import (
     anticommutator,
     b,
     bdag,

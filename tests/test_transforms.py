@@ -2,7 +2,7 @@
 
 import warnings
 
-from operator_algebra import (
+from fockit import (
     c,
     cdag,
     commutator,

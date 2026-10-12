@@ -12,13 +12,13 @@ from typing import Any
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from operator_algebra._types import as_complex
-from operator_algebra.algebra import AlgebraRules, mode_sort_key
-from operator_algebra.normal_order import normal_order
-from operator_algebra.operators import Monomial, Op, OpSum, identity, zero
-from operator_algebra.simplify import drop_zeros
-from operator_algebra.solve.spaces import ComplexArray, IntArray, LocalSpace
-from operator_algebra.transforms import hc, substitute_modes
+from fockit._types import as_complex
+from fockit.algebra import AlgebraRules, mode_sort_key
+from fockit.normal_order import normal_order
+from fockit.operators import Monomial, Op, OpSum, identity, zero
+from fockit.simplify import drop_zeros
+from fockit.solve.spaces import ComplexArray, IntArray, LocalSpace
+from fockit.transforms import hc, substitute_modes
 
 _CHUNK = 2**20
 _LARGE_PRODUCT = 2**22

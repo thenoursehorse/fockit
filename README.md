@@ -1,36 +1,56 @@
-# operator-algebra
+# fockit - Quantum many-body operators and solvers
 
-## What is operator-algebra?
+Copyright (C) 2026 H. L. Nourse
 
-Performs operator algebra on fermions, bosons, Pauli operators, and more.
+## What is fockit?
 
-See [uv](https://docs.astral.sh/uv) for install instructions on `uv`.
+Build many-body models, write your own operator algebras, and test algorithms
+on them. Quick and simple.
 
-## Install
-```bash
-uv sync
+Comes with fermions, bosons and Pauli operators, and you can add your own.
+Simple exact solvers check your ideas on small systems.
+
+## Where to start?
+
+The tests are examples:
+
+- `tests/test_integration.py` for the operator algebra.
+- `tests/solve/` for matrices and solvers.
+- `tests/solve/test_symmetries.py` for symmetry sectors (momentum, reflection,
+  spin flip, spin inversion, particle-hole, point groups).
+
+## Dependencies
+
+- [python](https://www.python.org/) version `>= 3.12`
+- [numpy](https://numpy.org/) and [scipy](https://scipy.org/) for the solvers
+- [sympy](https://www.sympy.org/) for symbolic coefficients (optional)
+
+## Installation
+
+Clone source
+
+```shell
+git clone https://github.com/thenoursehorse/fockit
+cd fockit
 ```
 
-## Symbolic algebra
-```bash
-uv sync --extra sympy
-```
+Install with [uv](https://docs.astral.sh/uv)
 
-## Solvers
-Diagonalize, time-evolve, find ground-states, and find thermal states of operators.
-```bash
+```shell
 uv sync --extra solve
 ```
-Symmetry sectors (momentum, reflection, spin flip, spin inversion, particle-hole, point groups): see `tests/solve/test_symmetries.py`.
+
+Add `--extra sympy` for symbolic coefficients.
 
 ## Tests
-Remove any `--extra` not interested in testing.
-```bash
+
+```shell
 uv sync --group test --extra sympy --extra solve
 uv run pytest
 ```
 
-## Dev
-```bash
+## Development
+
+```shell
 uv sync --group all --extra sympy --extra solve
 ```

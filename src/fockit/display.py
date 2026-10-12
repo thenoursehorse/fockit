@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable, Hashable
 
-from operator_algebra._types import Coefficient
-from operator_algebra.algebra import (
+from fockit._types import Coefficient
+from fockit.algebra import (
     BosonRules,
     FermionRules,
     Ladder,
@@ -13,7 +13,7 @@ from operator_algebra.algebra import (
     PauliRules,
     mode_sort_key,
 )
-from operator_algebra.operators import Monomial, Op, OpSum, format_mode
+from fockit.operators import Monomial, Op, OpSum, format_mode
 
 # operators of other algebras show their kind as the symbol
 _TEXT_SYMBOLS: dict[tuple[type, Hashable], str] = {

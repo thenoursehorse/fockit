@@ -11,11 +11,11 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from operator_algebra import c, cdag, hc, n, normal_order
-from operator_algebra.solve.basis import enumerate_basis
-from operator_algebra.solve.diagonalize import eigenstates, eigh_full, groundstate
-from operator_algebra.solve.matrix import expectations, to_matrix
-from operator_algebra.solve.spaces import FermionSpace
+from fockit import c, cdag, hc, n, normal_order
+from fockit.solve.basis import enumerate_basis
+from fockit.solve.diagonalize import eigenstates, eigh_full, groundstate
+from fockit.solve.matrix import expectations, to_matrix
+from fockit.solve.spaces import FermionSpace
 
 
 def hubbard_chain(sites: int, t: float, u: float):

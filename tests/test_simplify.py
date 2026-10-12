@@ -2,7 +2,7 @@
 
 import pytest
 
-from operator_algebra import cdag, drop_zeros, num_terms, zero
+from fockit import cdag, drop_zeros, num_terms, zero
 
 sympy = pytest.importorskip("sympy")
 

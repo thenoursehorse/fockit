@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from operator_algebra import (
+from fockit import (
     b,
     bdag,
     c,
@@ -16,8 +16,8 @@ from operator_algebra import (
     to_text,
     zero,
 )
-from operator_algebra.algebra import SwapResult, mode_sort_key
-from operator_algebra.operators import Monomial, Op, OpSum
+from fockit.algebra import SwapResult, mode_sort_key
+from fockit.operators import Monomial, Op, OpSum
 
 
 def test_fermion_display():

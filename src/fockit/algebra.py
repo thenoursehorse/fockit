@@ -7,10 +7,10 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from operator_algebra._types import Coefficient
+from fockit._types import Coefficient
 
 if TYPE_CHECKING:
-    from operator_algebra.operators import Op
+    from fockit.operators import Op
 
 
 class Ladder(StrEnum):

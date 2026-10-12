@@ -7,8 +7,8 @@ from collections.abc import Hashable
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
-from operator_algebra._types import Coefficient, as_coefficient
-from operator_algebra.algebra import AlgebraRules
+from fockit._types import Coefficient, as_coefficient
+from fockit.algebra import AlgebraRules
 
 _POW_MSG = "Exponent must be a non-negative integer, got {}"
 
@@ -233,7 +233,7 @@ class OpSum:
 
     def __repr__(self) -> str:
         """Delegate to ``to_text`` for human-readable display."""
-        from operator_algebra.display import to_text
+        from fockit.display import to_text
 
         return to_text(self)
 

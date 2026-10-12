@@ -12,8 +12,8 @@ from typing import ClassVar, Protocol
 import numpy as np
 from numpy.typing import NDArray
 
-from operator_algebra.algebra import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
-from operator_algebra.operators import Op
+from fockit.algebra import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
+from fockit.operators import Op
 
 type IntArray = NDArray[np.int64]
 type ComplexArray = NDArray[np.complex128]

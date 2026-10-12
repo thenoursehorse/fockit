@@ -6,16 +6,16 @@ import numpy as np
 import scipy.sparse as sp
 from numpy.typing import NDArray
 
-from operator_algebra._types import as_complex
-from operator_algebra.operators import OpSum
-from operator_algebra.solve.basis import (
+from fockit._types import as_complex
+from fockit.operators import OpSum
+from fockit.solve.basis import (
     Basis,
     apply_monomial,
     check_modes,
     check_symmetric,
     representatives,
 )
-from operator_algebra.solve.spaces import IntArray
+from fockit.solve.spaces import IntArray
 
 type SparseMatrix = sp.spmatrix
 type CSRMatrix = sp.csr_matrix

@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from operator_algebra import (
+from fockit import (
     b,
     bdag,
     c,
@@ -17,10 +17,10 @@ from operator_algebra import (
     sm,
     sp,
 )
-from operator_algebra.solve.basis import enumerate_basis
-from operator_algebra.solve.diagonalize import eigenstates
-from operator_algebra.solve.matrix import to_matrix
-from operator_algebra.solve.spaces import BosonSpace, FermionSpace, PauliSpace
+from fockit.solve.basis import enumerate_basis
+from fockit.solve.diagonalize import eigenstates
+from fockit.solve.matrix import to_matrix
+from fockit.solve.spaces import BosonSpace, FermionSpace, PauliSpace
 
 
 def test_holstein_site_has_polaron_shift():

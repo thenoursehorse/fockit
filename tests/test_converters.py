@@ -8,8 +8,8 @@ import pytest
 def test_kanamori_3orbital():
     import numpy as np
 
-    from operator_algebra import c, cdag, n, normal_order
-    from operator_algebra.converters import to_triqs
+    from fockit import c, cdag, n, normal_order
+    from fockit.converters import to_triqs
 
     pytest.importorskip("triqs")
     from triqs.operators.util.hamiltonians import h_int_kanamori

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from operator_algebra.operators import OpSum
+from fockit.operators import OpSum
 
 
 def modes(op: OpSum) -> set[Hashable]:

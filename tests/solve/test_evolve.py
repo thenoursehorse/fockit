@@ -8,10 +8,10 @@ import numpy as np
 import pytest
 import scipy.sparse.linalg
 
-from operator_algebra import c, cdag, sigma_x, sigma_y, sigma_z
-from operator_algebra.solve.basis import enumerate_basis, state_index
-from operator_algebra.solve.diagonalize import eigh_full
-from operator_algebra.solve.evolve import (
+from fockit import c, cdag, sigma_x, sigma_y, sigma_z
+from fockit.solve.basis import enumerate_basis, state_index
+from fockit.solve.diagonalize import eigh_full
+from fockit.solve.evolve import (
     boltzmann_weights,
     chebyshev_evolve,
     expm_multiply_evolve,
@@ -21,9 +21,9 @@ from operator_algebra.solve.evolve import (
     tpq_state,
     trotter_evolve,
 )
-from operator_algebra.solve.matrix import expectations, matrix_elements, to_matrix
-from operator_algebra.solve.spaces import FermionSpace, PauliSpace
-from operator_algebra.solve.thermal import thermal_expectation
+from fockit.solve.matrix import expectations, matrix_elements, to_matrix
+from fockit.solve.spaces import FermionSpace, PauliSpace
+from fockit.solve.thermal import thermal_expectation
 
 
 def free_hopping_chain(L: int, t: float = 1.0):

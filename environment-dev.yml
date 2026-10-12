@@ -1,4 +1,4 @@
-name: operator-algebra
+name: fockit
 channels:
   - conda-forge
 dependencies:

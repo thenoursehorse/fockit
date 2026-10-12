@@ -132,6 +132,73 @@ wheels = [
 ]
 
 [[package]]
+name = "fockit"
+source = { editable = "." }
+
+[package.optional-dependencies]
+solve = [
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sympy = [
+    { name = "sympy" },
+]
+
+[package.dev-dependencies]
+all = [
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-subtests" },
+    { name = "ruff" },
+]
+dev = [
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-subtests" },
+    { name = "ruff" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-subtests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", marker = "extra == 'solve'", specifier = ">=1.26" },
+    { name = "scipy", marker = "extra == 'solve'", specifier = ">=1.11.4" },
+    { name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.12" },
+]
+provides-extras = ["solve", "sympy"]
+
+[package.metadata.requires-dev]
+all = [
+    { name = "mypy", specifier = ">=1.13" },
+    { name = "pre-commit", specifier = ">=4.0" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-cov", specifier = ">=6.0" },
+    { name = "pytest-subtests", specifier = ">=0.14" },
+    { name = "ruff", specifier = ">=0.8.0" },
+]
+dev = [
+    { name = "mypy", specifier = ">=1.13" },
+    { name = "pre-commit", specifier = ">=4.0" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-cov", specifier = ">=6.0" },
+    { name = "pytest-subtests", specifier = ">=0.14" },
+    { name = "ruff", specifier = ">=0.8.0" },
+]
+test = [
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-cov", specifier = ">=6.0" },
+    { name = "pytest-subtests", specifier = ">=0.14" },
+]
+
+[[package]]
 name = "identify"
 version = "2.6.18"
 source = { registry = "https://pypi.org/simple" }
@@ -338,73 +405,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ed/ad/483d9e262f4b831000062e5d8a45e342166ec8aaa1195264982bca267e62/numpy-2.4.4-cp314-cp314t-win32.whl", hash = "sha256:dddbbd259598d7240b18c9d87c56a9d2fb3b02fe266f49a7c101532e78c1d871", size = 6155500, upload-time = "2026-03-29T13:21:28.205Z" },
     { url = "https://files.pythonhosted.org/packages/c7/03/2fc4e14c7bd4ff2964b74ba90ecb8552540b6315f201df70f137faa5c589/numpy-2.4.4-cp314-cp314t-win_amd64.whl", hash = "sha256:a7164afb23be6e37ad90b2f10426149fd75aee07ca55653d2aa41e66c4ef697e", size = 12637755, upload-time = "2026-03-29T13:21:31.107Z" },
     { url = "https://files.pythonhosted.org/packages/58/78/548fb8e07b1a341746bfbecb32f2c268470f45fa028aacdbd10d9bc73aab/numpy-2.4.4-cp314-cp314t-win_arm64.whl", hash = "sha256:ba203255017337d39f89bdd58417f03c4426f12beed0440cfd933cb15f8669c7", size = 10566643, upload-time = "2026-03-29T13:21:34.339Z" },
-]
-
-[[package]]
-name = "operator-algebra"
-source = { editable = "." }
-
-[package.optional-dependencies]
-solve = [
-    { name = "numpy" },
-    { name = "scipy" },
-]
-sympy = [
-    { name = "sympy" },
-]
-
-[package.dev-dependencies]
-all = [
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-subtests" },
-    { name = "ruff" },
-]
-dev = [
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-subtests" },
-    { name = "ruff" },
-]
-test = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-subtests" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "numpy", marker = "extra == 'solve'", specifier = ">=1.26" },
-    { name = "scipy", marker = "extra == 'solve'", specifier = ">=1.11.4" },
-    { name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.12" },
-]
-provides-extras = ["solve", "sympy"]
-
-[package.metadata.requires-dev]
-all = [
-    { name = "mypy", specifier = ">=1.13" },
-    { name = "pre-commit", specifier = ">=4.0" },
-    { name = "pytest", specifier = ">=8.3" },
-    { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "pytest-subtests", specifier = ">=0.14" },
-    { name = "ruff", specifier = ">=0.8.0" },
-]
-dev = [
-    { name = "mypy", specifier = ">=1.13" },
-    { name = "pre-commit", specifier = ">=4.0" },
-    { name = "pytest", specifier = ">=8.3" },
-    { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "pytest-subtests", specifier = ">=0.14" },
-    { name = "ruff", specifier = ">=0.8.0" },
-]
-test = [
-    { name = "pytest", specifier = ">=8.3" },
-    { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "pytest-subtests", specifier = ">=0.14" },
 ]
 
 [[package]]

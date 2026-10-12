@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import functools
 
-from operator_algebra._types import Coefficient, as_coefficient
-from operator_algebra.algebra import SwapResult
-from operator_algebra.operators import Monomial, Op, OpSum
+from fockit._types import Coefficient, as_coefficient
+from fockit.algebra import SwapResult
+from fockit.operators import Monomial, Op, OpSum
 
 
 def normal_order(op: OpSum) -> OpSum:

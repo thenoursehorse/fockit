@@ -1,5 +1,5 @@
 [project]
-name = "operator-algebra"
+name = "fockit"
 dynamic = ["version"]
 description = "Operator algebra for fermions, bosons, and beyond"
 readme = "README.md"
@@ -18,8 +18,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/thenoursehorse/operator-algebra"
-Documentation = "https://thenoursehorse.github.io/operator-algebra"
+Homepage = "https://github.com/thenoursehorse/fockit"
+Documentation = "https://thenoursehorse.github.io/fockit"
 
 [project.optional-dependencies]
 sympy = [
@@ -36,7 +36,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch]
 version.source = "vcs"
-build.hooks.vcs.version-file = "src/operator_algebra/_version.py"
+build.hooks.vcs.version-file = "src/fockit/_version.py"
 metadata.allow-direct-references = true
 
 [dependency-groups]
@@ -70,7 +70,7 @@ testpaths = [
 src = ["src"]
 target-version = "py312"
 line-length = 88
-extend-exclude = ["src/operator_algebra/_version.py"]
+extend-exclude = ["src/fockit/_version.py"]
 
 [tool.ruff.format]
 docstring-code-format = true

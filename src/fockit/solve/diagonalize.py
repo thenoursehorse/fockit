@@ -8,7 +8,7 @@ import scipy.sparse
 import scipy.sparse.linalg
 from numpy.typing import NDArray
 
-from operator_algebra.solve.matrix import SparseMatrix
+from fockit.solve.matrix import SparseMatrix
 
 type RealArray = NDArray[np.float64]
 type ComplexArray = NDArray[np.complex128]

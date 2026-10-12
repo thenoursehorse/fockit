@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from operator_algebra import (
+from fockit import (
     b,
     bdag,
     c,
@@ -16,10 +16,10 @@ from operator_algebra import (
     sigma_y,
     sigma_z,
 )
-from operator_algebra.solve.basis import enumerate_basis, expand_state
-from operator_algebra.solve.diagonalize import eigenstates, eigh_full, groundstate
-from operator_algebra.solve.matrix import expectations, to_matrix
-from operator_algebra.solve.spaces import BosonSpace, FermionSpace, PauliSpace
+from fockit.solve.basis import enumerate_basis, expand_state
+from fockit.solve.diagonalize import eigenstates, eigh_full, groundstate
+from fockit.solve.matrix import expectations, to_matrix
+from fockit.solve.spaces import BosonSpace, FermionSpace, PauliSpace
 
 SPINS = ("up", "dn")
 

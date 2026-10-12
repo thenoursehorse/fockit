@@ -4,9 +4,9 @@ import warnings
 from collections.abc import Hashable, Mapping
 from dataclasses import replace
 
-from operator_algebra._types import Coefficient, as_coefficient
-from operator_algebra.normal_order import normal_order
-from operator_algebra.operators import Monomial, OpSum
+from fockit._types import Coefficient, as_coefficient
+from fockit.normal_order import normal_order
+from fockit.operators import Monomial, OpSum
 
 
 def _conjugate(coeff: Coefficient) -> Coefficient:

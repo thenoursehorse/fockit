@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from operator_algebra._types import as_complex
-from operator_algebra.algebra import FermionRules, Ladder
-from operator_algebra.operators import OpSum
+from fockit._types import as_complex
+from fockit.algebra import FermionRules, Ladder
+from fockit.operators import OpSum
 
 if TYPE_CHECKING:
     from triqs.operators import Operator as TriqsOperator
