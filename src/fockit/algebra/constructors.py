@@ -12,7 +12,7 @@ def _mode(*labels: Hashable) -> Hashable:
     return labels if len(labels) > 1 else labels[0]
 
 
-def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
+def create(*labels: Hashable, rules: AlgebraRules) -> OpSum:
     """Creation operator with the given mode label(s).
 
     If one label given: mode is that label.
@@ -22,8 +22,8 @@ def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     ----------
     *labels : Hashable
         Mode label components.
-    rules : AlgebraRules, optional
-        Algebra rules. Default: ``FERMION``.
+    rules : AlgebraRules
+        Algebra the operator belongs to, e.g. ``FERMION`` or ``BOSON``.
 
     Returns
     -------
@@ -33,15 +33,15 @@ def create(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     return OpSum({Monomial(ops=(Op(_mode(*labels), Ladder.CREATE, rules),)): 1})
 
 
-def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
+def annihilate(*labels: Hashable, rules: AlgebraRules) -> OpSum:
     """Annihilation operator.
 
     Parameters
     ----------
     *labels : Hashable
         Mode label components.
-    rules : AlgebraRules, optional
-        Algebra rules. Default: ``FERMION``.
+    rules : AlgebraRules
+        Algebra the operator belongs to, e.g. ``FERMION`` or ``BOSON``.
 
     Returns
     -------
@@ -51,15 +51,15 @@ def annihilate(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
     return OpSum({Monomial(ops=(Op(_mode(*labels), Ladder.ANNIHILATE, rules),)): 1})
 
 
-def number(*labels: Hashable, rules: AlgebraRules = FERMION) -> OpSum:
+def number(*labels: Hashable, rules: AlgebraRules) -> OpSum:
     """Return the number operator create† * annihilate.
 
     Parameters
     ----------
     *labels : Hashable
         Mode label components.
-    rules : AlgebraRules, optional
-        Algebra rules. Default: ``FERMION``.
+    rules : AlgebraRules
+        Algebra the operator belongs to, e.g. ``FERMION`` or ``BOSON``.
 
     Returns
     -------
@@ -101,7 +101,7 @@ def c(*labels: Hashable) -> OpSum:
     return annihilate(*labels, rules=FERMION)
 
 
-def n(*labels: Hashable) -> OpSum:
+def nc(*labels: Hashable) -> OpSum:
     """Fermionic number operator n = c† c.
 
     Parameters

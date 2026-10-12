@@ -5,12 +5,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from fockit.algebra import b, bdag, c, cdag, n, nb, sigma_x, sigma_y, sigma_z
+from fockit.algebra import b, bdag, c, cdag, nb, nc, sigma_x, sigma_y, sigma_z
 from fockit.hilbert import (
     BosonSpace,
     FermionSpace,
     PauliSpace,
-    enumerate_basis,
+    build_basis,
     expand_state,
     expectations,
     to_matrix,
@@ -31,7 +31,7 @@ def momentum(k, sites):
 
 
 def spectrum(H, spaces, **kwargs):
-    energies, _ = eigh_full(to_matrix(H, enumerate_basis(spaces, **kwargs)))
+    energies, _ = eigh_full(to_matrix(H, build_basis(spaces, **kwargs)))
     return energies
 
 
@@ -64,7 +64,7 @@ def hopping_ring(sites, spins=None):
 
 def hubbard_ring(sites, u=4.0):
     return hopping_ring(sites, SPINS) + u * sum(
-        n(i, "up") * n(i, "dn") for i in range(sites)
+        nc(i, "up") * nc(i, "dn") for i in range(sites)
     )
 
 
@@ -80,7 +80,7 @@ def heisenberg_ring(sites):
 def test_single_particle_on_ring_fills_the_cosine_band():
     sites = 6
     space = {FermionSpace(): range(sites)}
-    one = {sum(n(i) for i in range(sites)): 1}
+    one = {sum(nc(i) for i in range(sites)): 1}
     for k in range(sites):
         symmetries = [(shift(sites), momentum(k, sites))]
         energies = spectrum(
@@ -96,8 +96,8 @@ def test_hubbard_momentum_sectors_rebuild_spectrum():
     sites = 5
     modes = [(i, s) for i in range(sites) for s in SPINS]
     sectors = {
-        sum(n(i, "up") for i in range(sites)): 2,
-        sum(n(i, "dn") for i in range(sites)): 2,
+        sum(nc(i, "up") for i in range(sites)): 2,
+        sum(nc(i, "dn") for i in range(sites)): 2,
     }
     assert_momentum_sectors_rebuild_spectrum(
         hubbard_ring(sites),
@@ -112,8 +112,8 @@ def test_hubbard_momentum_and_spin_flip_sectors_rebuild_spectrum():
     sites = 4
     modes = [(i, s) for i in range(sites) for s in SPINS]
     H = hubbard_ring(sites)
-    sz = 0.5 * sum(n(i, "up") - n(i, "dn") for i in range(sites))
-    sectors = {sum(n(*m) for m in modes): 4, sz: 0}
+    sz = 0.5 * sum(nc(i, "up") - nc(i, "dn") for i in range(sites))
+    sectors = {sum(nc(*m) for m in modes): 4, sz: 0}
     flip = {(i, "up"): (i, "dn") for i in range(sites)}
     flip |= {(i, "dn"): (i, "up") for i in range(sites)}
     space = {FermionSpace(): modes}
@@ -157,10 +157,10 @@ def test_heisenberg_ring_ground_state_momentum(sites, ground_k):
 def test_holstein_ring_translates_electrons_and_phonons_together():
     sites, omega, g = 3, 1.0, 0.6
     H = hopping_ring(sites) + sum(
-        omega * nb(i) + g * n(i) * (b(i) + bdag(i)) for i in range(sites)
+        omega * nb(i) + g * nc(i) * (b(i) + bdag(i)) for i in range(sites)
     )
     spaces = {FermionSpace(): range(sites), BosonSpace(n_max=2): range(sites)}
-    one = {sum(n(i) for i in range(sites)): 1}
+    one = {sum(nc(i) for i in range(sites)): 1}
     assert_momentum_sectors_rebuild_spectrum(
         H, spaces, sites, shift(sites), diagonal_symmetries=one
     )
@@ -184,12 +184,12 @@ def test_bose_hubbard_momentum_sectors_rebuild_spectrum():
 
 def test_non_symmetric_operator_is_rejected_in_a_momentum_sector():
     sites = 4
-    basis = enumerate_basis(
+    basis = build_basis(
         {FermionSpace(): range(sites)},
         permutation_symmetries=[(shift(sites), momentum(1, sites))],
     )
     with pytest.raises(ValueError, match="not symmetric"):
-        to_matrix(n(0), basis)
+        to_matrix(nc(0), basis)
 
 
 def reflection(sites):
@@ -229,9 +229,7 @@ def test_square_lattice_heisenberg_ground_state_has_full_lattice_symmetry():
     )
     space = {PauliSpace(): sites}
     sz0 = {0.5 * sum(sigma_z(x, y) for x, y in sites): 0}
-    energy, _ = groundstate(
-        to_matrix(H, enumerate_basis(space, diagonal_symmetries=sz0))
-    )
+    energy, _ = groundstate(to_matrix(H, build_basis(space, diagonal_symmetries=sz0)))
 
     shift_x = {(x, y): ((x + 1) % side, y) for x, y in sites}
     shift_y = {(x, y): (x, (y + 1) % side) for x, y in sites}
@@ -248,7 +246,7 @@ def test_symmetry_eigenvalues_that_do_not_fit_are_rejected():
     sites = 4
     space = {FermionSpace(): range(sites)}
     with pytest.raises(ValueError, match="don't fit"):
-        enumerate_basis(
+        build_basis(
             space,
             permutation_symmetries=[
                 (shift(sites), momentum(1, sites)),
@@ -256,17 +254,17 @@ def test_symmetry_eigenvalues_that_do_not_fit_are_rejected():
             ],
         )
     with pytest.raises(ValueError, match="don't fit"):
-        enumerate_basis(space, permutation_symmetries=[(shift(sites), np.exp(0.3j))])
+        build_basis(space, permutation_symmetries=[(shift(sites), np.exp(0.3j))])
 
 
 def hubbard_bases(sites, n_up, n_dn, k):
     modes = [(i, s) for i in range(sites) for s in SPINS]
     diagonal = {
-        sum(n(i, "up") for i in range(sites)): n_up,
-        sum(n(i, "dn") for i in range(sites)): n_dn,
+        sum(nc(i, "up") for i in range(sites)): n_up,
+        sum(nc(i, "dn") for i in range(sites)): n_dn,
     }
-    full = enumerate_basis({FermionSpace(): modes}, diagonal_symmetries=diagonal)
-    sym = enumerate_basis(
+    full = build_basis({FermionSpace(): modes}, diagonal_symmetries=diagonal)
+    sym = build_basis(
         {FermionSpace(): modes},
         diagonal_symmetries=diagonal,
         permutation_symmetries=[(shift(sites, SPINS), momentum(k, sites))],
@@ -290,7 +288,7 @@ def test_momentum_eigenstate_has_uniform_density():
     _, psi = groundstate(to_matrix(hubbard_ring(sites), sym))
     v = expand_state(psi, sym, full)
     densities = [
-        expectations(to_matrix(n(i, "up"), full), v).real for i in range(sites)
+        expectations(to_matrix(nc(i, "up"), full), v).real for i in range(sites)
     ]
     assert densities == pytest.approx([2 / sites] * sites)
 
@@ -313,8 +311,8 @@ def test_heisenberg_correlations_from_symmetric_ground_state_match_full_basis():
     H = heisenberg_ring(sites)
     space = {PauliSpace(): range(sites)}
     sz0 = {0.5 * sum(sigma_z(i) for i in range(sites)): 0}
-    full = enumerate_basis(space, diagonal_symmetries=sz0)
-    sym = enumerate_basis(
+    full = build_basis(space, diagonal_symmetries=sz0)
+    sym = build_basis(
         space,
         diagonal_symmetries=sz0,
         permutation_symmetries=[(shift(sites), momentum(0, sites))],
@@ -339,24 +337,24 @@ def test_symmetry_that_leaves_the_selected_states_is_rejected():
     modes = [(i, s) for i in range(sites) for s in SPINS]
     flip = {(i, "up"): (i, "dn") for i in range(sites)}
     flip |= {(i, "dn"): (i, "up") for i in range(sites)}
-    sz = 0.5 * sum(n(i, "up") - n(i, "dn") for i in range(sites))
+    sz = 0.5 * sum(nc(i, "up") - nc(i, "dn") for i in range(sites))
     # spin flip turns Sz = 1 into Sz = -1
     with pytest.raises(ValueError, match="outside"):
-        enumerate_basis(
+        build_basis(
             {FermionSpace(): modes},
             diagonal_symmetries={sz: 1},
             permutation_symmetries=[(flip, 1)],
         )
     # translation moves the spin off site 0
     with pytest.raises(ValueError, match="outside"):
-        enumerate_basis(
+        build_basis(
             {PauliSpace(): range(sites)},
             permutation_symmetries=[(shift(sites), 1)],
             predicate_function=lambda lv: lv[:, 0] == 1,
         )
     # spin inversion turns Sz = 1 into Sz = -1
     with pytest.raises(ValueError, match="outside"):
-        enumerate_basis(
+        build_basis(
             {PauliSpace(): range(sites)},
             diagonal_symmetries={0.5 * sum(sigma_z(i) for i in range(sites)): 1},
             onsite_symmetries=[(spin_inversion(sites), 1)],
@@ -414,7 +412,7 @@ def test_total_spin_from_a_penalty_and_from_sz_sectors_agree():
     ]
     S2 = sum(s * s for s in total_spin)
     space = {PauliSpace(): range(sites)}
-    sz0 = enumerate_basis(space, diagonal_symmetries={total_spin[2]: 0})
+    sz0 = build_basis(space, diagonal_symmetries={total_spin[2]: 0})
 
     spin_one_or_more = spectrum(H, space, diagonal_symmetries={total_spin[2]: 1})
     singlets = list(eigh_full(to_matrix(H, sz0))[0])
@@ -437,7 +435,7 @@ def test_heisenberg_ground_state_lies_in_its_spin_inversion_sector():
     H = heisenberg_ring(sites)
     space = {PauliSpace(): range(sites)}
     sz0 = {0.5 * sum(sigma_z(i) for i in range(sites)): 0}
-    full = enumerate_basis(space, diagonal_symmetries=sz0)
+    full = build_basis(space, diagonal_symmetries=sz0)
     energy, psi = groundstate(to_matrix(H, full))
     flip_all = 1
     for i in range(sites):
@@ -445,7 +443,7 @@ def test_heisenberg_ground_state_lies_in_its_spin_inversion_sector():
     parity = expectations(to_matrix(flip_all, full), psi).real
     assert abs(parity) == pytest.approx(1)
 
-    sym = enumerate_basis(
+    sym = build_basis(
         space,
         diagonal_symmetries=sz0,
         permutation_symmetries=[(shift(sites), momentum(0, sites))],
@@ -461,10 +459,10 @@ def test_hubbard_particle_hole_spin_flip_and_momentum_sectors_rebuild_spectrum()
     sites = 4
     modes = [(i, s) for i in range(sites) for s in SPINS]
     H = hopping_ring(sites, SPINS) + 4 * sum(
-        (n(i, "up") - 0.5) * (n(i, "dn") - 0.5) for i in range(sites)
+        (nc(i, "up") - 0.5) * (nc(i, "dn") - 0.5) for i in range(sites)
     )
-    sz = 0.5 * sum(n(i, "up") - n(i, "dn") for i in range(sites))
-    half_filling = {sum(n(*m) for m in modes): sites, sz: 0}
+    sz = 0.5 * sum(nc(i, "up") - nc(i, "dn") for i in range(sites))
+    half_filling = {sum(nc(*m) for m in modes): sites, sz: 0}
     flip = {(i, "up"): (i, "dn") for i in range(sites)}
     flip |= {(i, "dn"): (i, "up") for i in range(sites)}
     particle_hole = [c(i, s) + (-1) ** i * cdag(i, s) for i, s in modes]
@@ -492,10 +490,10 @@ def test_hubbard_particle_hole_spin_flip_and_momentum_sectors_rebuild_spectrum()
 def test_spinless_particle_hole_and_momentum_sectors_rebuild_spectrum():
     sites = 6
     H = hopping_ring(sites) + 2 * sum(
-        (n(i) - 0.5) * (n((i + 1) % sites) - 0.5) for i in range(sites)
+        (nc(i) - 0.5) * (nc((i + 1) % sites) - 0.5) for i in range(sites)
     )
     space = {FermionSpace(): range(sites)}
-    half_filling = {sum(n(i) for i in range(sites)): sites // 2}
+    half_filling = {sum(nc(i) for i in range(sites)): sites // 2}
     particle_hole = [c(i) + (-1) ** i * cdag(i) for i in range(sites)]
     parts = [
         spectrum(
@@ -517,13 +515,13 @@ def test_onsite_symmetry_that_is_not_a_symmetry_is_rejected():
     space = {PauliSpace(): range(sites)}
     # flipping only even sites doesn't commute with translation
     with pytest.raises(ValueError, match="commute"):
-        enumerate_basis(
+        build_basis(
             space,
             permutation_symmetries=[(shift(sites), 1)],
             onsite_symmetries=[([sigma_x(i) for i in range(0, sites, 2)], 1)],
         )
     # a longitudinal field breaks spin inversion
-    basis = enumerate_basis(space, onsite_symmetries=[(spin_inversion(sites), 1)])
+    basis = build_basis(space, onsite_symmetries=[(spin_inversion(sites), 1)])
     field = 0.1 * sum(sigma_z(i) for i in range(sites))
     with pytest.raises(ValueError, match="not symmetric"):
         to_matrix(tfim_ring(sites, 0.5) + field, basis)

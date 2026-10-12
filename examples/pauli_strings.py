@@ -11,7 +11,7 @@ from fockit.algebra import (
     cdag,
     commutator,
     identity,
-    n,
+    nc,
     normal_order,
     sigma_z,
     sm,
@@ -22,7 +22,7 @@ from fockit.algebra import (
 from fockit.hilbert import (
     FermionSpace,
     PauliSpace,
-    enumerate_basis,
+    build_basis,
     expectations,
     to_matrix,
 )
@@ -31,7 +31,7 @@ from fockit.solve import groundstate
 # spinless fermions on an open chain with nearest-neighbour repulsion
 L, V = 4, 1.0
 H_fermion = -sum(cdag(j + 1) * c(j) + cdag(j) * c(j + 1) for j in range(L - 1))
-H_fermion += V * sum((n(j) - 0.5) * (n(j + 1) - 0.5) for j in range(L - 1))
+H_fermion += V * sum((nc(j) - 0.5) * (nc(j + 1) - 0.5) for j in range(L - 1))
 
 # Jordan-Wigner: c_j = Z_0 ... Z_{j-1} σ-_j
 jordan_wigner = {}
@@ -57,10 +57,10 @@ for string in strings:
 print(f"{len(strings)} strings in {len(groups)} commuting groups")
 
 # exact ground energy, and the expectation of each string in the ground state
-basis = enumerate_basis({PauliSpace(): range(L)})
+basis = build_basis({PauliSpace(): range(L)})
 energy, psi = groundstate(to_matrix(H, basis))
 fermion_energy, _ = groundstate(
-    to_matrix(H_fermion, enumerate_basis({FermionSpace(): range(L)}))
+    to_matrix(H_fermion, build_basis({FermionSpace(): range(L)}))
 )
 print(f"ground energy {energy:.6f} (fermions: {fermion_energy:.6f})")
 for mono, coeff in H.terms.items():

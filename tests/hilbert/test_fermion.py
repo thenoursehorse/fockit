@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from fockit.algebra import c, cdag, hc, n, normal_order
-from fockit.hilbert import FermionSpace, enumerate_basis, expectations, to_matrix
+from fockit.algebra import c, cdag, hc, nc, normal_order
+from fockit.hilbert import FermionSpace, build_basis, expectations, to_matrix
 from fockit.solve import eigenstates, eigh_full, groundstate
 
 
@@ -23,7 +23,7 @@ def hubbard_chain(sites: int, t: float, u: float):
         for s in ("up", "dn"):
             H = H - t * (cdag(s, i) * c(s, i + 1) + cdag(s, i + 1) * c(s, i))
     for i in range(sites):
-        H = H + u * n("up", i) * n("dn", i)
+        H = H + u * nc("up", i) * nc("dn", i)
     return modes, H
 
 
@@ -34,7 +34,7 @@ def hubbard_chain(sites: int, t: float, u: float):
 def risb_one_band():
     u = 1
     mu = u / 2  # half-filling
-    h_int = u * n("up", 0) * n("dn", 0)
+    h_int = u * nc("up", 0) * nc("dn", 0)
     lambda_c = np.array([[-mu]])
     d = np.array([[-0.3333]])
     h0_loc = np.array([[0]])
@@ -55,9 +55,9 @@ def risb_bilayer():
     j = 0
     mu = u / 2  # half-filling
     spins = ("up", "dn")
-    h_int = 0 * n("up", 0)
+    h_int = 0 * nc("up", 0)
     for o in (0, 1):
-        h_int += u * n("up", o) * n("dn", o)
+        h_int += u * nc("up", o) * nc("dn", o)
     for s1, s2 in product(spins, spins):
         h_int += 0.5 * j * cdag(s1, 0) * c(s2, 0) * cdag(s2, 1) * c(s1, 1)
     lambda_c = np.array([[-mu, -0.00460398], [-0.00460398, -mu]])
@@ -79,7 +79,7 @@ def risb_dh_trimer():
     u = 1
     tk = 1
     n_orb = 3
-    h_int = 0 * n("up", 0)
+    h_int = 0 * nc("up", 0)
     for m, mm, mmm in product(range(n_orb), repeat=3):
         h_int += (
             (u / n_orb)
@@ -128,7 +128,7 @@ def test_risb_embedding_matches_risb(model):
     modes = [(s, i) for i in range(2 * n_orb) for s in ("up", "dn")]
     c_modes = [(s, i) for i in range(n_orb) for s in ("up", "dn")]
     # risb solves in the half-filled sector of the embedding space
-    basis = enumerate_basis(
+    basis = build_basis(
         {FermionSpace(): modes}, diagonal_symmetries={total_n(modes): n_orb * 2}
     )
     e0, v0 = groundstate(to_matrix(h_emb, basis))
@@ -175,14 +175,14 @@ def test_risb_embedding_matches_risb(model):
 def total_n(modes):
     op = 0 * cdag(*modes[0]) * c(*modes[0])
     for mode in modes:
-        op = op + n(*mode)
+        op = op + nc(*mode)
     return op
 
 
 def total_sz(modes):
     op = 0 * cdag(*modes[0]) * c(*modes[0])
     for s, i in modes:
-        op = op + (0.5 if s == "up" else -0.5) * n(s, i)
+        op = op + (0.5 if s == "up" else -0.5) * nc(s, i)
     return op
 
 
@@ -198,7 +198,7 @@ def total_s2(modes):
 def test_two_site_half_filling_matches_analytic():
     t, u = 1.0, 4.0
     modes, H = hubbard_chain(2, t, u)
-    basis = enumerate_basis(
+    basis = build_basis(
         {FermionSpace(): modes},
         diagonal_symmetries={total_n(modes): 2, total_sz(modes): 0},
     )
@@ -210,7 +210,7 @@ def test_two_site_half_filling_matches_analytic():
 def test_two_site_quarter_filling_is_pure_hopping():
     t, u = 1.3, 7.0
     modes, H = hubbard_chain(2, t, u)
-    basis = enumerate_basis(
+    basis = build_basis(
         {FermionSpace(): modes},
         diagonal_symmetries={total_n(modes): 1, total_sz(modes): 0.5},
     )
@@ -222,7 +222,7 @@ def test_two_site_quarter_filling_is_pure_hopping():
 def test_three_site_half_filling_sparse_matches_dense():
     t, u = 1.0, 2.5
     modes, H = hubbard_chain(3, t, u)
-    basis = enumerate_basis(
+    basis = build_basis(
         {FermionSpace(): modes},
         diagonal_symmetries={total_n(modes): 3, total_sz(modes): 0.5},
     )
@@ -237,7 +237,7 @@ def test_three_site_half_filling_sparse_matches_dense():
 def test_full_basis_groundstate_is_one_electron_sector():
     t, u = 1.0, 4.0
     modes, H = hubbard_chain(2, t, u)
-    basis = enumerate_basis({FermionSpace(): modes})
+    basis = build_basis({FermionSpace(): modes})
     assert basis.dim == 16
     e0_full, _ = groundstate(to_matrix(H, basis))
     assert e0_full == pytest.approx(-t, abs=1e-10)
@@ -245,7 +245,7 @@ def test_full_basis_groundstate_is_one_electron_sector():
 
 def test_normal_ordered_h_squared_matches_matrix_square():
     modes, H = hubbard_chain(2, t=1.0, u=4.0)
-    basis = enumerate_basis({FermionSpace(): modes})
+    basis = build_basis({FermionSpace(): modes})
     h = to_matrix(H, basis).toarray()
     h2 = to_matrix(normal_order(H * H), basis).toarray()
     assert h2 == pytest.approx(h @ h)
@@ -259,9 +259,9 @@ def test_flux_through_ring_shifts_single_particle_levels():
         + np.conj(phase) * cdag(i) * c((i + 1) % sites)
         for i in range(sites)
     )
-    basis = enumerate_basis(
+    basis = build_basis(
         {FermionSpace(): range(sites)},
-        diagonal_symmetries={sum(n(i) for i in range(sites)): 1},
+        diagonal_symmetries={sum(nc(i) for i in range(sites)): 1},
     )
     energies, _ = eigh_full(to_matrix(H, basis))
     k = np.arange(sites)

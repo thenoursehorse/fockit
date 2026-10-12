@@ -7,12 +7,12 @@ from math import comb
 import numpy as np
 import pytest
 
-from fockit.algebra import b, bdag, c, cdag, n, nb, sigma_x, sigma_y, sigma_z
+from fockit.algebra import b, bdag, c, cdag, nb, nc, sigma_x, sigma_y, sigma_z
 from fockit.hilbert import (
     BosonSpace,
     FermionSpace,
     PauliSpace,
-    enumerate_basis,
+    build_basis,
     to_matrix,
 )
 from fockit.solve import eigh_full
@@ -26,12 +26,12 @@ def hubbard_chain(sites, t=1.0, u=4.0):
         cdag(i, s) * c(i + 1, s) + cdag(i + 1, s) * c(i, s)
         for i in range(sites - 1)
         for s in SPINS
-    ) + u * sum(n(i, "up") * n(i, "dn") for i in range(sites))
+    ) + u * sum(nc(i, "up") * nc(i, "dn") for i in range(sites))
     return modes, H
 
 
 def spectrum(H, spaces, **kwargs):
-    energies, _ = eigh_full(to_matrix(H, enumerate_basis(spaces, **kwargs)))
+    energies, _ = eigh_full(to_matrix(H, build_basis(spaces, **kwargs)))
     return energies
 
 
@@ -44,14 +44,14 @@ def assert_sectors_rebuild_spectrum(H, spaces, sector_kwargs):
 class TestFermionSectors:
     sites = 4
     modes = [(i, s) for i in range(sites) for s in SPINS]
-    n_up = sum(n(i, "up") for i in range(sites))
-    n_dn = sum(n(i, "dn") for i in range(sites))
+    n_up = sum(nc(i, "up") for i in range(sites))
+    n_dn = sum(nc(i, "dn") for i in range(sites))
     n_tot = n_up + n_dn
     sz = 0.5 * (n_up - n_dn)
-    double_occ = sum(n(i, "up") * n(i, "dn") for i in range(sites))
+    double_occ = sum(nc(i, "up") * nc(i, "dn") for i in range(sites))
 
     def dim(self, **kwargs):
-        return enumerate_basis({FermionSpace(): self.modes}, **kwargs).dim
+        return build_basis({FermionSpace(): self.modes}, **kwargs).dim
 
     def test_particle_number_sector_size(self):
         for n_part in range(2 * self.sites + 1):
@@ -77,8 +77,8 @@ class TestFermionSectors:
     def test_hubbard_spin_sectors_rebuild_full_spectrum(self):
         sites = 3
         modes, H = hubbard_chain(sites)
-        n_up = sum(n(i, "up") for i in range(sites))
-        n_dn = sum(n(i, "dn") for i in range(sites))
+        n_up = sum(nc(i, "up") for i in range(sites))
+        n_dn = sum(nc(i, "dn") for i in range(sites))
         sectors = [
             {"diagonal_symmetries": {n_up: k_up, n_dn: k_dn}}
             for k_up in range(sites + 1)
@@ -109,7 +109,7 @@ class TestBosonSectors:
         n_tot = sum(nb(i) for i in range(self.sites))
         space = {BosonSpace(n_max=self.n_max): range(self.sites)}
         for n_part in range(self.n_max + 1):
-            basis = enumerate_basis(space, diagonal_symmetries={n_tot: n_part})
+            basis = build_basis(space, diagonal_symmetries={n_tot: n_part})
             assert basis.dim == comb(n_part + self.sites - 1, self.sites - 1)
 
     def test_bose_hubbard_number_sectors_rebuild_full_spectrum(self):
@@ -133,7 +133,7 @@ class TestPauliSectors:
         space = {PauliSpace(): range(self.sites)}
         for n_up in range(self.sites + 1):
             m = n_up - self.sites / 2
-            basis = enumerate_basis(space, diagonal_symmetries={self.sz: m})
+            basis = build_basis(space, diagonal_symmetries={self.sz: m})
             assert basis.dim == comb(self.sites, n_up)
 
     def test_xxz_magnetization_sectors_rebuild_full_spectrum(self):
@@ -167,4 +167,4 @@ def test_off_diagonal_sector_operators_are_rejected():
         (FermionSpace(), range(2), cdag(0) * c(1) + cdag(1) * c(0)),
     ]:
         with pytest.raises(ValueError, match="not diagonal"):
-            enumerate_basis({space: labels}, diagonal_symmetries={op: 1})
+            build_basis({space: labels}, diagonal_symmetries={op: 1})

@@ -8,7 +8,7 @@ import pytest
 def test_kanamori_3orbital():
     import numpy as np
 
-    from fockit.algebra import c, cdag, n, normal_order, to_triqs
+    from fockit.algebra import c, cdag, nc, normal_order, to_triqs
 
     pytest.importorskip("triqs")
     from triqs.operators.util.hamiltonians import h_int_kanamori
@@ -29,8 +29,8 @@ def test_kanamori_3orbital():
     H = sum(
         0.5
         * (float(U[a1, a2]) if s1 == s2 else float(Uprime[a1, a2]))
-        * n(s1, a1)
-        * n(s2, a2)
+        * nc(s1, a1)
+        * nc(s2, a2)
         for s1, s2 in product(spins, spins)
         for a1, a2 in product(orbs, orbs)
     )

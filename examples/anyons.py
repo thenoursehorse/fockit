@@ -12,7 +12,7 @@ from enum import StrEnum
 import numpy as np
 
 from fockit.algebra import Monomial, Op, OpSum, SwapResult, mode_sort_key
-from fockit.hilbert import enumerate_basis, to_matrix
+from fockit.hilbert import build_basis, to_matrix
 from fockit.solve import groundstate
 
 
@@ -98,7 +98,7 @@ for theta in (0.0, np.pi / 2, np.pi):
     )
     for j in range(L):
         H += 0.5 * U * adag(j, theta) * adag(j, theta) * a(j, theta) * a(j, theta)
-    basis = enumerate_basis(
+    basis = build_basis(
         {AnyonSpace(theta, n_max=2): range(L)},
         diagonal_symmetries={sum(adag(j, theta) * a(j, theta) for j in range(L)): 2},
     )

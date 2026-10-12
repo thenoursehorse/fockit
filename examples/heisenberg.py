@@ -5,7 +5,7 @@ import numpy as np
 from fockit.algebra import sigma_x, sigma_y, sigma_z
 from fockit.hilbert import (
     PauliSpace,
-    enumerate_basis,
+    build_basis,
     expand_state,
     expectations,
     to_matrix,
@@ -25,7 +25,7 @@ Sz = 0.5 * sum(sigma_z(i) for i in range(L))
 # under flipping every spin
 shift = {i: (i + 1) % L for i in range(L)}
 reflection = {i: L - 1 - i for i in range(L)}
-basis = enumerate_basis(
+basis = build_basis(
     space,
     diagonal_symmetries={Sz: 0},
     permutation_symmetries=[(shift, 1), (reflection, 1)],
@@ -34,12 +34,10 @@ basis = enumerate_basis(
 energy, psi = groundstate(to_matrix(H, basis))
 
 # spin gap: the lowest state with Sz = 1
-triplet, _ = groundstate(
-    to_matrix(H, enumerate_basis(space, diagonal_symmetries={Sz: 1}))
-)
+triplet, _ = groundstate(to_matrix(H, build_basis(space, diagonal_symmetries={Sz: 1})))
 
 # correlations <S^z_0 S^z_r> aren't symmetric, so measure them in the plain basis
-plain = enumerate_basis(space, diagonal_symmetries={Sz: 0})
+plain = build_basis(space, diagonal_symmetries={Sz: 0})
 psi_plain = expand_state(psi, basis, plain)
 correlations = [
     expectations(to_matrix(0.25 * sigma_z(0) * sigma_z(r), plain), psi_plain).real

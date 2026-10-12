@@ -17,7 +17,7 @@ from fockit.algebra import (
     sp,
     zero,
 )
-from fockit.hilbert import BosonSpace, PauliSpace, enumerate_basis, to_matrix
+from fockit.hilbert import BosonSpace, PauliSpace, build_basis, to_matrix
 from fockit.solve import eigh_full
 
 L, omega, delta, g, J = 6, 1.0, 1.0, 0.3, 0.2
@@ -39,7 +39,7 @@ print("excitations conserved:", change == zero())
 shift = {i: (i + 1) % L for i in range(L)}
 bands = []
 for k in range(L):
-    basis = enumerate_basis(
+    basis = build_basis(
         {BosonSpace(n_max=1): range(L), PauliSpace(): range(L)},
         diagonal_symmetries={excitations: 1},
         permutation_symmetries=[(shift, np.exp(2j * np.pi * k / L))],

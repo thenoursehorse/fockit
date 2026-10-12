@@ -14,7 +14,7 @@ from fockit.algebra import (
     drop_zeros,
     hc,
     identity,
-    n,
+    nc,
     normal_order,
     num_terms,
     sigma_x,
@@ -36,7 +36,7 @@ def test_hubbard_model():
         for i, j in [(0, 1)]
         for s in [up, dn]
     )
-    H_int = sum(U * n(i, up) * n(i, dn) for i in [0, 1])
+    H_int = sum(U * nc(i, up) * nc(i, dn) for i in [0, 1])
     H = H_hop + H_int
 
     H_no = normal_order(H)
@@ -54,7 +54,7 @@ def test_hermiticity():
         for i, j in [(0, 1)]
         for s in [up, dn]
     )
-    H_int = sum(U * n(i, up) * n(i, dn) for i in [0, 1])
+    H_int = sum(U * nc(i, up) * nc(i, dn) for i in [0, 1])
     H = H_hop + H_int
 
     assert normal_order(H - hc(H)) == zero()

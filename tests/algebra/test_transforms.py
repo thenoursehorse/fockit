@@ -10,7 +10,7 @@ from fockit.algebra import (
     commutator,
     hc,
     identity,
-    n,
+    nc,
     normal_order,
     sigma_x,
     sigma_y,
@@ -43,11 +43,11 @@ class TestHC:
 
 class TestCommutator:
     def test_n_cdag(self):
-        result = normal_order(commutator(n(1), cdag(1)))
+        result = normal_order(commutator(nc(1), cdag(1)))
         assert result == cdag(1)
 
     def test_n_c(self):
-        result = normal_order(commutator(n(1), c(1)))
+        result = normal_order(commutator(nc(1), c(1)))
         assert result == -c(1)
 
 
@@ -92,4 +92,4 @@ def test_jordan_wigner_turns_a_fermion_chain_into_the_xy_chain():
 
 def test_substitute_keys_must_be_single_operators():
     with pytest.raises(ValueError, match="single operator"):
-        substitute(n(0), {n(0): cdag(0)})
+        substitute(nc(0), {nc(0): cdag(0)})

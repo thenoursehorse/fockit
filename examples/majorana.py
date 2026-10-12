@@ -17,7 +17,7 @@ from fockit.algebra import (
     normal_order,
     substitute,
 )
-from fockit.hilbert import FermionSpace, enumerate_basis, to_matrix
+from fockit.hilbert import FermionSpace, build_basis, to_matrix
 from fockit.solve import eigh_full
 
 
@@ -53,6 +53,6 @@ for j in range(L):
     pairs[gamma(2 * j)] = c(j) + cdag(j)
     pairs[gamma(2 * j + 1)] = 1j * (cdag(j) - c(j))
 
-basis = enumerate_basis({FermionSpace(): range(L)})
+basis = build_basis({FermionSpace(): range(L)})
 energies, _ = eigh_full(to_matrix(substitute(H, pairs), basis))
 print(energies[:4])  # -2.5, -2.5, -1.5, -1.5

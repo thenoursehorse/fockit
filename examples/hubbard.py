@@ -1,9 +1,9 @@
 """Hubbard ring at half filling: ground energy, double occupancy and spin gap."""
 
-from fockit.algebra import c, cdag, n
+from fockit.algebra import c, cdag, nc
 from fockit.hilbert import (
     FermionSpace,
-    enumerate_basis,
+    build_basis,
     expand_state,
     expectations,
     to_matrix,
@@ -19,16 +19,16 @@ H = -t * sum(
     for i in range(L)
     for s in spins
 )
-H += U * sum(n(i, "up") * n(i, "dn") for i in range(L))
+H += U * sum(nc(i, "up") * nc(i, "dn") for i in range(L))
 
 
 def sector(n_up, n_dn, **symmetries):
     """States with ``n_up`` up and ``n_dn`` down electrons."""
     numbers = {
-        sum(n(i, "up") for i in range(L)): n_up,
-        sum(n(i, "dn") for i in range(L)): n_dn,
+        sum(nc(i, "up") for i in range(L)): n_up,
+        sum(nc(i, "dn") for i in range(L)): n_dn,
     }
-    return enumerate_basis(
+    return build_basis(
         {FermionSpace(): modes}, diagonal_symmetries=numbers, **symmetries
     )
 
@@ -42,7 +42,7 @@ energy, psi = groundstate(to_matrix(H, basis))
 # n_up n_dn on one site isn't symmetric, so measure it in the plain basis
 plain = sector(L // 2, L // 2)
 psi_plain = expand_state(psi, basis, plain)
-double = expectations(to_matrix(n(0, "up") * n(0, "dn"), plain), psi_plain).real
+double = expectations(to_matrix(nc(0, "up") * nc(0, "dn"), plain), psi_plain).real
 
 # spin gap: the lowest state with one spin flipped
 spin_flipped, _ = groundstate(to_matrix(H, sector(L // 2 + 1, L // 2 - 1)))

@@ -5,12 +5,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from fockit.algebra import b, bdag, c, cdag, n, normal_order, sigma_x, sigma_z, sm, sp
+from fockit.algebra import b, bdag, c, cdag, nc, normal_order, sigma_x, sigma_z, sm, sp
 from fockit.hilbert import (
     BosonSpace,
     FermionSpace,
     PauliSpace,
-    enumerate_basis,
+    build_basis,
     to_matrix,
 )
 from fockit.solve import eigenstates
@@ -18,9 +18,9 @@ from fockit.solve import eigenstates
 
 def test_holstein_site_has_polaron_shift():
     eps, omega, g = 0.4, 1.0, 0.5
-    H = eps * n(0) + omega * bdag(0) * b(0) + g * n(0) * (b(0) + bdag(0))
-    basis = enumerate_basis(
-        {FermionSpace(): [0], BosonSpace(n_max=30): [0]}, diagonal_symmetries={n(0): 1}
+    H = eps * nc(0) + omega * bdag(0) * b(0) + g * nc(0) * (b(0) + bdag(0))
+    basis = build_basis(
+        {FermionSpace(): [0], BosonSpace(n_max=30): [0]}, diagonal_symmetries={nc(0): 1}
     )
     energies, _ = eigenstates(to_matrix(H, basis), k=3)
     expected = [eps - g**2 / omega + omega * m for m in range(3)]
@@ -37,7 +37,7 @@ def test_jaynes_cummings_spectrum():
     excitations = normal_order(bdag(0) * b(0) + sp(0) * sm(0))
     detuning = delta - omega
     for n_exc in range(1, 4):
-        basis = enumerate_basis(
+        basis = build_basis(
             {PauliSpace(): [0], BosonSpace(n_max=5): [0]},
             diagonal_symmetries={excitations: n_exc},
         )
@@ -49,7 +49,7 @@ def test_jaynes_cummings_spectrum():
 
 def test_fermions_commute_with_other_algebras_as_matrices():
     # bosons and spins come first, so a sign leaking across them would show
-    basis = enumerate_basis(
+    basis = build_basis(
         {BosonSpace(n_max=2): [0], PauliSpace(): [0], FermionSpace(): [0, 1]}
     )
     f = to_matrix(c(1), basis).toarray()

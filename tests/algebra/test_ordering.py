@@ -11,7 +11,7 @@ from fockit.algebra import (
     c,
     cdag,
     identity,
-    n,
+    nc,
     normal_order,
     zero,
 )
@@ -37,7 +37,7 @@ class TestFermionNormalOrder:
         assert normal_order(cdag(1) * cdag(1)) == zero()
 
     def test_number_operator_unchanged(self):
-        op = n(1)
+        op = nc(1)
         assert normal_order(op) == op
 
     def test_canonical_ordering_creators(self):

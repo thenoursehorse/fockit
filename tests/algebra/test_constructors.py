@@ -1,10 +1,10 @@
 """Tests for constructor functions."""
 
-from fockit.algebra import FERMION, c, cdag, create, identity, n, zero
+from fockit.algebra import FERMION, c, cdag, create, identity, nc, zero
 
 
 def test_n_equals_cdag_times_c():
-    assert n(1, "up") == cdag(1, "up") * c(1, "up")
+    assert nc(1, "up") == cdag(1, "up") * c(1, "up")
 
 
 def test_create_with_fermion_equals_cdag():

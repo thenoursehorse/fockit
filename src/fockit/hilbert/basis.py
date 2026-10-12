@@ -111,7 +111,7 @@ class Basis:
     norms: FloatArray
 
 
-def enumerate_basis(
+def build_basis(
     spaces: Mapping[LocalSpace, Sequence[Hashable]],
     *,
     diagonal_symmetries: Mapping[OpSum, complex] | None = None,
@@ -317,7 +317,7 @@ def expand_state(state: ArrayLike, basis: Basis, full_basis: Basis) -> ComplexAr
 
     ``state`` has shape ``(basis.dim,)`` or ``(basis.dim, k)``. ``full_basis``
     must have the same modes and contain every state of each orbit, e.g. the
-    same call to ``enumerate_basis`` without ``permutation_symmetries``.
+    same call to ``build_basis`` without ``permutation_symmetries``.
     """
     if full_basis.modes != basis.modes:
         msg = "full_basis must have the same modes as basis."

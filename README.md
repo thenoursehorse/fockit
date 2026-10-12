@@ -27,21 +27,21 @@ own algebra. More examples are in `examples/` and in the tests:
 An electron hopping between two sites. Each site has a phonon and a spin.
 
 ```python
-from fockit.algebra import b, bdag, c, cdag, n, sigma_x, sigma_z
+from fockit.algebra import b, bdag, c, cdag, nc, sigma_x, sigma_z
 from fockit.hilbert import (
-    BosonSpace, FermionSpace, PauliSpace, enumerate_basis, to_matrix,
+    BosonSpace, FermionSpace, PauliSpace, build_basis, to_matrix,
 )
 from fockit.solve import groundstate
 
 # The operator
 H = -(cdag(0) * c(1) + cdag(1) * c(0)) + 0.2 * sigma_z(0) * sigma_z(1)
 for i in (0, 1):
-    H += bdag(i) * b(i) + 0.5 * n(i) * (b(i) + bdag(i)) + 0.3 * n(i) * sigma_x(i)
+    H += bdag(i) * b(i) + 0.5 * nc(i) * (b(i) + bdag(i)) + 0.3 * nc(i) * sigma_x(i)
 
 # A symmetry reduced basis H acts on
-basis = enumerate_basis(
+basis = build_basis(
     {FermionSpace(): [0, 1], BosonSpace(n_max=6): [0, 1], PauliSpace(): [0, 1]},
-    diagonal_symmetries={n(0) + n(1): 1},                 # one electron
+    diagonal_symmetries={nc(0) + nc(1): 1},               # one electron
     permutation_symmetries=[({0: 1, 1: 0}, 1)],           # even under swapping the sites
     onsite_symmetries=[([sigma_x(0), sigma_x(1)], 1)],    # even under flipping both spins
 )

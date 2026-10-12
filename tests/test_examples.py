@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from fockit.algebra import b, bdag, c, cdag, commutator, normal_order, zero
-from fockit.hilbert import BosonSpace, FermionSpace, enumerate_basis, to_matrix
+from fockit.hilbert import BosonSpace, FermionSpace, build_basis, to_matrix
 from fockit.solve import eigh_full, groundstate
 
 EXAMPLES = Path(__file__).parents[1] / "examples"
@@ -64,7 +64,7 @@ def test_anyons_are_bosons_at_zero_and_fermions_at_pi():
         )
 
     def spectrum(H, space):
-        return eigh_full(to_matrix(H, enumerate_basis({space: range(sites)})))[0]
+        return eigh_full(to_matrix(H, build_basis({space: range(sites)})))[0]
 
     anyons = spectrum(
         chain(lambda j: a(j, 0.0), lambda j: adag(j, 0.0), U=1.0), AnyonSpace(0.0, 2)
@@ -86,7 +86,7 @@ def test_anyon_algebra_matches_its_hilbert_space():
     ex = run("anyons")
     a, adag, AnyonSpace = ex["a"], ex["adag"], ex["AnyonSpace"]
     theta, n_max = 0.7, 4
-    basis = enumerate_basis({AnyonSpace(theta, n_max): range(3)})
+    basis = build_basis({AnyonSpace(theta, n_max): range(3)})
     far = basis.levels.max(axis=1) <= n_max - 3
     products = [
         a(0, theta) * adag(2, theta) * a(1, theta),

@@ -16,7 +16,7 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     """Drop terms with negligible coefficients.
 
     Float coefficients that should cancel leave round-off behind, e.g.
-    ``0.1 * n(0) + 0.2 * n(0) - 0.3 * n(0)`` keeps a ``5.6e-17`` term. Only
+    ``0.1 * nc(0) + 0.2 * nc(0) - 0.3 * nc(0)`` keeps a ``5.6e-17`` term. Only
     exact zeros are removed automatically, so call this before comparing
     a result with ``zero()``.
 
