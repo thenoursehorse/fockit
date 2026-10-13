@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable, Hashable, Mapping, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -29,7 +29,7 @@ _CHUNK = 2**20
 _TOL = 1e-9
 _MAX_ORDER = 64
 
-type PermutationSymmetry = tuple[Mapping[Hashable, Hashable], complex]
+type PermutationSymmetry = tuple[Mapping[Any, Hashable], complex]
 type OnsiteSymmetry = tuple[Sequence[OpSum], complex]
 type OnsiteTable = tuple[int, IntArray, ComplexArray, ComplexArray]
 type Swaps = tuple[IntArray, IntArray]

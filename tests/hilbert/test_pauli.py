@@ -5,12 +5,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from fockit.algebra import normal_order, sigma_x, sigma_y, sigma_z, sm, sp
-from fockit.hilbert import PauliSpace, build_basis, expectations, to_matrix
+from fockit.algebra import OpSum, normal_order, sigma_x, sigma_y, sigma_z, sm, sp
+from fockit.hilbert import PauliSpace, build_basis, expectation, to_matrix
 from fockit.solve import eigenstates, eigh_full, groundstate
 
 
-def heisenberg_chain(sites: int, j: float):
+def heisenberg_chain(sites: int, j: float) -> tuple[list[int], OpSum]:
     labels = list(range(sites))
     H = 0 * sigma_z(0) * sigma_z(0)
     for i in range(sites - 1):
@@ -22,22 +22,22 @@ def heisenberg_chain(sites: int, j: float):
     return labels, H
 
 
-def test_heisenberg_dimer_matches_singlet_triplet():
+def test_heisenberg_dimer_matches_singlet_triplet() -> None:
     labels, H = heisenberg_chain(2, j=1.0)
     basis = build_basis({PauliSpace(): labels})
     energies, _ = eigenstates(to_matrix(H, basis), k=4)
     assert np.allclose(np.sort(energies), [-0.75, 0.25, 0.25, 0.25])
 
 
-def test_zeeman_groundstate_aligns_with_field():
+def test_zeeman_groundstate_aligns_with_field() -> None:
     h = 1.7
     basis = build_basis({PauliSpace(): ["A"]})
     e0, psi = groundstate(to_matrix(-h * sigma_z("A"), basis))
     assert e0 == pytest.approx(-h, abs=1e-12)
-    assert expectations(to_matrix(sp("A") * sm("A"), basis), psi) == pytest.approx(1.0)
+    assert expectation(to_matrix(sp("A") * sm("A"), basis), psi) == pytest.approx(1.0)
 
 
-def test_two_spin_total_spin_squared():
+def test_two_spin_total_spin_squared() -> None:
     S2 = sum(
         (0.5 * (sigma(0) + sigma(1))) ** 2 for sigma in (sigma_x, sigma_y, sigma_z)
     )
@@ -46,7 +46,7 @@ def test_two_spin_total_spin_squared():
     assert np.sort(energies) == pytest.approx([0.0, 2.0, 2.0, 2.0])
 
 
-def test_xxz_chain_in_ladder_form_has_same_spectrum():
+def test_xxz_chain_in_ladder_form_has_same_spectrum() -> None:
     sites, delta = 4, 0.5
     labels = list(range(sites))
     zz = sum(delta * sigma_z(i) * sigma_z(i + 1) for i in range(sites - 1))

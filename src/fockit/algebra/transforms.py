@@ -5,7 +5,7 @@ from collections.abc import Hashable, Mapping
 from dataclasses import replace
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.algebra.operators import Monomial, Op, OpSum, identity
+from fockit.algebra.operators import Monomial, Op, OpSum, as_opsum, identity
 from fockit.algebra.ordering import normal_order
 
 
@@ -44,7 +44,7 @@ def _conjugate(coeff: Coefficient) -> Coefficient:
         raise TypeError(msg) from None
 
 
-def hc(op: OpSum) -> OpSum:
+def hc(op: OpSum | complex) -> OpSum:
     """Hermitian conjugate of an operator expression.
 
     Reverses operator order, flips creation/annihilation, and
@@ -59,6 +59,7 @@ def hc(op: OpSum) -> OpSum:
     OpSum
 
     """
+    op = as_opsum(op)
     new_terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
         new_ops = tuple(
@@ -68,7 +69,7 @@ def hc(op: OpSum) -> OpSum:
     return OpSum(new_terms)
 
 
-def commutator(a: OpSum, b: OpSum) -> OpSum:
+def commutator(a: OpSum | complex, b: OpSum | complex) -> OpSum:
     """Commutator [A, B] = AB - BA.
 
     Parameters
@@ -82,10 +83,12 @@ def commutator(a: OpSum, b: OpSum) -> OpSum:
         The commutator (NOT normal ordered).
 
     """
+    a = as_opsum(a)
+    b = as_opsum(b)
     return a * b - b * a
 
 
-def anticommutator(a: OpSum, b: OpSum) -> OpSum:
+def anticommutator(a: OpSum | complex, b: OpSum | complex) -> OpSum:
     """Anticommutator {A, B} = AB + BA.
 
     Parameters
@@ -99,10 +102,12 @@ def anticommutator(a: OpSum, b: OpSum) -> OpSum:
         The anticommutator (NOT normal ordered).
 
     """
+    a = as_opsum(a)
+    b = as_opsum(b)
     return a * b + b * a
 
 
-def substitute(op: OpSum, mapping: Mapping[OpSum, OpSum]) -> OpSum:
+def substitute(op: OpSum | complex, mapping: Mapping[OpSum, OpSum]) -> OpSum:
     """Replace single operators by expressions.
 
     Parameters
@@ -120,6 +125,7 @@ def substitute(op: OpSum, mapping: Mapping[OpSum, OpSum]) -> OpSum:
         The result, not normal ordered.
 
     """
+    op = as_opsum(op)
     images: dict[Op, OpSum] = {}
     for key, value in mapping.items():
         terms = list(key.terms.items())
@@ -144,7 +150,7 @@ def substitute(op: OpSum, mapping: Mapping[OpSum, OpSum]) -> OpSum:
 
 
 def substitute_modes(
-    op: OpSum,
+    op: OpSum | complex,
     mapping: Mapping[Hashable, Hashable],
     *,
     reorder: bool = False,
@@ -166,6 +172,7 @@ def substitute_modes(
     OpSum
 
     """
+    op = as_opsum(op)
     if len(set(mapping.values())) < len(mapping) and not reorder:
         warnings.warn(
             "Non-injective mode mapping detected. Result may contain "

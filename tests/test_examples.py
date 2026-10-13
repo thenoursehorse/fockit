@@ -1,23 +1,32 @@
 """The scripts in examples/ run and give the right physics."""
 
 import runpy
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
-from fockit.algebra import b, bdag, c, cdag, commutator, normal_order, zero
-from fockit.hilbert import BosonSpace, FermionSpace, build_basis, to_matrix
+from fockit.algebra import OpSum, b, bdag, c, cdag, commutator, normal_order, zero
+from fockit.hilbert import (
+    BosonSpace,
+    FermionSpace,
+    LocalSpace,
+    build_basis,
+    to_matrix,
+)
 from fockit.solve import eigh_full, groundstate
 
 EXAMPLES = Path(__file__).parents[1] / "examples"
 
 
-def run(name):
+def run(name: str) -> dict[str, Any]:
     return runpy.run_path(str(EXAMPLES / f"{name}.py"))
 
 
-def test_hubbard_symmetric_ground_state_is_the_true_one():
+def test_hubbard_symmetric_ground_state_is_the_true_one() -> None:
     ex = run("hubbard")
     plain_energy, _ = groundstate(to_matrix(ex["H"], ex["plain"]))
     assert ex["energy"] == pytest.approx(plain_energy)
@@ -25,7 +34,7 @@ def test_hubbard_symmetric_ground_state_is_the_true_one():
     assert ex["spin_flipped"] > ex["energy"]
 
 
-def test_heisenberg_symmetric_ground_state_is_the_true_one():
+def test_heisenberg_symmetric_ground_state_is_the_true_one() -> None:
     ex = run("heisenberg")
     plain_energy, _ = groundstate(to_matrix(ex["H"], ex["plain"]))
     assert ex["energy"] == pytest.approx(plain_energy)
@@ -34,7 +43,7 @@ def test_heisenberg_symmetric_ground_state_is_the_true_one():
     assert sum(ex["correlations"]) == pytest.approx(0, abs=1e-10)
 
 
-def test_jaynes_cummings_hubbard_polaritons_match_the_exact_bands():
+def test_jaynes_cummings_hubbard_polaritons_match_the_exact_bands() -> None:
     ex = run("mixed")
     L, omega, delta, g, J = ex["L"], ex["omega"], ex["delta"], ex["g"], ex["J"]
     for k, (lower, upper) in enumerate(ex["bands"]):
@@ -44,18 +53,20 @@ def test_jaynes_cummings_hubbard_polaritons_match_the_exact_bands():
         assert [lower, upper] == pytest.approx([middle - split, middle + split])
 
 
-def test_kitaev_chain_has_a_majorana_zero_mode():
+def test_kitaev_chain_has_a_majorana_zero_mode() -> None:
     energies = run("majorana")["energies"]
     assert energies[:2] == pytest.approx([-2.5, -2.5])
     assert energies[2] > energies[0] + 0.5
 
 
-def test_anyons_are_bosons_at_zero_and_fermions_at_pi():
+def test_anyons_are_bosons_at_zero_and_fermions_at_pi() -> None:
     ex = run("anyons")
     a, adag, AnyonSpace = ex["a"], ex["adag"], ex["AnyonSpace"]
     sites = 4
 
-    def chain(op, opdag, U):
+    def chain(
+        op: Callable[[int], OpSum], opdag: Callable[[int], OpSum], U: float
+    ) -> OpSum | complex:
         hop = -sum(
             opdag(j + 1) * op(j) + opdag(j) * op(j + 1) for j in range(sites - 1)
         )
@@ -63,7 +74,7 @@ def test_anyons_are_bosons_at_zero_and_fermions_at_pi():
             opdag(j) * opdag(j) * op(j) * op(j) for j in range(sites)
         )
 
-    def spectrum(H, space):
+    def spectrum(H: OpSum | complex, space: LocalSpace) -> NDArray[np.float64]:
         return eigh_full(to_matrix(H, build_basis({space: range(sites)})))[0]
 
     anyons = spectrum(
@@ -80,7 +91,7 @@ def test_anyons_are_bosons_at_zero_and_fermions_at_pi():
     assert anyons == pytest.approx(fermions)
 
 
-def test_anyon_algebra_matches_its_hilbert_space():
+def test_anyon_algebra_matches_its_hilbert_space() -> None:
     # normal ordering with the swap rules must not change the matrix; check on
     # states far from the n_max cutoff, where truncation doesn't matter
     ex = run("anyons")
@@ -100,7 +111,7 @@ def test_anyon_algebra_matches_its_hilbert_space():
         assert ordered == pytest.approx(direct)
 
 
-def test_pauli_strings_reproduce_the_fermion_ground_energy():
+def test_pauli_strings_reproduce_the_fermion_ground_energy() -> None:
     ex = run("pauli_strings")
     assert ex["energy"] == pytest.approx(ex["fermion_energy"])
     for group in ex["groups"]:

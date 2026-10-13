@@ -7,7 +7,7 @@ import scipy.sparse as sp
 from numpy.typing import NDArray
 
 from fockit._types import as_complex
-from fockit.algebra.operators import OpSum
+from fockit.algebra.operators import OpSum, as_opsum
 from fockit.hilbert.basis import Basis, apply_monomial, check_modes
 from fockit.hilbert.spaces import IntArray
 from fockit.hilbert.symmetries import check_symmetric, representatives
@@ -16,7 +16,7 @@ type SparseMatrix = sp.csr_matrix
 type ComplexArray = NDArray[np.complex128]
 
 
-def to_matrix(op: OpSum, basis: Basis) -> SparseMatrix:
+def to_matrix(op: OpSum | complex, basis: Basis) -> SparseMatrix:
     """Build the sparse matrix representation of ``op`` in ``basis``.
 
     With permutation symmetries, ``op`` must commute with them.
@@ -27,6 +27,7 @@ def to_matrix(op: OpSum, basis: Basis) -> SparseMatrix:
         Real if every matrix element is real, complex otherwise.
 
     """
+    op = as_opsum(op)
     check_modes(op, basis.mode_index)
     check_symmetric(op, basis.permutation_symmetries, basis.onsite_symmetries)
     symmetric = len(basis.group) > 1
@@ -62,16 +63,9 @@ def to_matrix(op: OpSum, basis: Basis) -> SparseMatrix:
     return mat
 
 
-def expectations(op: SparseMatrix, states: ComplexArray) -> ComplexArray | complex:
-    """Compute ``⟨ψ|op|ψ⟩`` for each row of ``states``.
-
-    ``states`` has shape ``(dim,)`` for a single state (returns a scalar)
-    or ``(n, dim)`` for a batch (returns shape ``(n,)``).
-    """
-    if states.ndim == 1:
-        return complex(states.conj() @ (op @ states))
-    op_states = (op @ states.T).T
-    return np.asarray(np.sum(states.conj() * op_states, axis=1))
+def expectation(op: SparseMatrix, state: ComplexArray) -> complex:
+    """Compute ``⟨ψ|op|ψ⟩`` for one state of shape ``(dim,)``."""
+    return complex(state.conj() @ (op @ state))
 
 
 def matrix_elements(op: SparseMatrix, states: ComplexArray) -> ComplexArray:

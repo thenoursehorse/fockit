@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Hashable, Sequence
+
 import numpy as np
 import pytest
 
-from fockit.algebra import b, bdag, c, cdag, nc, sigma_x, sigma_y, sigma_z
+from fockit.algebra import OpSum, b, bdag, c, cdag, nc, sigma_x, sigma_y, sigma_z
 from fockit.hilbert import (
     BosonSpace,
     FermionSpace,
+    LocalSpace,
     PauliSpace,
     build_basis,
     to_matrix,
@@ -34,7 +37,7 @@ HEIS_E = -0.6330214400416613
 HEIS_ZZ = -0.28635875583809756
 
 
-def hubbard_2site():
+def hubbard_2site() -> tuple[Sequence[Hashable], OpSum | complex]:
     t, u = 1.0, 4.0
     modes = [(i, s) for i in range(2) for s in ("up", "dn")]
     H = -t * sum(
@@ -45,7 +48,7 @@ def hubbard_2site():
     return modes, H
 
 
-def bose_hubbard_2site():
+def bose_hubbard_2site() -> tuple[Sequence[Hashable], OpSum | complex]:
     t, u = 1.0, 1.0
     H = -t * (bdag(0) * b(1) + bdag(1) * b(0)) + 0.5 * u * sum(
         bdag(i) * bdag(i) * b(i) * b(i) for i in range(2)
@@ -53,7 +56,7 @@ def bose_hubbard_2site():
     return [0, 1], H
 
 
-def heisenberg_4site():
+def heisenberg_4site() -> tuple[Sequence[Hashable], OpSum | complex]:
     H = sum(
         0.25
         * (
@@ -66,7 +69,7 @@ def heisenberg_4site():
     return [0, 1, 2, 3], H
 
 
-def test_two_level_matches_tanh():
+def test_two_level_matches_tanh() -> None:
     delta = 1.7
     H = 0.5 * delta * sigma_z(0)
     basis = build_basis({PauliSpace(): [0]})
@@ -77,7 +80,7 @@ def test_two_level_matches_tanh():
         assert got == pytest.approx(expected, abs=1e-10)
 
 
-def test_free_fermions_match_fermi_dirac():
+def test_free_fermions_match_fermi_dirac() -> None:
     t = 1.3
     H = -t * (cdag(0) * c(1) + cdag(1) * c(0))
     basis = build_basis({FermionSpace(): [0, 1]})
@@ -90,7 +93,7 @@ def test_free_fermions_match_fermi_dirac():
     assert got == pytest.approx(expected, abs=1e-10)
 
 
-def test_harmonic_oscillator_matches_bose_einstein():
+def test_harmonic_oscillator_matches_bose_einstein() -> None:
     basis = build_basis({BosonSpace(n_max=20): [0]})
     H = bdag(0) * b(0)
     E, V = eigh_full(to_matrix(H, basis))
@@ -135,7 +138,14 @@ MODEL_IDS = ["hubbard", "bose_hubbard", "heisenberg"]
     MODELS,
     ids=MODEL_IDS,
 )
-def test_tpq_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_obs):
+def test_tpq_matches_ed_reference(
+    model: Callable[[], tuple[Sequence[Hashable], OpSum | complex]],
+    space: LocalSpace,
+    beta: float,
+    ref_e: float,
+    obs_factory: Callable[[], OpSum],
+    ref_obs: float,
+) -> None:
     labels, H = model()
     basis = build_basis({space: labels})
     H_mat = to_matrix(H, basis)
@@ -146,7 +156,7 @@ def test_tpq_matches_ed_reference(model, space, beta, ref_e, obs_factory, ref_ob
     assert got_obs == pytest.approx(ref_obs, abs=5e-2)
 
 
-def test_tpq_states_average_to_the_thermal_expectation():
+def test_tpq_states_average_to_the_thermal_expectation() -> None:
     labels, H = heisenberg_4site()
     basis = build_basis({PauliSpace(): labels})
     H_mat = to_matrix(H, basis)

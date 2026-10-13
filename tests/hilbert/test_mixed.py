@@ -16,7 +16,7 @@ from fockit.hilbert import (
 from fockit.solve import eigenstates
 
 
-def test_holstein_site_has_polaron_shift():
+def test_holstein_site_has_polaron_shift() -> None:
     eps, omega, g = 0.4, 1.0, 0.5
     H = eps * nc(0) + omega * bdag(0) * b(0) + g * nc(0) * (b(0) + bdag(0))
     basis = build_basis(
@@ -27,7 +27,7 @@ def test_holstein_site_has_polaron_shift():
     assert energies == pytest.approx(expected, abs=1e-10)
 
 
-def test_jaynes_cummings_spectrum():
+def test_jaynes_cummings_spectrum() -> None:
     omega, delta, g = 1.0, 1.3, 0.2
     H = (
         omega * bdag(0) * b(0)
@@ -47,7 +47,7 @@ def test_jaynes_cummings_spectrum():
         assert energies == pytest.approx([mean - split, mean + split])
 
 
-def test_fermions_commute_with_other_algebras_as_matrices():
+def test_fermions_commute_with_other_algebras_as_matrices() -> None:
     # bosons and spins come first, so a sign leaking across them would show
     basis = build_basis(
         {BosonSpace(n_max=2): [0], PauliSpace(): [0], FermionSpace(): [0, 1]}

@@ -24,40 +24,40 @@ from fockit.algebra import (
 
 
 class TestHC:
-    def test_hc_creator(self):
+    def test_hc_creator(self) -> None:
         assert hc(cdag(1)) == c(1)
 
-    def test_hc_annihilator(self):
+    def test_hc_annihilator(self) -> None:
         assert hc(c(1)) == cdag(1)
 
-    def test_hc_product(self):
+    def test_hc_product(self) -> None:
         assert hc(cdag(1) * c(2)) == cdag(2) * c(1)
 
-    def test_hc_involution(self):
+    def test_hc_involution(self) -> None:
         for x in [cdag(1), c(1) * cdag(2), 3 * cdag(1) + 2 * c(2)]:
             assert hc(hc(x)) == x
 
-    def test_hc_complex_coeff(self):
+    def test_hc_complex_coeff(self) -> None:
         assert hc(1j * cdag(1)) == -1j * c(1)
 
 
 class TestCommutator:
-    def test_n_cdag(self):
+    def test_n_cdag(self) -> None:
         result = normal_order(commutator(nc(1), cdag(1)))
         assert result == cdag(1)
 
-    def test_n_c(self):
+    def test_n_c(self) -> None:
         result = normal_order(commutator(nc(1), c(1)))
         assert result == -c(1)
 
 
 class TestSubstituteModes:
-    def test_simple_relabel(self):
+    def test_simple_relabel(self) -> None:
         op = cdag(1) * c(2)
         result = substitute_modes(op, {1: "a", 2: "b"})
         assert result == cdag("a") * c("b")
 
-    def test_non_injective_warns(self):
+    def test_non_injective_warns(self) -> None:
         op = cdag(1) * cdag(2)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -67,13 +67,13 @@ class TestSubstituteModes:
         assert result != zero()
         assert normal_order(result) == zero()
 
-    def test_non_injective_with_reorder(self):
+    def test_non_injective_with_reorder(self) -> None:
         op = cdag(1) * cdag(2)
         result = substitute_modes(op, {1: "x", 2: "x"}, reorder=True)
         assert result == zero()
 
 
-def test_jordan_wigner_turns_a_fermion_chain_into_the_xy_chain():
+def test_jordan_wigner_turns_a_fermion_chain_into_the_xy_chain() -> None:
     sites = 5
     jordan_wigner = {}
     for j in range(sites):
@@ -90,6 +90,6 @@ def test_jordan_wigner_turns_a_fermion_chain_into_the_xy_chain():
     assert normal_order(substitute(hopping, jordan_wigner)) == normal_order(xy)
 
 
-def test_substitute_keys_must_be_single_operators():
+def test_substitute_keys_must_be_single_operators() -> None:
     with pytest.raises(ValueError, match="single operator"):
         substitute(nc(0), {nc(0): cdag(0)})

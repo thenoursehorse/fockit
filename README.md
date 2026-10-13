@@ -69,19 +69,19 @@ from fockit.algebra import Monomial, Op, OpSum, SwapResult, mode_sort_key, norma
 class MajoranaRules:
     """γ_i γ_j + γ_j γ_i = 2 δ_ij."""
 
-    def swap(self, left, right):
+    def swap(self, left: Op, right: Op) -> SwapResult:
         if left == right:
             return SwapResult(terms=((1, ()),))  # γ γ = 1
         return SwapResult(terms=((-1, (right, left)),))  # anticommute
 
-    def is_normal_ordered_pair(self, left, right):
+    def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
         return mode_sort_key(left.mode) < mode_sort_key(right.mode)
 
-    def dagger(self, op):
+    def dagger(self, op: Op) -> Op:
         return op
 
 
-def gamma(mode):
+def gamma(mode: int) -> OpSum:
     return OpSum({Monomial((Op(mode, "γ", MajoranaRules()),)): 1})
 
 

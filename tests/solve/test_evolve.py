@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from itertools import pairwise
 
 import numpy as np
 import pytest
 import scipy.sparse.linalg
+from numpy.typing import NDArray
 
-from fockit.algebra import c, cdag, sigma_x, sigma_y, sigma_z
+from fockit.algebra import OpSum, c, cdag, sigma_x, sigma_y, sigma_z
 from fockit.hilbert import (
     FermionSpace,
     PauliSpace,
     build_basis,
-    expectations,
+    expectation,
     matrix_elements,
     state_index,
     to_matrix,
@@ -28,12 +30,12 @@ from fockit.solve import (
 )
 
 
-def free_hopping_chain(L: int, t: float = 1.0):
+def free_hopping_chain(L: int, t: float = 1.0) -> tuple[list[int], OpSum | complex]:
     H = -t * sum(cdag(i) * c(i + 1) + cdag(i + 1) * c(i) for i in range(L - 1))
     return list(range(L)), H
 
 
-def heisenberg_chain(L: int):
+def heisenberg_chain(L: int) -> tuple[list[int], OpSum | complex]:
     H = sum(
         0.25
         * (
@@ -46,7 +48,7 @@ def heisenberg_chain(L: int):
     return list(range(L)), H
 
 
-def test_free_fermion_single_particle_matches_analytic():
+def test_free_fermion_single_particle_matches_analytic() -> None:
     L, t_hop = 4, 1.3
     labels, H = free_hopping_chain(L, t_hop)
     basis = build_basis({FermionSpace(): labels})
@@ -63,13 +65,11 @@ def test_free_fermion_single_particle_matches_analytic():
         amp = (evecs * np.exp(-1j * t * evals)) @ evecs[0].conj()
         ref = np.abs(amp) ** 2
         for j in range(L):
-            obs = expectations(to_matrix(cdag(j) * c(j), basis), traj[k : k + 1])[
-                0
-            ].real
+            obs = expectation(to_matrix(cdag(j) * c(j), basis), traj[k]).real
             assert obs == pytest.approx(ref[j], abs=1e-10)
 
 
-def test_evolvers_agree_on_heisenberg():
+def test_evolvers_agree_on_heisenberg() -> None:
     labels, H = heisenberg_chain(4)
     basis = build_basis({PauliSpace(): labels})
     rng = np.random.default_rng(0)
@@ -85,7 +85,7 @@ def test_evolvers_agree_on_heisenberg():
 
 
 @pytest.mark.parametrize("evolver", [expm_multiply_evolve, chebyshev_evolve])
-def test_evolver_unitary(evolver):
+def test_evolver_unitary(evolver: Callable[..., NDArray[np.complex128]]) -> None:
     labels, H = heisenberg_chain(3)
     basis = build_basis({PauliSpace(): labels})
     rng = np.random.default_rng(1)
@@ -97,8 +97,8 @@ def test_evolver_unitary(evolver):
     assert norms == pytest.approx(np.ones_like(norms), abs=1e-9)
 
 
-def heisenberg_fragments(L: int):
-    def bond(i):
+def heisenberg_fragments(L: int) -> list[OpSum | complex]:
+    def bond(i: int) -> OpSum:
         return 0.25 * (
             sigma_x(i) * sigma_x(i + 1)
             + sigma_y(i) * sigma_y(i + 1)
@@ -111,7 +111,7 @@ def heisenberg_fragments(L: int):
 
 
 @pytest.mark.parametrize("order", [1, 2, 4])
-def test_suzuki_trotter_sequence_sums_to_dt(order):
+def test_suzuki_trotter_sequence_sums_to_dt(order: int) -> None:
     dt = 0.37 - 0.2j
     seq = suzuki_trotter_sequence(5, dt, order=order)
     totals: dict[int, complex] = {}
@@ -121,14 +121,14 @@ def test_suzuki_trotter_sequence_sums_to_dt(order):
         assert totals[i] == pytest.approx(dt, abs=1e-12)
 
 
-def test_suzuki_trotter_sequence_merges_adjacent():
+def test_suzuki_trotter_sequence_merges_adjacent() -> None:
     seq = suzuki_trotter_sequence(3, 1.0, order=2)
     for (_, i), (_, j) in pairwise(seq):
         assert i != j
 
 
 @pytest.mark.parametrize(("order", "tol"), [(2, 5e-3), (4, 5e-6)])
-def test_trotter_evolve_matches_exact(order, tol):
+def test_trotter_evolve_matches_exact(order: int, tol: float) -> None:
     labels, H = heisenberg_chain(4)
     frags = heisenberg_fragments(4)
     basis = build_basis({PauliSpace(): labels})
@@ -146,7 +146,7 @@ def test_trotter_evolve_matches_exact(order, tol):
     assert np.allclose(traj, ref, atol=tol)
 
 
-def test_trotter_evolve_imaginary_time_matches_tpq():
+def test_trotter_evolve_imaginary_time_matches_tpq() -> None:
     labels, H = heisenberg_chain(3)
     frags = heisenberg_fragments(3)
     basis = build_basis({PauliSpace(): labels})
@@ -166,7 +166,7 @@ def test_trotter_evolve_imaginary_time_matches_tpq():
     assert np.allclose(traj[-1], ref, atol=1e-6)
 
 
-def test_matrix_elements_reproduce_thermal_expectation():
+def test_matrix_elements_reproduce_thermal_expectation() -> None:
     labels, H = heisenberg_chain(3)
     basis = build_basis({PauliSpace(): labels})
     E, V = eigh_full(to_matrix(H, basis))

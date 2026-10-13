@@ -23,15 +23,16 @@ from fockit.hilbert import (
     FermionSpace,
     PauliSpace,
     build_basis,
-    expectations,
+    expectation,
     to_matrix,
 )
 from fockit.solve import groundstate
 
 # spinless fermions on an open chain with nearest-neighbour repulsion
 L, V = 4, 1.0
-H_fermion = -sum(cdag(j + 1) * c(j) + cdag(j) * c(j + 1) for j in range(L - 1))
-H_fermion += V * sum((nc(j) - 0.5) * (nc(j + 1) - 0.5) for j in range(L - 1))
+hopping = -sum(cdag(j + 1) * c(j) + cdag(j) * c(j + 1) for j in range(L - 1))
+repulsion = V * sum((nc(j) - 0.5) * (nc(j + 1) - 0.5) for j in range(L - 1))
+H_fermion = hopping + repulsion
 
 # Jordan-Wigner: c_j = Z_0 ... Z_{j-1} σ-_j
 jordan_wigner = {}
@@ -65,5 +66,5 @@ fermion_energy, _ = groundstate(
 print(f"ground energy {energy:.6f} (fermions: {fermion_energy:.6f})")
 for mono, coeff in H.terms.items():
     weight = complex(coeff).real
-    value = expectations(to_matrix(OpSum({mono: 1}), basis), psi).real
+    value = expectation(to_matrix(OpSum({mono: 1}), basis), psi).real
     print(f"  {weight:+.2f} <{OpSum({mono: 1})}> = {weight * value:+.4f}")

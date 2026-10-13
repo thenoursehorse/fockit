@@ -7,7 +7,7 @@ A basis state is a row of levels, one per mode. Each algebra provides a
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Protocol
+from typing import Any, ClassVar, Protocol, override
 
 import numpy as np
 from numpy.typing import NDArray
@@ -25,7 +25,8 @@ class LocalSpace(Protocol):
     """Hilbert space of a single mode.
 
     Each operator kind must send a level to at most one level. Build other
-    local operators as sums in constructors, as ``sp``/``sm`` do.
+    local operators as sums in constructors, as ``sp``/``sm`` do. Subclass
+    this for your own spaces, so they can be mixed with the built-in ones.
     """
 
     @property
@@ -58,39 +59,44 @@ class LocalSpace(Protocol):
 
 
 @dataclass(frozen=True)
-class FermionSpace:
+class FermionSpace(LocalSpace):
     """Fermion mode: level 0 empty, 1 occupied."""
 
     rules: ClassVar[AlgebraRules] = FERMION
     dim: ClassVar[int] = 2
 
+    @override
     def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
         """Apply c† or c."""
         if op.kind is Ladder.CREATE:
             return np.array([1, 1]), np.array([1, 0], dtype=complex)
         return np.array([0, 0]), np.array([0, 1], dtype=complex)
 
-    def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
+    @override
+    def string_factor(self, op: Op) -> ComplexArray:
         """Jordan-Wigner sign from each occupied earlier mode."""
         return np.array([1, -1], dtype=complex)
 
+    @override
     def exchange_factor(self) -> ComplexArray:
         """Give -1 for swapping two occupied modes."""
         return np.array([[1, 1], [1, -1]], dtype=complex)
 
 
 @dataclass(frozen=True)
-class BosonSpace:
+class BosonSpace(LocalSpace):
     """Boson mode truncated at ``n_max`` quanta."""
 
     n_max: int
     rules: ClassVar[AlgebraRules] = BOSON
 
     @property
+    @override
     def dim(self) -> int:
         """Number of levels, ``0..n_max``."""
         return self.n_max + 1
 
+    @override
     def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
         """Apply b† or b; b† on ``n_max`` gives zero."""
         level = np.arange(self.dim)
@@ -100,22 +106,25 @@ class BosonSpace:
             return np.minimum(level + 1, self.n_max), amp
         return np.maximum(level - 1, 0), np.sqrt(level).astype(complex)
 
-    def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
+    @override
+    def string_factor(self, op: Op) -> ComplexArray:
         """Bosons commute across modes."""
         return np.ones(self.dim, dtype=complex)
 
+    @override
     def exchange_factor(self) -> ComplexArray:
         """Bosons commute across modes."""
         return np.ones((self.dim, self.dim), dtype=complex)
 
 
 @dataclass(frozen=True)
-class PauliSpace:
+class PauliSpace(LocalSpace):
     """Spin-1/2 site: level 0 down, 1 up."""
 
     rules: ClassVar[AlgebraRules] = PAULI
     dim: ClassVar[int] = 2
 
+    @override
     def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
         """Apply σx, σy or σz."""
         if op.kind is Pauli.X:
@@ -127,10 +136,12 @@ class PauliSpace:
         msg = f"Unsupported Pauli kind: {op.kind!r}"
         raise ValueError(msg)
 
-    def string_factor(self, op: Op) -> ComplexArray:  # noqa: ARG002
+    @override
+    def string_factor(self, op: Op) -> ComplexArray:
         """Spins on different sites commute."""
         return np.ones(2, dtype=complex)
 
+    @override
     def exchange_factor(self) -> ComplexArray:
         """Spins on different sites commute."""
         return np.ones((2, 2), dtype=complex)

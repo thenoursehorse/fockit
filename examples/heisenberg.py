@@ -7,7 +7,7 @@ from fockit.hilbert import (
     PauliSpace,
     build_basis,
     expand_state,
-    expectations,
+    expectation,
     to_matrix,
 )
 from fockit.solve import groundstate
@@ -40,7 +40,7 @@ triplet, _ = groundstate(to_matrix(H, build_basis(space, diagonal_symmetries={Sz
 plain = build_basis(space, diagonal_symmetries={Sz: 0})
 psi_plain = expand_state(psi, basis, plain)
 correlations = [
-    expectations(to_matrix(0.25 * sigma_z(0) * sigma_z(r), plain), psi_plain).real
+    expectation(to_matrix(0.25 * sigma_z(0) * sigma_z(r), plain), psi_plain).real
     for r in range(L)
 ]
 

@@ -4,23 +4,23 @@ from fockit.algebra import bdag, cdag, identity, num_terms, zero
 
 
 class TestOpSum:
-    def test_addition_merges_terms(self):
+    def test_addition_merges_terms(self) -> None:
         result = cdag(1) + cdag(2)
         assert num_terms(result) == 2
 
-    def test_addition_combines_like_terms(self):
+    def test_addition_combines_like_terms(self) -> None:
         assert cdag(1) + cdag(1) == 2 * cdag(1)
 
-    def test_subtraction_cancels(self):
+    def test_subtraction_cancels(self) -> None:
         assert cdag(1) - cdag(1) == zero()
 
-    def test_negation(self):
+    def test_negation(self) -> None:
         assert -cdag(1) == -1 * cdag(1)
 
-    def test_scalar_multiplication_commutes(self):
+    def test_scalar_multiplication_commutes(self) -> None:
         assert 3 * cdag(1) == cdag(1) * 3
 
-    def test_scalar_acts_as_identity_scaled(self):
+    def test_scalar_acts_as_identity_scaled(self) -> None:
         for expr, expected in [
             (cdag(1) + 5, cdag(1) + 5 * identity()),
             (5 + cdag(1), 5 * identity() + cdag(1)),
@@ -29,20 +29,20 @@ class TestOpSum:
         ]:
             assert expr == expected
 
-    def test_pow(self):
+    def test_pow(self) -> None:
         op = cdag(1)
         assert op**0 == identity()
         assert op**2 == op * op
         assert op**3 == op * op * op
         assert zero() ** 0 == identity()
 
-    def test_builtin_sum(self):
+    def test_builtin_sum(self) -> None:
         assert sum([cdag(1), cdag(2), cdag(3)]) == cdag(1) + cdag(2) + cdag(3)
 
-    def test_mixing_algebras_gives_one_expression(self):
+    def test_mixing_algebras_gives_one_expression(self) -> None:
         assert num_terms(cdag(1) + bdag(1)) == 2
         assert num_terms(cdag(1) * bdag(1)) == 1
 
-    def test_truthiness(self):
+    def test_truthiness(self) -> None:
         assert not zero()
         assert cdag(1)

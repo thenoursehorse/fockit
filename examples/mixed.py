@@ -22,13 +22,16 @@ from fockit.solve import eigh_full
 
 L, omega, delta, g, J = 6, 1.0, 1.0, 0.3, 0.2
 
-H = sum(
+cavities_and_atoms = sum(
     omega * bdag(i) * b(i)
     + 0.5 * delta * sigma_z(i)
     + g * (sp(i) * b(i) + sm(i) * bdag(i))
     for i in range(L)
 )
-H -= J * sum(bdag((i + 1) % L) * b(i) + bdag(i) * b((i + 1) % L) for i in range(L))
+hopping = -J * sum(
+    bdag((i + 1) % L) * b(i) + bdag(i) * b((i + 1) % L) for i in range(L)
+)
+H = cavities_and_atoms + hopping
 
 excitations = sum(bdag(i) * b(i) + sp(i) * sm(i) for i in range(L))
 # drop the float round-off left where terms cancel

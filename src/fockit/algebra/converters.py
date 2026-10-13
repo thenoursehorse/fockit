@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from fockit._types import as_complex
-from fockit.algebra.operators import OpSum
+from fockit.algebra.operators import OpSum, as_opsum
 from fockit.algebra.rules import FermionRules, Ladder
 
 if TYPE_CHECKING:
     from triqs.operators import Operator as TriqsOperator
 
 
-def to_triqs(op: OpSum) -> TriqsOperator:
+def to_triqs(op: OpSum | complex) -> TriqsOperator:
     """Convert a fermionic OpSum to a TRIQS Operator.
 
     Parameters
@@ -25,6 +25,7 @@ def to_triqs(op: OpSum) -> TriqsOperator:
     triqs.operators.Operator
 
     """
+    op = as_opsum(op)
     for mono in op.terms:
         for single_op in mono.ops:
             if not isinstance(single_op.rules, FermionRules):

@@ -5,10 +5,10 @@ from itertools import product
 import pytest
 
 
-def test_kanamori_3orbital():
+def test_kanamori_3orbital() -> None:
     import numpy as np
 
-    from fockit.algebra import c, cdag, nc, normal_order, to_triqs
+    from fockit.algebra import OpSum, c, cdag, nc, normal_order, to_triqs
 
     pytest.importorskip("triqs")
     from triqs.operators.util.hamiltonians import h_int_kanamori
@@ -26,7 +26,7 @@ def test_kanamori_3orbital():
     np.fill_diagonal(Uprime, 0)
 
     # density-density; diagonal=0 naturally excludes same-mode
-    H = sum(
+    H: OpSum | complex = sum(
         0.5
         * (float(U[a1, a2]) if s1 == s2 else float(Uprime[a1, a2]))
         * nc(s1, a1)

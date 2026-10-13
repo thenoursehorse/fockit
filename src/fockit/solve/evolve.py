@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 from scipy.special import jv
 
 from fockit.hilbert.matrix import SparseMatrix
@@ -22,7 +22,7 @@ type ComplexArray = NDArray[np.complex128]
 def expm_multiply_evolve(
     H: SparseMatrix,
     psi: ComplexArray,
-    times: Sequence[float],
+    times: ArrayLike,
 ) -> ComplexArray:
     """Evolve ``|ψ⟩`` under ``H`` to each ``t``.
 
@@ -52,7 +52,7 @@ def expm_multiply_evolve(
 def chebyshev_evolve(
     H: SparseMatrix,
     psi: ComplexArray,
-    times: Sequence[float],
+    times: ArrayLike,
     *,
     n_moments: int | None = None,
     e_bounds: tuple[float, float] | None = None,

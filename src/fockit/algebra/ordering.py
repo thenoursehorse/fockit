@@ -11,11 +11,11 @@ from __future__ import annotations
 import functools
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.algebra.operators import Monomial, Op, OpSum
+from fockit.algebra.operators import Monomial, Op, OpSum, as_opsum
 from fockit.algebra.rules import SwapResult
 
 
-def normal_order(op: OpSum) -> OpSum:
+def normal_order(op: OpSum | complex) -> OpSum:
     """Normal-order an operator expression.
 
     Operators of different algebras commute and are grouped by algebra.
@@ -31,6 +31,7 @@ def normal_order(op: OpSum) -> OpSum:
         The normal-ordered operator.
 
     """
+    op = as_opsum(op)
     terms: dict[Monomial, Coefficient] = {}
     for mono, coeff in op.terms.items():
         for ordered, c in _order(mono.ops, Monomial(())).items():
@@ -38,7 +39,7 @@ def normal_order(op: OpSum) -> OpSum:
     return OpSum(terms)
 
 
-def is_normal_ordered(op: OpSum) -> bool:
+def is_normal_ordered(op: OpSum | complex) -> bool:
     """Check if an operator expression is in normal order.
 
     Parameters
@@ -50,6 +51,7 @@ def is_normal_ordered(op: OpSum) -> bool:
     bool
 
     """
+    op = as_opsum(op)
     for mono in op.terms:
         ops = mono.ops
         for i in range(len(ops) - 1):

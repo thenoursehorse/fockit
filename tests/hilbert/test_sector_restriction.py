@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable, Mapping, Sequence
 from math import comb
+from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
-from fockit.algebra import b, bdag, c, cdag, nb, nc, sigma_x, sigma_y, sigma_z
+from fockit.algebra import OpSum, b, bdag, c, cdag, nb, nc, sigma_x, sigma_y, sigma_z
 from fockit.hilbert import (
     BosonSpace,
     FermionSpace,
+    LocalSpace,
     PauliSpace,
     build_basis,
     to_matrix,
@@ -20,7 +24,9 @@ from fockit.solve import eigh_full
 SPINS = ("up", "dn")
 
 
-def hubbard_chain(sites, t=1.0, u=4.0):
+def hubbard_chain(
+    sites: int, t: float = 1.0, u: float = 4.0
+) -> tuple[list[tuple[int, str]], OpSum | complex]:
     modes = [(i, s) for i in range(sites) for s in SPINS]
     H = -t * sum(
         cdag(i, s) * c(i + 1, s) + cdag(i + 1, s) * c(i, s)
@@ -30,12 +36,18 @@ def hubbard_chain(sites, t=1.0, u=4.0):
     return modes, H
 
 
-def spectrum(H, spaces, **kwargs):
+def spectrum[S: LocalSpace](
+    H: OpSum | complex, spaces: Mapping[S, Sequence[Hashable]], **kwargs: Any
+) -> NDArray[np.float64]:
     energies, _ = eigh_full(to_matrix(H, build_basis(spaces, **kwargs)))
     return energies
 
 
-def assert_sectors_rebuild_spectrum(H, spaces, sector_kwargs):
+def assert_sectors_rebuild_spectrum[S: LocalSpace](
+    H: OpSum | complex,
+    spaces: Mapping[S, Sequence[Hashable]],
+    sector_kwargs: Sequence[dict[str, Any]],
+) -> None:
     full = spectrum(H, spaces)
     parts = np.concatenate([spectrum(H, spaces, **kw) for kw in sector_kwargs])
     assert np.sort(parts) == pytest.approx(full)
@@ -50,31 +62,31 @@ class TestFermionSectors:
     sz = 0.5 * (n_up - n_dn)
     double_occ = sum(nc(i, "up") * nc(i, "dn") for i in range(sites))
 
-    def dim(self, **kwargs):
+    def dim(self, **kwargs: Any) -> int:
         return build_basis({FermionSpace(): self.modes}, **kwargs).dim
 
-    def test_particle_number_sector_size(self):
+    def test_particle_number_sector_size(self) -> None:
         for n_part in range(2 * self.sites + 1):
             expected = comb(2 * self.sites, n_part)
             assert self.dim(diagonal_symmetries={self.n_tot: n_part}) == expected
 
-    def test_spin_resolved_sector_size(self):
+    def test_spin_resolved_sector_size(self) -> None:
         expected = comb(self.sites, 2) * comb(self.sites, 2)
         assert self.dim(diagonal_symmetries={self.n_tot: 4, self.sz: 0}) == expected
         assert self.dim(diagonal_symmetries={self.n_up: 2, self.n_dn: 2}) == expected
 
-    def test_no_double_occupancy_sector_size(self):
+    def test_no_double_occupancy_sector_size(self) -> None:
         # choose the occupied sites, then a spin for each
         for n_part in range(self.sites + 1):
             expected = comb(self.sites, n_part) * 2**n_part
             sectors = {self.n_tot: n_part, self.double_occ: 0}
             assert self.dim(diagonal_symmetries=sectors) == expected
 
-    def test_parity_sector_size(self):
+    def test_parity_sector_size(self) -> None:
         even = self.dim(predicate_function=lambda lv: lv.sum(axis=1) % 2 == 0)
         assert even == 2 ** (2 * self.sites - 1)
 
-    def test_hubbard_spin_sectors_rebuild_full_spectrum(self):
+    def test_hubbard_spin_sectors_rebuild_full_spectrum(self) -> None:
         sites = 3
         modes, H = hubbard_chain(sites)
         n_up = sum(nc(i, "up") for i in range(sites))
@@ -86,7 +98,7 @@ class TestFermionSectors:
         ]
         assert_sectors_rebuild_spectrum(H, {FermionSpace(): modes}, sectors)
 
-    def test_pairing_parity_sectors_rebuild_full_spectrum(self):
+    def test_pairing_parity_sectors_rebuild_full_spectrum(self) -> None:
         # pairing breaks particle number but keeps fermion parity
         sites, delta = 3, 0.7
         modes, H = hubbard_chain(sites)
@@ -104,7 +116,7 @@ class TestFermionSectors:
 class TestBosonSectors:
     sites, n_max = 3, 3
 
-    def test_particle_number_sector_size(self):
+    def test_particle_number_sector_size(self) -> None:
         # stars and bars, while the cutoff is not reached
         n_tot = sum(nb(i) for i in range(self.sites))
         space = {BosonSpace(n_max=self.n_max): range(self.sites)}
@@ -112,7 +124,7 @@ class TestBosonSectors:
             basis = build_basis(space, diagonal_symmetries={n_tot: n_part})
             assert basis.dim == comb(n_part + self.sites - 1, self.sites - 1)
 
-    def test_bose_hubbard_number_sectors_rebuild_full_spectrum(self):
+    def test_bose_hubbard_number_sectors_rebuild_full_spectrum(self) -> None:
         sites = self.sites
         H = -sum(
             bdag(i) * b(i + 1) + bdag(i + 1) * b(i) for i in range(sites - 1)
@@ -129,14 +141,14 @@ class TestPauliSectors:
     sites = 6
     sz = 0.5 * sum(sigma_z(i) for i in range(sites))
 
-    def test_magnetization_sector_size(self):
+    def test_magnetization_sector_size(self) -> None:
         space = {PauliSpace(): range(self.sites)}
         for n_up in range(self.sites + 1):
             m = n_up - self.sites / 2
             basis = build_basis(space, diagonal_symmetries={self.sz: m})
             assert basis.dim == comb(self.sites, n_up)
 
-    def test_xxz_magnetization_sectors_rebuild_full_spectrum(self):
+    def test_xxz_magnetization_sectors_rebuild_full_spectrum(self) -> None:
         H = sum(
             sigma_x(i) * sigma_x(i + 1)
             + sigma_y(i) * sigma_y(i + 1)
@@ -149,10 +161,12 @@ class TestPauliSectors:
         ]
         assert_sectors_rebuild_spectrum(H, {PauliSpace(): range(self.sites)}, sectors)
 
-    def test_transverse_ising_parity_sectors_rebuild_full_spectrum(self):
+    def test_transverse_ising_parity_sectors_rebuild_full_spectrum(self) -> None:
         # σxσx flips two spins and σz flips none, so the parity of up spins
         # is conserved
-        H = -sum(sigma_x(i) * sigma_x(i + 1) for i in range(self.sites - 1))
+        H: OpSum | complex = -sum(
+            sigma_x(i) * sigma_x(i + 1) for i in range(self.sites - 1)
+        )
         H = H - 0.8 * sum(sigma_z(i) for i in range(self.sites))
         sectors = [
             {"predicate_function": lambda lv, p=p: lv.sum(axis=1) % 2 == p}
@@ -161,7 +175,7 @@ class TestPauliSectors:
         assert_sectors_rebuild_spectrum(H, {PauliSpace(): range(self.sites)}, sectors)
 
 
-def test_off_diagonal_sector_operators_are_rejected():
+def test_off_diagonal_sector_operators_are_rejected() -> None:
     for space, labels, op in [
         (PauliSpace(), range(2), sigma_x(0)),
         (FermionSpace(), range(2), cdag(0) * c(1) + cdag(1) * c(0)),

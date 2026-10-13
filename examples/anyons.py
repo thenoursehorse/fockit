@@ -8,11 +8,13 @@ gives fermions.
 import cmath
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import override
 
 import numpy as np
+from numpy.typing import NDArray
 
 from fockit.algebra import Monomial, Op, OpSum, SwapResult, mode_sort_key
-from fockit.hilbert import build_basis, to_matrix
+from fockit.hilbert import LocalSpace, build_basis, to_matrix
 from fockit.solve import groundstate
 
 
@@ -30,7 +32,7 @@ class AnyonRules:
 
     theta: float
 
-    def swap(self, left, right):
+    def swap(self, left: Op, right: Op) -> SwapResult:
         if left.mode == right.mode:
             return SwapResult(terms=((1, ()), (1, (right, left))))  # a a† = 1 + a† a
         phase = cmath.exp(1j * self.theta)
@@ -40,52 +42,62 @@ class AnyonRules:
             phase = phase.conjugate()
         return SwapResult(terms=((phase, (right, left)),))
 
-    def is_normal_ordered_pair(self, left, right):
+    def is_normal_ordered_pair(self, left: Op, right: Op) -> bool:
         if left.kind is not right.kind:
             return left.kind is Anyon.CREATE
         return mode_sort_key(left.mode) <= mode_sort_key(right.mode)
 
-    def dagger(self, op):
+    def dagger(self, op: Op) -> Op:
         flip = Anyon.CREATE if op.kind is Anyon.ANNIHILATE else Anyon.ANNIHILATE
         return Op(op.mode, flip, self)
 
 
 @dataclass(frozen=True)
-class AnyonSpace:
+class AnyonSpace(LocalSpace):
     """Occupations 0 to n_max; a_j picks up e^{iθ n_k} from each earlier site k."""
 
     theta: float
     n_max: int
 
     @property
-    def rules(self):
+    @override
+    def rules(self) -> AnyonRules:
         return AnyonRules(self.theta)
 
     @property
-    def dim(self):
+    @override
+    def dim(self) -> int:
         return self.n_max + 1
 
-    def action(self, op):  # new level and amplitude for each level
-        level = np.arange(self.dim)
+    @override
+    def action(  # new level and amplitude for each level
+        self, op: Op
+    ) -> tuple[NDArray[np.int64], NDArray[np.complex128]]:
+        level = np.arange(self.dim, dtype=np.int64)
         if op.kind is Anyon.CREATE:
             amp = np.sqrt(level + 1).astype(complex)
             amp[-1] = 0
             return np.minimum(level + 1, self.n_max), amp
         return np.maximum(level - 1, 0), np.sqrt(level).astype(complex)
 
-    def string_factor(self, op):  # phase from each earlier site, by its level
+    @override
+    def string_factor(self, op: Op) -> NDArray[np.complex128]:
+        # phase from each earlier site, by its level
         sign = 1 if op.kind is Anyon.ANNIHILATE else -1
-        return np.exp(sign * 1j * self.theta * np.arange(self.dim))
+        phases = np.exp(sign * 1j * self.theta * np.arange(self.dim))
+        return np.asarray(phases, dtype=np.complex128)
 
-    def exchange_factor(self):  # only for permutation symmetries; not worked out
+    @override
+    def exchange_factor(self) -> NDArray[np.complex128]:
+        # only for permutation symmetries; not worked out
         return np.ones((self.dim, self.dim), dtype=complex)
 
 
-def a(j, theta):
+def a(j: int, theta: float) -> OpSum:
     return OpSum({Monomial((Op(j, Anyon.ANNIHILATE, AnyonRules(theta)),)): 1})
 
 
-def adag(j, theta):
+def adag(j: int, theta: float) -> OpSum:
     return OpSum({Monomial((Op(j, Anyon.CREATE, AnyonRules(theta)),)): 1})
 
 

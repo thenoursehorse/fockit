@@ -3,21 +3,21 @@
 from fockit.algebra import FERMION, c, cdag, create, identity, nc, zero
 
 
-def test_n_equals_cdag_times_c():
+def test_n_equals_cdag_times_c() -> None:
     assert nc(1, "up") == cdag(1, "up") * c(1, "up")
 
 
-def test_create_with_fermion_equals_cdag():
+def test_create_with_fermion_equals_cdag() -> None:
     assert create(1, rules=FERMION) == cdag(1)
 
 
-def test_identity_is_multiplicative_unit():
+def test_identity_is_multiplicative_unit() -> None:
     op = cdag(1)
     assert identity() * op == op
     assert op * identity() == op
 
 
-def test_zero_is_additive_unit():
+def test_zero_is_additive_unit() -> None:
     op = cdag(1)
     assert op + zero() == op
     assert not zero()

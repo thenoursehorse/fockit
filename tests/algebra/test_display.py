@@ -1,6 +1,7 @@
 """Tests for display functions."""
 
 from enum import StrEnum
+from typing import override
 
 from fockit.algebra import (
     Monomial,
@@ -23,24 +24,24 @@ from fockit.algebra import (
 )
 
 
-def test_fermion_display():
+def test_fermion_display() -> None:
     s = repr(cdag(1) * c(2))
     assert "c†(1)" in s
     assert "c(2)" in s
 
 
-def test_boson_display():
+def test_boson_display() -> None:
     s = repr(bdag(1) * b(2))
     assert "b†(1)" in s
     assert "b(2)" in s
 
 
-def test_pauli_display():
+def test_pauli_display() -> None:
     s = repr(sigma_x(0))
     assert "σ_x(0)" in s
 
 
-def test_new_algebra_displays_without_display_code():
+def test_new_algebra_displays_without_display_code() -> None:
     class Majorana(StrEnum):
         GAMMA = "gamma"
 
@@ -56,13 +57,15 @@ def test_new_algebra_displays_without_display_code():
         def dagger(self, op: Op) -> Op:
             return op
 
+        @override
         def __eq__(self, other: object) -> bool:
             return isinstance(other, MajoranaRules)
 
+        @override
         def __hash__(self) -> int:
             return hash(type(self))
 
-    def gamma(mode):
+    def gamma(mode: int) -> OpSum:
         return OpSum({Monomial((Op(mode, Majorana.GAMMA, MajoranaRules()),)): 1})
 
     op = normal_order(gamma(1) * gamma(0) + 2 * gamma(2) * gamma(2))
@@ -70,7 +73,7 @@ def test_new_algebra_displays_without_display_code():
     assert to_latex(op) == "2 - gamma_{0} gamma_{1}"
 
 
-def test_latex_spin_labels():
+def test_latex_spin_labels() -> None:
     assert (
         to_latex(cdag(0, "up") * c(1, "dn"))
         == r"c^{\dagger}_{0, \uparrow} c_{1, \downarrow}"
@@ -78,30 +81,30 @@ def test_latex_spin_labels():
     assert to_latex(cdag("update")) == r"c^{\dagger}_{update}"
 
 
-def test_to_latex_fermion():
+def test_to_latex_fermion() -> None:
     s = to_latex(cdag(1))
     assert r"c^{\dagger}" in s
 
 
-def test_to_latex_boson():
+def test_to_latex_boson() -> None:
     s = to_latex(bdag(1))
     assert r"b^{\dagger}" in s
 
 
-def test_to_latex_pauli():
+def test_to_latex_pauli() -> None:
     s = to_latex(sigma_x(0))
     assert r"\sigma^{x}_{0}" in s
 
 
-def test_zero_display():
+def test_zero_display() -> None:
     assert repr(zero()) == "0"
 
 
-def test_to_text():
+def test_to_text() -> None:
     s = to_text(cdag(1))
     assert "c†(1)" in s
 
 
-def test_complex_coefficients_without_imaginary_part_display_as_real():
+def test_complex_coefficients_without_imaginary_part_display_as_real() -> None:
     assert to_text(normal_order(sp(0) * sm(0))) == "0.5 + 0.5 σ_z(0)"
     assert to_text(normal_order(sp(0) * sigma_z(0))) == "-0.5 σ_x(0) - 0.5j σ_y(0)"

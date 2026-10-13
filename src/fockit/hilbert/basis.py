@@ -11,7 +11,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from fockit._types import as_complex
-from fockit.algebra.operators import Monomial, OpSum
+from fockit.algebra.operators import Monomial, OpSum, as_opsum
 from fockit.algebra.rules import AlgebraRules, mode_sort_key
 from fockit.hilbert.spaces import (
     ComplexArray,
@@ -111,10 +111,10 @@ class Basis:
     norms: FloatArray
 
 
-def build_basis(
-    spaces: Mapping[LocalSpace, Sequence[Hashable]],
+def build_basis[S: LocalSpace, Q: OpSum | complex](
+    spaces: Mapping[S, Sequence[Hashable]],
     *,
-    diagonal_symmetries: Mapping[OpSum, complex] | None = None,
+    diagonal_symmetries: Mapping[Q, complex] | None = None,
     permutation_symmetries: Sequence[PermutationSymmetry] = (),
     onsite_symmetries: Sequence[OnsiteSymmetry] = (),
     predicate_function: Callable[[Levels], NDArray[np.bool_]] | None = None,
@@ -178,7 +178,8 @@ def build_basis(
     )
     additive: list[tuple[ChargeTables, float]] = []
     others: dict[OpSum, complex] = {}
-    for qn_op, target in (diagonal_symmetries or {}).items():
+    for qn, target in (diagonal_symmetries or {}).items():
+        qn_op = as_opsum(qn)
         check_modes(qn_op, mode_index)
         tables = _charge_tables(qn_op, mode_index, mode_spaces, starts)
         if tables is None:

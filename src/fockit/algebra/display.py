@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable
 
 from fockit._types import Coefficient
-from fockit.algebra.operators import Monomial, Op, OpSum, format_mode
+from fockit.algebra.operators import Monomial, Op, OpSum, as_opsum, format_mode
 from fockit.algebra.rules import (
     BosonRules,
     FermionRules,
@@ -37,7 +37,7 @@ _LATEX_SYMBOLS: dict[tuple[type, Hashable], str] = {
 _LATEX_LABELS = {"up": r"\uparrow", "dn": r"\downarrow"}
 
 
-def to_text(op: OpSum) -> str:
+def to_text(op: OpSum | complex) -> str:
     """Format an OpSum as a human-readable string.
 
     Parameters
@@ -49,10 +49,11 @@ def to_text(op: OpSum) -> str:
     str
 
     """
+    op = as_opsum(op)
     return _join_terms(op, _op_text)
 
 
-def to_latex(op: OpSum) -> str:
+def to_latex(op: OpSum | complex) -> str:
     r"""Convert an operator expression to LaTeX.
 
     Parameters
@@ -64,6 +65,7 @@ def to_latex(op: OpSum) -> str:
     str
 
     """
+    op = as_opsum(op)
     return _join_terms(op, _op_latex)
 
 

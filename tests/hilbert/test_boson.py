@@ -8,18 +8,18 @@ import numpy as np
 import pytest
 
 from fockit.algebra import b, bdag, normal_order
-from fockit.hilbert import BosonSpace, build_basis, expectations, to_matrix
+from fockit.hilbert import BosonSpace, build_basis, expectation, to_matrix
 from fockit.solve import eigenstates, groundstate
 
 
-def test_harmonic_oscillator_ladder():
+def test_harmonic_oscillator_ladder() -> None:
     basis = build_basis({BosonSpace(n_max=5): [0]})
     H = bdag(0) * b(0)
     energies, _ = eigenstates(to_matrix(H, basis), k=5)
     assert np.allclose(np.sort(energies), [0.0, 1.0, 2.0, 3.0, 4.0])
 
 
-def test_displaced_oscillator_groundstate_energy():
+def test_displaced_oscillator_groundstate_energy() -> None:
     alpha = 0.7
     basis = build_basis({BosonSpace(n_max=20): [0]})
     H = bdag(0) * b(0) + alpha * (bdag(0) + b(0))
@@ -27,7 +27,7 @@ def test_displaced_oscillator_groundstate_energy():
     assert e0 == pytest.approx(-(alpha**2), abs=1e-6)
 
 
-def test_two_mode_hopping_single_boson():
+def test_two_mode_hopping_single_boson() -> None:
     t = 1.3
     basis = build_basis({BosonSpace(n_max=1): [0, 1]})
     H = -t * (bdag(0) * b(1) + bdag(1) * b(0))
@@ -35,10 +35,10 @@ def test_two_mode_hopping_single_boson():
     assert -t == pytest.approx(np.min(energies), abs=1e-10)
 
 
-def test_oscillator_groundstate_position_moments():
+def test_oscillator_groundstate_position_moments() -> None:
     power = 12
     basis = build_basis({BosonSpace(n_max=power): [0]})
     _, vacuum = groundstate(to_matrix(bdag(0) * b(0), basis))
     x_n = normal_order((b(0) + bdag(0)) ** power)
     expected = math.prod(range(power - 1, 0, -2))  # (n-1)!!
-    assert expectations(to_matrix(x_n, basis), vacuum) == pytest.approx(expected)
+    assert expectation(to_matrix(x_n, basis), vacuum) == pytest.approx(expected)

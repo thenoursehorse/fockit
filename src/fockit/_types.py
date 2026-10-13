@@ -42,6 +42,8 @@ class SymbolicCoefficient(Protocol):
 
     def conjugate(self) -> object: ...
 
+    def __complex__(self) -> complex: ...
+
 
 type Coefficient = int | float | complex | SymbolicCoefficient
 type ComplexConvertible = complex | SupportsComplex | SupportsFloat | SupportsIndex

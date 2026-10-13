@@ -7,12 +7,12 @@ from collections.abc import Callable
 from typing import cast
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.algebra.operators import Monomial, OpSum
+from fockit.algebra.operators import Monomial, OpSum, as_opsum
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
+def drop_zeros(op: OpSum | complex, tol: float = 1e-15) -> OpSum:
     """Drop terms with negligible coefficients.
 
     Float coefficients that should cancel leave round-off behind, e.g.
@@ -35,6 +35,7 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     OpSum
 
     """
+    op = as_opsum(op)
     kept: dict[Monomial, Coefficient] = {}
     dropped: list[float] = []
     for mono, coeff in op.terms.items():
@@ -52,7 +53,7 @@ def drop_zeros(op: OpSum, tol: float = 1e-15) -> OpSum:
     return OpSum(kept)
 
 
-def simplify_coeffs(op: OpSum) -> OpSum:
+def simplify_coeffs(op: OpSum | complex) -> OpSum:
     """Simplify symbolic coefficients using sympy.
 
     Parameters
@@ -69,6 +70,7 @@ def simplify_coeffs(op: OpSum) -> OpSum:
         If sympy is not installed.
 
     """
+    op = as_opsum(op)
     import sympy
 
     simplify = cast(Callable[[object], object], sympy.simplify)

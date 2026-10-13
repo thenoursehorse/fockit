@@ -5,18 +5,25 @@ Includes RISB embedding problems from https://github.com/thenoursehorse/risb.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from itertools import product
+from typing import Any
 
 import numpy as np
 import pytest
 import scipy.linalg
+from numpy.typing import NDArray
 
-from fockit.algebra import c, cdag, hc, nc, normal_order
-from fockit.hilbert import FermionSpace, build_basis, expectations, to_matrix
+from fockit.algebra import OpSum, c, cdag, hc, nc, normal_order
+from fockit.hilbert import FermionSpace, build_basis, expectation, to_matrix
 from fockit.solve import eigenstates, eigh_full, groundstate
 
+type RisbModel = tuple[OpSum, NDArray[Any], NDArray[Any], NDArray[Any], dict[str, Any]]
 
-def hubbard_chain(sites: int, t: float, u: float):
+
+def hubbard_chain(
+    sites: int, t: float, u: float
+) -> tuple[list[tuple[str, int]], OpSum]:
     modes = [(s, i) for i in range(sites) for s in ("up", "dn")]
     H = 0 * cdag("up", 0) * c("up", 0)
     for i in range(sites - 1):
@@ -31,7 +38,7 @@ def hubbard_chain(sites: int, t: float, u: float):
 # https://github.com/thenoursehorse/risb, including the expected values.
 
 
-def risb_one_band():
+def risb_one_band() -> RisbModel:
     u = 1
     mu = u / 2  # half-filling
     h_int = u * nc("up", 0) * nc("dn", 0)
@@ -49,7 +56,7 @@ def risb_one_band():
     return h_int, lambda_c, d, h0_loc, expected
 
 
-def risb_bilayer():
+def risb_bilayer() -> RisbModel:
     u = 1
     v = 0.25
     j = 0
@@ -74,7 +81,7 @@ def risb_bilayer():
     return h_int, lambda_c, d, h0_loc, expected
 
 
-def risb_dh_trimer():
+def risb_dh_trimer() -> RisbModel:
     # two-thirds filling, Hubbard interaction in the momentum basis
     u = 1
     tk = 1
@@ -102,7 +109,9 @@ def risb_dh_trimer():
     return h_int, lambda_c, d, h0_loc, expected
 
 
-def risb_h_emb(h_int, lambda_c, d, h0_loc):
+def risb_h_emb(
+    h_int: OpSum, lambda_c: NDArray[Any], d: NDArray[Any], h0_loc: NDArray[Any]
+) -> OpSum:
     """Embedding Hamiltonian as built by risb's ``EmbeddingAtomDiag.set_h_emb``.
 
     c-electrons are orbitals ``0..n_orb-1`` and bath f-electrons are orbitals
@@ -121,7 +130,7 @@ def risb_h_emb(h_int, lambda_c, d, h0_loc):
 
 
 @pytest.mark.parametrize("model", [risb_one_band, risb_bilayer, risb_dh_trimer])
-def test_risb_embedding_matches_risb(model):
+def test_risb_embedding_matches_risb(model: Callable[[], RisbModel]) -> None:
     h_int, lambda_c, d, h0_loc, expected = model()
     n_orb = len(lambda_c)
     h_emb = risb_h_emb(h_int, lambda_c, d, h0_loc)
@@ -136,7 +145,7 @@ def test_risb_embedding_matches_risb(model):
     rho_f = np.array(
         [
             [
-                expectations(
+                expectation(
                     to_matrix(c("up", n_orb + b) * cdag("up", n_orb + a), basis), v0
                 )
                 for b in orbs
@@ -147,7 +156,7 @@ def test_risb_embedding_matches_risb(model):
     rho_cf = np.array(
         [
             [
-                expectations(to_matrix(cdag("up", a) * c("up", n_orb + b), basis), v0)
+                expectation(to_matrix(cdag("up", a) * c("up", n_orb + b), basis), v0)
                 for b in orbs
             ]
             for a in orbs
@@ -156,7 +165,7 @@ def test_risb_embedding_matches_risb(model):
     rho_c = np.array(
         [
             [
-                expectations(to_matrix(cdag("up", a) * c("up", b), basis), v0)
+                expectation(to_matrix(cdag("up", a) * c("up", b), basis), v0)
                 for b in orbs
             ]
             for a in orbs
@@ -166,27 +175,27 @@ def test_risb_embedding_matches_risb(model):
     assert rho_f == pytest.approx(expected["rho_f"], abs=1e-10)
     assert rho_cf == pytest.approx(expected["rho_cf"], abs=1e-10)
     assert rho_c == pytest.approx(expected["rho_c"], abs=1e-10)
-    num_c = expectations(to_matrix(total_n(c_modes), basis), v0)
+    num_c = expectation(to_matrix(total_n(c_modes), basis), v0)
     assert num_c == pytest.approx(expected["num_c"], abs=1e-10)
-    s2 = expectations(to_matrix(total_s2(c_modes), basis), v0)
+    s2 = expectation(to_matrix(total_s2(c_modes), basis), v0)
     assert s2 == pytest.approx(expected["s2"], abs=1e-10)
 
 
-def total_n(modes):
+def total_n(modes: Sequence[tuple[str, int]]) -> OpSum:
     op = 0 * cdag(*modes[0]) * c(*modes[0])
     for mode in modes:
         op = op + nc(*mode)
     return op
 
 
-def total_sz(modes):
+def total_sz(modes: Sequence[tuple[str, int]]) -> OpSum:
     op = 0 * cdag(*modes[0]) * c(*modes[0])
     for s, i in modes:
         op = op + (0.5 if s == "up" else -0.5) * nc(s, i)
     return op
 
 
-def total_s2(modes):
+def total_s2(modes: Sequence[tuple[str, int]]) -> OpSum:
     sz = total_sz(modes)
     s_plus = 0 * cdag(*modes[0]) * c(*modes[0])
     for i in {i for _, i in modes}:
@@ -195,7 +204,7 @@ def total_s2(modes):
     return sz * sz + 0.5 * (s_plus * s_minus + s_minus * s_plus)
 
 
-def test_two_site_half_filling_matches_analytic():
+def test_two_site_half_filling_matches_analytic() -> None:
     t, u = 1.0, 4.0
     modes, H = hubbard_chain(2, t, u)
     basis = build_basis(
@@ -207,7 +216,7 @@ def test_two_site_half_filling_matches_analytic():
     assert e0 == pytest.approx(expected, abs=1e-10)
 
 
-def test_two_site_quarter_filling_is_pure_hopping():
+def test_two_site_quarter_filling_is_pure_hopping() -> None:
     t, u = 1.3, 7.0
     modes, H = hubbard_chain(2, t, u)
     basis = build_basis(
@@ -219,7 +228,7 @@ def test_two_site_quarter_filling_is_pure_hopping():
     assert e0 == pytest.approx(-t, abs=1e-10)
 
 
-def test_three_site_half_filling_sparse_matches_dense():
+def test_three_site_half_filling_sparse_matches_dense() -> None:
     t, u = 1.0, 2.5
     modes, H = hubbard_chain(3, t, u)
     basis = build_basis(
@@ -234,7 +243,7 @@ def test_three_site_half_filling_sparse_matches_dense():
     assert np.allclose(energies, dense_evals[:3], atol=1e-9)
 
 
-def test_full_basis_groundstate_is_one_electron_sector():
+def test_full_basis_groundstate_is_one_electron_sector() -> None:
     t, u = 1.0, 4.0
     modes, H = hubbard_chain(2, t, u)
     basis = build_basis({FermionSpace(): modes})
@@ -243,7 +252,7 @@ def test_full_basis_groundstate_is_one_electron_sector():
     assert e0_full == pytest.approx(-t, abs=1e-10)
 
 
-def test_normal_ordered_h_squared_matches_matrix_square():
+def test_normal_ordered_h_squared_matches_matrix_square() -> None:
     modes, H = hubbard_chain(2, t=1.0, u=4.0)
     basis = build_basis({FermionSpace(): modes})
     h = to_matrix(H, basis).toarray()
@@ -251,7 +260,7 @@ def test_normal_ordered_h_squared_matches_matrix_square():
     assert h2 == pytest.approx(h @ h)
 
 
-def test_flux_through_ring_shifts_single_particle_levels():
+def test_flux_through_ring_shifts_single_particle_levels() -> None:
     sites, t, flux = 5, 1.0, 0.7
     phase = np.exp(1j * flux / sites)
     H = -t * sum(

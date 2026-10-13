@@ -326,3 +326,14 @@ def zero() -> OpSum:
 
     """
     return OpSum({})
+
+
+def as_opsum(op: OpSum | complex) -> OpSum:
+    """Return ``op`` as an OpSum; a number becomes that multiple of the identity.
+
+    Lets functions take the result of ``sum(...)``, which type checkers see as
+    possibly the number 0.
+    """
+    if isinstance(op, OpSum):
+        return op
+    return identity() * op
