@@ -12,7 +12,7 @@ from fockit.algebra.operators import Monomial, OpSum, as_opsum
 _LOGGER = logging.getLogger(__name__)
 
 
-def drop_zeros(op: OpSum | complex, tol: float = 1e-15) -> OpSum:
+def drop_zeros(op: OpSum | complex, tol: float = 1e-15, log: bool = False) -> OpSum:
     """Drop terms with negligible coefficients.
 
     Float coefficients that should cancel leave round-off behind, e.g.
@@ -20,15 +20,16 @@ def drop_zeros(op: OpSum | complex, tol: float = 1e-15) -> OpSum:
     exact zeros are removed automatically, so call this before comparing
     a result with ``zero()``.
 
-    Logs, at INFO level, how many terms were dropped and the largest
-    dropped coefficient, to check ``tol`` didn't remove a real term.
-
     Parameters
     ----------
     op : OpSum
     tol : float, optional
         Absolute tolerance, so pick it for the scale of your coefficients.
         Default: 1e-15.
+    log : bool, optional
+        Log, at INFO level, how many terms were dropped and the largest
+        dropped coefficient, to check ``tol`` didn't remove a real term.
+        Default: False.
 
     Returns
     -------
@@ -44,12 +45,13 @@ def drop_zeros(op: OpSum | complex, tol: float = 1e-15) -> OpSum:
             dropped.append(magnitude or 0.0)
         else:
             kept[mono] = coeff
-    _LOGGER.info(
-        "Dropped %d of %d terms, largest |coefficient| %.3g",
-        len(dropped),
-        len(op.terms),
-        max(dropped, default=0.0),
-    )
+    if log:
+        _LOGGER.info(
+            "Dropped %d of %d terms, largest |coefficient| %.3g",
+            len(dropped),
+            len(op.terms),
+            max(dropped, default=0.0),
+        )
     return OpSum(kept)
 
 

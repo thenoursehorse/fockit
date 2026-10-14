@@ -150,7 +150,7 @@ class TestPauliIntegration:
             for sigma in (sigma_x, sigma_y, sigma_z)
         )
         with caplog.at_level(logging.INFO):
-            assert drop_zeros(normal_order(commutator(H, S2))) == zero()
+            assert drop_zeros(normal_order(commutator(H, S2)), log=True) == zero()
         assert "Dropped 22 of 22 terms" in caplog.text
 
     def test_anticommutator_same_gives_two_identity(self) -> None:
