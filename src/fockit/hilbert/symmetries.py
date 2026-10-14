@@ -399,6 +399,9 @@ def _conjugate(op: OpSum, factors: Sequence[OpSum]) -> OpSum:
                 image = OpSum({Monomial((single,)): 1})
                 for factor in reversed(factors):
                     image = normal_order(factor * image * hc(factor))
+                    # a factor on another mode should cancel, but leaves round-off
+                    scale = max(abs(as_complex(v)) for v in image.terms.values())
+                    image = drop_zeros(image, tol=1e-12 * scale)
                 images[single] = image
             term = term * images[single]
         result = result + term

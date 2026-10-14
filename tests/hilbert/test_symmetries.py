@@ -16,6 +16,7 @@ from fockit.algebra import (
     bdag,
     c,
     cdag,
+    hc,
     identity,
     nb,
     nc,
@@ -538,6 +539,46 @@ def test_spinless_particle_hole_and_momentum_sectors_rebuild_spectrum() -> None:
         for parity in (1, -1)
     ]
     full = spectrum(H, space, diagonal_symmetries=half_filling)
+    assert np.sort(np.concatenate(parts)) == pytest.approx(full)
+
+
+def test_c3_charge_sectors_rebuild_spectrum() -> None:
+    # impurity with A, E1, E2 orbitals and a bath; sum(q n) is conserved mod 3
+    w = cmath.exp(2j * cmath.pi / 3)
+    charges = {"A": 0, "E1": 1, "E2": 2}
+    orbitals = [(s, irrep) for s in SPINS for irrep in charges]
+    modes = [(site, *orb) for site in ("imp", "bath") for orb in orbitals]
+    H = sum(
+        cdag("imp", *orb) * c("bath", *orb) + cdag("bath", *orb) * c("imp", *orb)
+        for orb in orbitals
+    )
+    H += 2 * nc("imp", "up", "A") * nc("imp", "dn", "A")
+    H += 1.5 * nc("imp", "up", "E1") * nc("imp", "dn", "E2")
+    pair = (
+        cdag("imp", "up", "E1")
+        * cdag("imp", "dn", "E2")
+        * c("imp", "dn", "A")
+        * c("imp", "up", "A")
+    )
+    H += 0.5 * (pair + hc(pair))
+    filling = {sum(nc(*m) for m in modes): 6}
+    c3 = [
+        c(*m) * cdag(*m) + w ** charges[m[2]] * cdag(*m) * c(*m)
+        for m in modes
+        if charges[m[2]]
+    ]
+    space = {FermionSpace(): modes}
+
+    parts = [
+        spectrum(
+            H,
+            space,
+            diagonal_symmetries=filling,
+            onsite_symmetries=[(c3, w**k)],
+        )
+        for k in range(3)
+    ]
+    full = spectrum(H, space, diagonal_symmetries=filling)
     assert np.sort(np.concatenate(parts)) == pytest.approx(full)
 
 
