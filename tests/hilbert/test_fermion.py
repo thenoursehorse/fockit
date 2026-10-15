@@ -260,6 +260,21 @@ def test_normal_ordered_h_squared_matches_matrix_square() -> None:
     assert h2 == pytest.approx(h @ h)
 
 
+def test_numpy_integer_labels_give_the_same_matrix_as_ints() -> None:
+    sites = 12
+    H = sum(
+        -(i + 1) * (cdag(i) * c(i + 1) + cdag(i + 1) * c(i)) for i in range(sites - 1)
+    )
+    filling = {sum(nc(i) for i in range(sites)): 1}
+    mats = [
+        to_matrix(
+            H, build_basis({FermionSpace(): labels}, diagonal_symmetries=filling)
+        ).toarray()
+        for labels in (range(sites), list(np.arange(sites)))
+    ]
+    assert mats[1] == pytest.approx(mats[0])
+
+
 def test_flux_through_ring_shifts_single_particle_levels() -> None:
     sites, t, flux = 5, 1.0, 0.7
     phase = np.exp(1j * flux / sites)

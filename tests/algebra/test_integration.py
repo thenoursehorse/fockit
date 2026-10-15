@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Callable, Sequence
 
+import numpy as np
 import pytest
 
 from fockit.algebra import (
@@ -83,6 +84,21 @@ def test_mixed_mode_types() -> None:
     op = cdag(0) * c("a")
     result = normal_order(op)
     assert result == op
+
+
+@pytest.mark.parametrize("label", [np.int64, float, np.float32, np.bool_])
+def test_hubbard_dimer_conserves_n_with_numeric_labels_mixed_with_ints(
+    label: Callable[[int], object],
+) -> None:
+    sites = 2
+    hopping = sum(
+        -cdag(label(i), s) * c(label(i + 1), s) - cdag(label(i + 1), s) * c(i, s)
+        for i in range(sites - 1)
+        for s in ("up", "dn")
+    )
+    H = hopping + sum(4 * nc(label(i), "up") * nc(i, "dn") for i in range(sites))
+    N = sum(nc(i, s) for i in range(sites) for s in ("up", "dn"))
+    assert normal_order(commutator(H, N)) == zero()
 
 
 def test_scalar_addition_in_hamiltonian() -> None:

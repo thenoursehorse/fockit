@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+import operator
 from collections.abc import Hashable
 from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Protocol,
+    SupportsIndex,
+    cast,
+    override,
+    runtime_checkable,
+)
+
+import numpy as np
 
 from fockit._types import Coefficient
 
@@ -275,7 +285,7 @@ def mode_sort_key(mode: Hashable) -> tuple[object, ...]:
 
     """
     match mode:
-        case int():
+        case int() | float():
             return (0, mode)
         case str():
             return (1, mode)
@@ -283,3 +293,28 @@ def mode_sort_key(mode: Hashable) -> tuple[object, ...]:
             return (2, *(mode_sort_key(m) for m in mode))
         case _:
             return (3, repr(mode))
+
+
+def canonical_mode(mode: Hashable) -> Hashable:
+    """Convert numpy scalars and other integer types to Python types.
+
+    Parameters
+    ----------
+    mode : Hashable
+
+    Returns
+    -------
+    Hashable
+
+    """
+    match mode:
+        case int() | float() | str():
+            return mode
+        case tuple():
+            return tuple(canonical_mode(m) for m in mode)
+        case np.generic():
+            return cast(Hashable, mode.item())
+        case SupportsIndex():
+            return operator.index(mode)
+        case _:
+            return mode

@@ -12,7 +12,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from fockit._types import as_complex
 from fockit.algebra.operators import Monomial, OpSum, as_opsum
-from fockit.algebra.rules import AlgebraRules, mode_sort_key
+from fockit.algebra.rules import AlgebraRules, canonical_mode, mode_sort_key
 from fockit.hilbert.spaces import (
     ComplexArray,
     FloatArray,
@@ -161,7 +161,7 @@ def build_basis[S: LocalSpace, Q: OpSum | complex](
     starts: list[int] = []
     for space, labels in spaces.items():
         start = len(modes)
-        for label in sorted(labels, key=mode_sort_key):
+        for label in sorted(map(canonical_mode, labels), key=mode_sort_key):
             modes.append((space.rules, label))
             mode_spaces.append(space)
             starts.append(start)

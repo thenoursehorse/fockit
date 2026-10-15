@@ -9,7 +9,7 @@ from types import MappingProxyType
 from typing import override
 
 from fockit._types import Coefficient, as_coefficient
-from fockit.algebra.rules import AlgebraRules
+from fockit.algebra.rules import AlgebraRules, canonical_mode
 
 _POW_MSG = "Exponent must be a non-negative integer, got {}"
 
@@ -36,12 +36,17 @@ class Op:
     _hash: int = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        """Compute the hash once; the operator is frozen so it never changes.
+        """Canonicalize the mode, then compute the hash once.
+
+        ``np.int64(0) == 0`` with the same hash, so terms and caches treat
+        them as one mode, but ``mode_sort_key`` would order them apart.
+        Converting to Python types makes equal modes sort the same.
 
         The algebra is hashed by its type. Equal rules have equal types, so
         this agrees with ``__eq__``, and hashing a type runs in C instead of
         the rules' own Python ``__hash__``.
         """
+        object.__setattr__(self, "mode", canonical_mode(self.mode))
         object.__setattr__(
             self, "_hash", hash((self.mode, self.kind, type(self.rules)))
         )
