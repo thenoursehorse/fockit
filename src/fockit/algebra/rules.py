@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import functools
 import operator
 from collections.abc import Hashable
-from dataclasses import dataclass, replace
-from enum import StrEnum
+from dataclasses import dataclass, fields, is_dataclass, replace
+from enum import Enum, StrEnum
 from typing import (
     TYPE_CHECKING,
     Protocol,
@@ -21,6 +22,11 @@ from fockit._types import Coefficient
 
 if TYPE_CHECKING:
     from fockit.algebra.operators import Op
+
+_MODE_MSG = (
+    "Mode labels must be int, float, str, bool, None, an Enum, a dataclass "
+    "with ==, or a tuple of these, got {!r} of type {}"
+)
 
 
 class Ladder(StrEnum):
@@ -266,17 +272,25 @@ PAULI = PauliRules()
 def mode_sort_key(mode: Hashable) -> tuple[object, ...]:
     """Canonical sort key for modes.
 
-    Stratifies by type first, then compares within type.
+    Stratifies by type first, then compares within type. Equal modes get
+    equal keys, unequal modes different keys, and the order is the same on
+    every run.
 
     Parameters
     ----------
     mode : Hashable
-        The mode label.
+        The mode label: int, float, str, bool, None, an Enum, a dataclass
+        with ``==``, or a tuple of these.
 
     Returns
     -------
     tuple
         A universally comparable sort key.
+
+    Raises
+    ------
+    TypeError
+        If ``mode`` is not one of the types above.
 
     Notes
     -----
@@ -291,8 +305,21 @@ def mode_sort_key(mode: Hashable) -> tuple[object, ...]:
             return (1, mode)
         case tuple():
             return (2, *(mode_sort_key(m) for m in mode))
+        case Enum():
+            return (3, type(mode).__module__, type(mode).__qualname__, mode.name)
+        case None:
+            return (4,)
+        case _ if is_dataclass(type(mode)):
+            cls = type(mode)
+            values = (getattr(mode, name) for name in _compared_fields(cls))
+            return (
+                5,
+                cls.__module__,
+                cls.__qualname__,
+                *(mode_sort_key(canonical_mode(v)) for v in values),
+            )
         case _:
-            return (3, repr(mode))
+            raise TypeError(_MODE_MSG.format(mode, type(mode).__name__))
 
 
 def canonical_mode(mode: Hashable) -> Hashable:
@@ -301,20 +328,38 @@ def canonical_mode(mode: Hashable) -> Hashable:
     Parameters
     ----------
     mode : Hashable
+        The mode label: int, float, str, bool, None, an Enum, a dataclass
+        with ``==``, or a tuple of these. Numpy scalars and other types
+        with ``__index__`` are converted.
 
     Returns
     -------
     Hashable
 
+    Raises
+    ------
+    TypeError
+        If ``mode`` is not one of the types above.
+
     """
     match mode:
-        case int() | float() | str():
+        case int() | float() | str() | None | Enum():
             return mode
         case tuple():
             return tuple(canonical_mode(m) for m in mode)
+        case _ if is_dataclass(type(mode)) and type(mode).__eq__ is not object.__eq__:
+            for name in _compared_fields(type(mode)):
+                canonical_mode(getattr(mode, name))
+            return mode
         case np.generic():
-            return cast(Hashable, mode.item())
+            return canonical_mode(cast(Hashable, mode.item()))
         case SupportsIndex():
             return operator.index(mode)
         case _:
-            return mode
+            raise TypeError(_MODE_MSG.format(mode, type(mode).__name__))
+
+
+@functools.cache
+def _compared_fields(cls: type) -> tuple[str, ...]:
+    """Return the names of the fields ``==`` compares, in order."""
+    return tuple(f.name for f in fields(cls) if f.compare)

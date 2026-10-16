@@ -1,7 +1,9 @@
 """Integration tests."""
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Hashable, Sequence
+from dataclasses import dataclass, field
+from enum import Enum
 
 import numpy as np
 import pytest
@@ -84,6 +86,32 @@ def test_mixed_mode_types() -> None:
     op = cdag(0) * c("a")
     result = normal_order(op)
     assert result == op
+
+
+class Orbital(Enum):
+    S = "s"
+    P = "p"
+
+
+@dataclass(frozen=True)
+class Site:
+    name: str
+    k: int = field(repr=False)
+
+
+def test_fermions_anticommute_with_enum_dataclass_and_none_labels() -> None:
+    labels: list[Hashable] = [Orbital.S, Orbital.P, Site("a", 0), Site("a", 1), None]
+    for i, x in enumerate(labels):
+        for j, y in enumerate(labels):
+            assert normal_order(anticommutator(cdag(x), cdag(y))) == zero()
+            expected = identity() if i == j else zero()
+            assert normal_order(anticommutator(c(x), cdag(y))) == expected
+
+
+@pytest.mark.parametrize("label", [object(), frozenset({1}), 1j, [0, "up"]])
+def test_unsupported_mode_labels_are_rejected(label: object) -> None:
+    with pytest.raises(TypeError, match="Mode labels must be"):
+        cdag(label)
 
 
 @pytest.mark.parametrize("label", [np.int64, float, np.float32, np.bool_])

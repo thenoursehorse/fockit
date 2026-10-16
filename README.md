@@ -34,7 +34,8 @@ from fockit.hilbert import (
 )
 from fockit.solve import groundstate
 
-# The operator
+# The operator. Modes are labelled by int, float, str, bool, None, an Enum,
+# a frozen dataclass, or a tuple of these, e.g. cdag(0, "up")
 H = -(cdag(0) * c(1) + cdag(1) * c(0)) + 0.2 * sigma_z(0) * sigma_z(1)
 for i in (0, 1):
     H += bdag(i) * b(i) + 0.5 * nc(i) * (b(i) + bdag(i)) + 0.3 * nc(i) * sigma_x(i)

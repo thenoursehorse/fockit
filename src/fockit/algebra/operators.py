@@ -21,7 +21,9 @@ class Op:
     Parameters
     ----------
     mode : Hashable
-        Any hashable Python object identifying the single-particle state.
+        Label of the single-particle state: int, float, str, bool, None, an
+        Enum, a dataclass with ``==``, or a tuple of these. Numpy scalars
+        are converted to Python types.
     kind : Hashable
         Which operator of the algebra, e.g. ``Ladder.CREATE`` or
         ``Pauli.X``.
@@ -41,6 +43,8 @@ class Op:
         ``np.int64(0) == 0`` with the same hash, so terms and caches treat
         them as one mode, but ``mode_sort_key`` would order them apart.
         Converting to Python types makes equal modes sort the same.
+        ``canonical_mode`` also rejects unsupported labels here, rather than
+        later when they are first sorted, e.g. while printing.
 
         The algebra is hashed by its type. Equal rules have equal types, so
         this agrees with ``__eq__``, and hashing a type runs in C instead of
