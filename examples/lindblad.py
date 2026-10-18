@@ -15,11 +15,18 @@ the jumps that leave it.
 from typing import Any
 
 import numpy as np
-import scipy.linalg
 from numpy.typing import NDArray
 
 from fockit.algebra import OpSum, c, cdag, left, liouvillian, nc, right
-from fockit.hilbert import FermionSpace, build_basis, doubled, to_matrix
+from fockit.hilbert import (
+    FermionSpace,
+    build_basis,
+    doubled,
+    state_index,
+    to_matrix,
+    trace_vector,
+)
+from fockit.solve import expm_multiply_evolve, slowest_modes, steady_state
 
 L, t, V = 5, 1.0, 0.7
 loss, pump, dephasing = 0.6, 0.3, 0.4
@@ -31,13 +38,13 @@ spaces = doubled({FermionSpace(): range(L)})
 shift = {i: (i + 1) % L for i in range(L)}
 
 
-def eigenvalues(generator: OpSum, **symmetries: Any) -> NDArray[np.complex128]:
-    """Eigenvalues of the generator in one sector.
-
-    fockit's solvers assume a Hermitian matrix, which the generator isn't.
-    """
+def slowest(generator: OpSum, **symmetries: Any) -> NDArray[np.complex128]:
+    """The two eigenvalues with the largest real part in one sector."""
     basis = build_basis(spaces, **symmetries)
-    return scipy.linalg.eigvals(to_matrix(generator, basis).toarray())
+    if not basis.dim:
+        return np.empty(0, dtype=complex)
+    values, _ = slowest_modes(to_matrix(generator, basis), k=2)
+    return values
 
 
 def steady_states(values: NDArray[np.complex128]) -> int:
@@ -49,7 +56,7 @@ jumps = [np.sqrt(loss) * c(i) for i in range(L)]
 jumps += [np.sqrt(pump) * cdag(i) for i in range(L)]
 weak = liouvillian(H, jumps)
 sectors = {
-    (q, k): eigenvalues(
+    (q, k): slowest(
         weak,
         diagonal_symmetries={left(N) - right(N): q},
         permutation_symmetries=[(shift, np.exp(2j * np.pi * k / L))],
@@ -65,13 +72,34 @@ decays = {
 }
 gap = min(decays.values())
 # sectors q and -q hold rho and its Hermitian conjugate, so they come in pairs
-slowest = [sector for sector, rate in decays.items() if rate - gap < 1e-9]
+slowest_sectors = [sector for sector, rate in decays.items() if rate - gap < 1e-9]
+
+# the steady state, and the evolution from the empty ring towards it
+basis = build_basis(
+    spaces,
+    diagonal_symmetries={left(N) - right(N): 0},
+    permutation_symmetries=[(shift, 1)],
+)
+generator = to_matrix(weak, basis)
+trace = trace_vector(basis)
+number = to_matrix(left(N), basis)
+rho = steady_state(generator, trace)
+filling = (trace @ (number @ rho)).real / L
+empty = np.zeros(basis.dim, dtype=complex)
+empty[state_index(basis, np.zeros(2 * L, dtype=int))] = 1
+times = np.linspace(0, 4, 5)
+# expm_multiply_evolve applies e^{-iHt}, so H = i L gives e^{Lt}
+history = expm_multiply_evolve(1j * generator, empty, times)
+fillings = (history @ number.T @ trace).real / L
 
 print("Weak symmetry: loss and pump, sectors (q, K) = (N_left - N_right, momentum)")
-largest = max(len(values) for values in sectors.values())
-print(f"  {4**L} states in all, the largest sector has {largest}")
+print(f"  {4**L} states in all, the steady state's sector has {basis.dim}")
 print(f"  steady state in sector {weak_steady}")
-print(f"  slowest decay rate {gap:.6f}, in sectors {slowest}")
+print(f"  particles per site {filling:.6f}, exactly pump/(loss + pump)")
+print(f"  slowest decay rate {gap:.6f}, in sectors {slowest_sectors}")
+print("  particles per site from an empty ring:")
+for time, value in zip(times, fillings, strict=True):
+    print(f"    t = {time:.1f}: {value:.6f}")
 
 # strong: dephasing measures each site's occupation and never changes N
 strong = liouvillian(H, [np.sqrt(dephasing) * nc(i) for i in range(L)])
@@ -79,7 +107,7 @@ strong_steady = np.array(
     [
         [
             steady_states(
-                eigenvalues(strong, diagonal_symmetries={left(N): n, right(N): m})
+                slowest(strong, diagonal_symmetries={left(N): n, right(N): m})
             )
             for m in range(L + 1)
         ]

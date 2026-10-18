@@ -8,7 +8,7 @@ import scipy.sparse
 import scipy.sparse.linalg
 from numpy.typing import NDArray
 
-from fockit.hilbert.matrix import SparseMatrix
+from fockit.hilbert.matrix import SparseMatrix, check_hermitian
 
 type RealArray = NDArray[np.float64]
 type ComplexArray = NDArray[np.complex128]
@@ -25,6 +25,7 @@ def eigh_full(H: SparseMatrix) -> tuple[RealArray, ComplexArray]:
         Column ``i`` is the i-th eigenvector.
 
     """
+    check_hermitian(H)
     dense = H.toarray()
     dense = 0.5 * (dense + dense.conj().T)
     evals, evecs = scipy.linalg.eigh(dense)
@@ -41,6 +42,7 @@ def eigenstates(H: SparseMatrix, k: int = 1) -> tuple[RealArray, ComplexArray]:
         Column ``i`` is the i-th eigenvector.
 
     """
+    check_hermitian(H)
     if k >= H.shape[0] - 1:
         dense = H.toarray()
         dense = 0.5 * (dense + dense.conj().T)

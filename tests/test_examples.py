@@ -55,10 +55,14 @@ def test_jaynes_cummings_hubbard_polaritons_match_the_exact_bands() -> None:
 
 def test_lindblad_sectors_find_the_weak_and_strong_steady_states() -> None:
     ex = run("lindblad")
-    L = ex["L"]
-    assert sum(len(values) for values in ex["sectors"].values()) == 4**L
+    L, loss, pump, times = ex["L"], ex["loss"], ex["pump"], ex["times"]
     assert ex["weak_steady"] == [(0, 0)]
-    assert sorted(ex["slowest"]) == [(-1, 0), (1, 0)]
+    assert sorted(ex["slowest_sectors"]) == [(-1, 0), (1, 0)]
+    # H keeps N, so N relaxes to its steady value at exactly loss + pump
+    filling = pump / (loss + pump)
+    assert ex["filling"] == pytest.approx(filling)
+    exact = filling * (1 - np.exp(-(loss + pump) * times))
+    assert ex["fillings"] == pytest.approx(exact)
     assert ex["strong_steady"] == pytest.approx(np.eye(L + 1))
 
 

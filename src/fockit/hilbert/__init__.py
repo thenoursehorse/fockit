@@ -1,6 +1,13 @@
 """Hilbert spaces, symmetry-reduced bases, and operators as matrices on them."""
 
-from fockit.hilbert.basis import Basis, build_basis, expand_state, state_index
+from fockit.hilbert.basis import (
+    Basis,
+    build_basis,
+    density_matrix,
+    expand_state,
+    state_index,
+    trace_vector,
+)
 from fockit.hilbert.matrix import expectation, matrix_elements, to_matrix
 from fockit.hilbert.spaces import (
     BosonSpace,
@@ -19,10 +26,12 @@ __all__ = [
     "LocalSpace",
     "PauliSpace",
     "build_basis",
+    "density_matrix",
     "doubled",
     "expand_state",
     "expectation",
     "matrix_elements",
     "state_index",
     "to_matrix",
+    "trace_vector",
 ]

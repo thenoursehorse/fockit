@@ -13,6 +13,7 @@ from numpy.typing import ArrayLike, NDArray
 from fockit._types import as_complex
 from fockit.algebra.operators import Monomial, OpSum, as_opsum
 from fockit.algebra.rules import AlgebraRules, canonical_mode, mode_sort_key
+from fockit.algebra.superoperators import ConjugateRules
 from fockit.hilbert.spaces import (
     ComplexArray,
     FloatArray,
@@ -347,6 +348,45 @@ def expand_state(state: ArrayLike, basis: Basis, full_basis: Basis) -> ComplexAr
     return out
 
 
+def trace_vector(basis: Basis) -> FloatArray:
+    """Return the identity matrix as a vector in a basis of density matrices.
+
+    ``trace_vector(basis) @ x`` is ``Tr(rho)`` for the density matrix ``x``,
+    and ``trace_vector(basis) @ (to_matrix(left(O), basis) @ x)`` is
+    ``Tr(O rho)``. ``basis`` is built on ``doubled`` spaces; it is zero
+    unless every symmetry eigenvalue is 1.
+    """
+    out = np.zeros(basis.dim)
+    if not np.allclose(basis.characters, 1):
+        return out
+    rows, columns = _row_and_column_modes(basis)
+    # the symmetric state of an orbit of s diagonal states has overlap sqrt(s)
+    diagonal = np.all(basis.levels[:, rows] == basis.levels[:, columns], axis=1)
+    out[diagonal] = len(basis.group) / np.sqrt(basis.norms[diagonal])
+    return out
+
+
+def density_matrix(state: ArrayLike, basis: Basis, closed: Basis) -> ComplexArray:
+    """Write a vector of ``basis`` as the matrix ``rho`` in ``closed``.
+
+    ``basis`` is built on ``doubled`` spaces without permutation or on-site
+    symmetries (use ``expand_state`` first), and ``closed`` is a basis of
+    the original modes holding every state ``rho`` acts on.
+    """
+    if len(basis.group) > 1:
+        msg = "Expand the state with expand_state first."
+        raise ValueError(msg)
+    rows, columns = _row_and_column_modes(basis)
+    if closed.modes != tuple(basis.modes[k] for k in rows):
+        msg = "closed must have the modes that basis was doubled from."
+        raise ValueError(msg)
+    rho = np.zeros((closed.dim, closed.dim), dtype=complex)
+    m = state_index(closed, basis.levels[:, rows])
+    n = state_index(closed, basis.levels[:, columns])
+    rho[m, n] = np.asarray(state)
+    return rho
+
+
 def check_modes(
     op: OpSum, mode_index: Mapping[tuple[AlgebraRules, Hashable], int]
 ) -> None:
@@ -399,6 +439,20 @@ def _charge_tables(
             return None
         tables[k][rows] += contribution.real
     return tables, constant
+
+
+def _row_and_column_modes(basis: Basis) -> tuple[IntArray, IntArray]:
+    """Positions of the original modes, and of their conjugate copies."""
+    rows = [
+        k
+        for k, (rules, _) in enumerate(basis.modes)
+        if not isinstance(rules, ConjugateRules)
+    ]
+    columns = [
+        basis.mode_index[(ConjugateRules(basis.modes[k][0]), basis.modes[k][1])]
+        for k in rows
+    ]
+    return np.array(rows), np.array(columns)
 
 
 def _generate(

@@ -10,7 +10,7 @@ import scipy.sparse.linalg
 from numpy.typing import ArrayLike, NDArray
 from scipy.special import jv
 
-from fockit.hilbert.matrix import SparseMatrix
+from fockit.hilbert.matrix import SparseMatrix, check_hermitian
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -73,6 +73,7 @@ def chebyshev_evolve(
         (otherwise estimated via ``eigsh``).
 
     """
+    check_hermitian(H)
     if e_bounds is None:
         e_min = float(
             scipy.sparse.linalg.eigsh(H, k=1, which="SA", return_eigenvectors=False)[0]

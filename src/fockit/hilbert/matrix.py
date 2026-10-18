@@ -15,6 +15,8 @@ from fockit.hilbert.symmetries import check_symmetric, representatives
 type SparseMatrix = sp.csr_matrix
 type ComplexArray = NDArray[np.complex128]
 
+_HERMITIAN_TOL = 1e-10
+
 
 def to_matrix(op: OpSum | complex, basis: Basis) -> SparseMatrix:
     """Build the sparse matrix representation of ``op`` in ``basis``.
@@ -61,6 +63,21 @@ def to_matrix(op: OpSum | complex, basis: Basis) -> SparseMatrix:
     if not np.any(mat.data.imag):
         return mat.real
     return mat
+
+
+def check_hermitian(H: SparseMatrix) -> None:
+    """Raise ValueError unless ``H`` is Hermitian, up to round-off.
+
+    For solvers that assume it, so a Lindblad generator isn't silently
+    treated as a Hamiltonian.
+    """
+    scale = max(abs(H).max(), 1.0)
+    if H.shape[0] and abs(H - H.conj().T).max() > _HERMITIAN_TOL * scale:
+        msg = (
+            "Matrix is not Hermitian. For a Lindblad generator use steady_state "
+            "or slowest_modes."
+        )
+        raise ValueError(msg)
 
 
 def expectation(op: SparseMatrix, state: ComplexArray) -> complex:

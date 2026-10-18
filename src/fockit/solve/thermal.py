@@ -7,7 +7,7 @@ import scipy.sparse
 import scipy.sparse.linalg
 from numpy.typing import NDArray
 
-from fockit.hilbert.matrix import SparseMatrix
+from fockit.hilbert.matrix import SparseMatrix, check_hermitian
 
 type RealArray = NDArray[np.float64]
 type ComplexArray = NDArray[np.complex128]
@@ -67,6 +67,7 @@ def tpq_state(
     pass ``e0`` when sampling many states so it is only computed once.
     Caller handles sample averaging and the state-dependent norm.
     """
+    check_hermitian(H)
     dim = H.shape[0]
     if e0 is None:
         e0 = _lowest_energy(H)

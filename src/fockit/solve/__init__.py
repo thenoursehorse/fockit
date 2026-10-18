@@ -7,6 +7,7 @@ from fockit.solve.evolve import (
     suzuki_trotter_sequence,
     trotter_evolve,
 )
+from fockit.solve.lindblad import slowest_modes, steady_state
 from fockit.solve.thermal import (
     thermal_expectation,
     tpq_state,
@@ -19,6 +20,8 @@ __all__ = [
     "eigh_full",
     "expm_multiply_evolve",
     "groundstate",
+    "slowest_modes",
+    "steady_state",
     "suzuki_trotter_sequence",
     "thermal_expectation",
     "tpq_state",
