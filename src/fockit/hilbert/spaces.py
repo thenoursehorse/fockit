@@ -6,6 +6,7 @@ A basis state is a row of levels, one per mode. Each algebra provides a
 
 from __future__ import annotations
 
+from collections.abc import Hashable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, ClassVar, Protocol, override
 
@@ -14,6 +15,7 @@ from numpy.typing import NDArray
 
 from fockit.algebra.operators import Op
 from fockit.algebra.rules import BOSON, FERMION, PAULI, AlgebraRules, Ladder, Pauli
+from fockit.algebra.superoperators import ConjugateRules
 
 type IntArray = NDArray[np.int64]
 type FloatArray = NDArray[np.float64]
@@ -145,3 +147,57 @@ class PauliSpace(LocalSpace):
     def exchange_factor(self) -> ComplexArray:
         """Spins on different sites commute."""
         return np.ones((2, 2), dtype=complex)
+
+
+@dataclass(frozen=True)
+class Conjugate(LocalSpace):
+    """Copy of ``space`` whose operators act by complex-conjugated matrices.
+
+    It holds the column index of a density matrix; see
+    ``fockit.algebra.right``.
+    """
+
+    space: LocalSpace
+
+    @property
+    @override
+    def rules(self) -> AlgebraRules:
+        """Conjugate of the space's algebra."""
+        return ConjugateRules(self.space.rules)
+
+    @property
+    @override
+    def dim(self) -> int:
+        """Number of levels of the space."""
+        return self.space.dim
+
+    @override
+    def action(self, op: Op) -> tuple[IntArray, ComplexArray]:
+        """Apply the space's action, with conjugated amplitudes."""
+        new_level, amp = self.space.action(self._original(op))
+        return new_level, amp.conj()
+
+    @override
+    def string_factor(self, op: Op) -> ComplexArray:
+        """Give the space's string factor, conjugated."""
+        return self.space.string_factor(self._original(op)).conj()
+
+    @override
+    def exchange_factor(self) -> ComplexArray:
+        """Give the space's exchange phase, conjugated."""
+        return self.space.exchange_factor().conj()
+
+    def _original(self, op: Op) -> Op:
+        return Op(op.mode, op.kind, self.space.rules)
+
+
+def doubled[S: LocalSpace](
+    spaces: Mapping[S, Sequence[Hashable]],
+) -> dict[LocalSpace, Sequence[Hashable]]:
+    """Each space and its ``Conjugate`` copy, for a basis of density matrices.
+
+    Example: ``build_basis(doubled({FermionSpace(): sites}))``.
+    """
+    out: dict[LocalSpace, Sequence[Hashable]] = dict(spaces.items())
+    out.update({Conjugate(space): labels for space, labels in spaces.items()})
+    return out

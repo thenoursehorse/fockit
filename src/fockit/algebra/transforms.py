@@ -9,7 +9,7 @@ from fockit.algebra.operators import Monomial, Op, OpSum, as_opsum, identity
 from fockit.algebra.ordering import normal_order
 
 
-def _conjugate(coeff: Coefficient) -> Coefficient:
+def conjugate(coeff: Coefficient) -> Coefficient:
     """Complex-conjugate a coefficient.
 
     Parameters
@@ -65,7 +65,7 @@ def hc(op: OpSum | complex) -> OpSum:
         new_ops = tuple(
             single_op.rules.dagger(single_op) for single_op in reversed(mono.ops)
         )
-        new_terms[Monomial(new_ops)] = _conjugate(coeff)
+        new_terms[Monomial(new_ops)] = conjugate(coeff)
     return OpSum(new_terms)
 
 

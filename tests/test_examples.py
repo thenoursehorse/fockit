@@ -53,6 +53,15 @@ def test_jaynes_cummings_hubbard_polaritons_match_the_exact_bands() -> None:
         assert [lower, upper] == pytest.approx([middle - split, middle + split])
 
 
+def test_lindblad_sectors_find_the_weak_and_strong_steady_states() -> None:
+    ex = run("lindblad")
+    L = ex["L"]
+    assert sum(len(values) for values in ex["sectors"].values()) == 4**L
+    assert ex["weak_steady"] == [(0, 0)]
+    assert sorted(ex["slowest"]) == [(-1, 0), (1, 0)]
+    assert ex["strong_steady"] == pytest.approx(np.eye(L + 1))
+
+
 def test_kitaev_chain_has_a_majorana_zero_mode() -> None:
     energies = run("majorana")["energies"]
     assert energies[:2] == pytest.approx([-2.5, -2.5])

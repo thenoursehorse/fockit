@@ -37,6 +37,7 @@ from fockit.algebra.rules import (
     mode_sort_key,
 )
 from fockit.algebra.simplify import drop_zeros, simplify_coeffs
+from fockit.algebra.superoperators import ConjugateRules, left, liouvillian, right
 from fockit.algebra.transforms import (
     anticommutator,
     commutator,
@@ -51,6 +52,7 @@ __all__ = [
     "PAULI",
     "AlgebraRules",
     "BosonRules",
+    "ConjugateRules",
     "FermionRules",
     "Ladder",
     "Monomial",
@@ -72,6 +74,8 @@ __all__ = [
     "hc",
     "identity",
     "is_normal_ordered",
+    "left",
+    "liouvillian",
     "mode_sort_key",
     "modes",
     "nb",
@@ -79,6 +83,7 @@ __all__ = [
     "normal_order",
     "num_terms",
     "number",
+    "right",
     "sigma_minus",
     "sigma_plus",
     "sigma_x",
