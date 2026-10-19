@@ -1,4 +1,4 @@
-"""Lindblad master equation as a matrix on doubled modes, with symmetry sectors."""
+"""Lindblad generators as matrices, with symmetry sectors."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ EXAMPLES = Path(__file__).parents[2] / "examples"
 def master_equation[S: LocalSpace](
     H: OpSum, jumps: Sequence[OpSum], spaces: Mapping[S, Sequence[Hashable]]
 ) -> ComplexArray:
-    """Dense generator of ``vec(rho)``, row-major, from the closed-system matrices."""
+    """Dense Lindblad generator acting on rho flattened row by row."""
     basis = build_basis(spaces)
     h = to_matrix(H, basis).toarray()
     one = np.eye(basis.dim)
@@ -158,7 +158,7 @@ def test_normal_ordering_keeps_the_liouvillian_for_fermions_and_spins() -> None:
 
 
 def test_pumped_truncated_boson_conserves_the_trace() -> None:
-    # dTr(rho)/dt = <<1| L |rho>> must vanish for every rho, even at n_max
+    # Tr(rho) stays constant for every rho, even at n_max
     H = bdag(0) * b(0) + 0.3 * (b(0) + bdag(0))
     basis = build_basis(doubled({BosonSpace(n_max=3): [0]}))
     identity = (basis.levels[:, 0] == basis.levels[:, 1]).astype(float)
@@ -167,7 +167,7 @@ def test_pumped_truncated_boson_conserves_the_trace() -> None:
 
 
 def test_weak_number_and_momentum_sectors_rebuild_the_spectrum() -> None:
-    # loss and pump change N, but keep N_left - N_right and translation
+    # loss and pump change N, but conserve left(N) - right(N) and translation
     sites = 4
     jumps = [0.6 * c(i) for i in range(sites)] + [0.4 * cdag(i) for i in range(sites)]
     spaces = {FermionSpace(): range(sites)}
@@ -190,7 +190,7 @@ def test_weak_number_and_momentum_sectors_rebuild_the_spectrum() -> None:
 
 
 def test_dephasing_keeps_one_steady_state_per_particle_number() -> None:
-    # dephasing commutes with N, so N_left and N_right are each conserved
+    # dephasing commutes with N, so left(N) and right(N) are each conserved
     sites = 4
     jumps = [0.5 * nc(i) for i in range(sites)]
     spaces = {FermionSpace(): range(sites)}

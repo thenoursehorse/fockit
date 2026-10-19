@@ -17,10 +17,10 @@ _TOL = 1e-12
 def slowest_modes(
     generator: SparseMatrix, k: int = 1
 ) -> tuple[ComplexArray, ComplexArray]:
-    """Compute the ``k`` eigenpairs of ``generator`` with the largest real part.
+    """Find the ``k`` slowest-decaying eigenpairs of ``generator``.
 
-    The decay rates are ``-eigenvalues.real``: 0 for a steady state, the
-    smallest nonzero one sets how long the system takes to relax.
+    These have the largest real part. The decay rates are
+    ``-eigenvalues.real``, and a steady state has rate 0.
 
     Returns
     -------
@@ -39,10 +39,10 @@ def slowest_modes(
 
 
 def steady_state(generator: SparseMatrix, trace: ArrayLike) -> ComplexArray:
-    """Steady state of ``generator``, normalized to ``Tr(rho) = 1``.
+    """Find the steady state of ``generator``, normalized to ``Tr(rho) = 1``.
 
-    ``trace`` is ``trace_vector(basis)``. If the sector holds several steady
-    states, this is one of them.
+    Pass ``trace_vector(basis)`` as ``trace``. If there are several steady
+    states, you get one of them.
     """
     _, modes = slowest_modes(generator)
     rho = modes[:, 0]

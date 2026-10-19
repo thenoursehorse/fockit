@@ -1,15 +1,11 @@
 """Open fermion ring: weak and strong symmetries of a Lindblad master equation.
 
-The density matrix rho is a state on twice the modes: ``left(A)`` multiplies it
-from the left (rho -> A rho) and ``right(B)`` from the right (rho -> rho B).
-``doubled`` adds the modes ``right`` acts on, so ``build_basis`` and
-``to_matrix`` work on rho as on any state, symmetries included.
+``left(A)`` is rho -> A rho and ``right(B)`` is rho -> rho B. ``doubled`` gives a
+basis for rho, and symmetries work as they do for states.
 
-Weak symmetry: each jump changes the particle number N, but on both sides of
-rho at once (c rho c†), so ``left(N) - right(N)`` is conserved. Strong
-symmetry: the jumps commute with N, so ``left(N)`` and ``right(N)`` are each
-conserved. Using a strong sector when the symmetry is only weak silently drops
-the jumps that leave it.
+Weak symmetry: the jumps change the particle number N on both sides of rho
+(c rho c†), so only ``left(N) - right(N)`` is conserved. Strong symmetry: the
+jumps commute with N, so ``left(N)`` and ``right(N)`` are each conserved.
 """
 
 from typing import Any
@@ -92,7 +88,7 @@ times = np.linspace(0, 4, 5)
 history = expm_multiply_evolve(1j * generator, empty, times)
 fillings = (history @ number.T @ trace).real / L
 
-print("Weak symmetry: loss and pump, sectors (q, K) = (N_left - N_right, momentum)")
+print("Weak symmetry: loss and pump, sectors (q, K) = (left(N) - right(N), momentum)")
 print(f"  {4**L} states in all, the steady state's sector has {basis.dim}")
 print(f"  steady state in sector {weak_steady}")
 print(f"  particles per site {filling:.6f}, exactly pump/(loss + pump)")
@@ -115,8 +111,8 @@ strong_steady = np.array(
     ]
 )
 
-print("\nStrong symmetry: dephasing, steady states in each (N_left, N_right) sector")
-print("  N_left \\ N_right " + " ".join(f"{m}" for m in range(L + 1)))
+print("\nStrong symmetry: dephasing, steady states per sector (left(N), right(N))")
+print("  left(N) \\ right(N) " + " ".join(f"{m}" for m in range(L + 1)))
 for n, row in enumerate(strong_steady):
-    print(f"  {n:6d}           " + " ".join(f"{count}" for count in row))
+    print(f"  {n:7d}            " + " ".join(f"{count}" for count in row))
 print("  one steady state for each particle number")

@@ -68,9 +68,9 @@ def test_steady_state_of_loss_and_pump_is_the_product_state() -> None:
     rho = steady_state(to_matrix(lossy_ring(), basis), trace_vector(basis))
 
     plain = sector()
-    closed = build_basis({FermionSpace(): range(SITES)})
-    matrix = density_matrix(expand_state(rho, basis, plain), plain, closed)
-    particles = closed.levels.sum(axis=1)
+    system = build_basis({FermionSpace(): range(SITES)})
+    matrix = density_matrix(expand_state(rho, basis, plain), plain, system)
+    particles = system.levels.sum(axis=1)
     product = np.diag(FILLING**particles * (1 - FILLING) ** (SITES - particles))
     assert matrix == pytest.approx(product, abs=1e-10)
 
@@ -82,12 +82,12 @@ def test_driven_spin_coherence_agrees_with_its_density_matrix() -> None:
     generator = to_matrix(liouvillian(H, [0.5 * sigma_minus(0)]), basis)
     trace = trace_vector(basis)
     rho = steady_state(generator, trace)
-    closed = build_basis({PauliSpace(): [0]})
-    matrix = density_matrix(rho, basis, closed)
+    system = build_basis({PauliSpace(): [0]})
+    matrix = density_matrix(rho, basis, system)
 
     coherence = trace @ (to_matrix(left(sigma_plus(0)), basis) @ rho)
     assert abs(coherence.imag) > 0.01
-    assert np.trace(to_matrix(sigma_plus(0), closed) @ matrix) == pytest.approx(
+    assert np.trace(to_matrix(sigma_plus(0), system) @ matrix) == pytest.approx(
         coherence
     )
     assert matrix == pytest.approx(matrix.conj().T)

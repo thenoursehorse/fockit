@@ -349,40 +349,39 @@ def expand_state(state: ArrayLike, basis: Basis, full_basis: Basis) -> ComplexAr
 
 
 def trace_vector(basis: Basis) -> FloatArray:
-    """Return the identity matrix as a vector in a basis of density matrices.
+    """Return the identity matrix as a vector in a ``doubled`` basis.
 
-    ``trace_vector(basis) @ x`` is ``Tr(rho)`` for the density matrix ``x``,
-    and ``trace_vector(basis) @ (to_matrix(left(O), basis) @ x)`` is
-    ``Tr(O rho)``. ``basis`` is built on ``doubled`` spaces; it is zero
-    unless every symmetry eigenvalue is 1.
+    ``trace_vector(basis) @ rho`` gives ``Tr(rho)``. It's zero in sectors
+    where a symmetry eigenvalue isn't 1, since rho has no trace there.
     """
     out = np.zeros(basis.dim)
     if not np.allclose(basis.characters, 1):
         return out
     rows, columns = _row_and_column_modes(basis)
-    # the symmetric state of an orbit of s diagonal states has overlap sqrt(s)
+    # overlap of the identity with the symmetric state of an orbit of size s
     diagonal = np.all(basis.levels[:, rows] == basis.levels[:, columns], axis=1)
     out[diagonal] = len(basis.group) / np.sqrt(basis.norms[diagonal])
     return out
 
 
-def density_matrix(state: ArrayLike, basis: Basis, closed: Basis) -> ComplexArray:
-    """Write a vector of ``basis`` as the matrix ``rho`` in ``closed``.
+def density_matrix(state: ArrayLike, basis: Basis, system: Basis) -> ComplexArray:
+    """Turn a vector in a ``doubled`` basis into the matrix ``rho``.
 
-    ``basis`` is built on ``doubled`` spaces without permutation or on-site
-    symmetries (use ``expand_state`` first), and ``closed`` is a basis of
-    the original modes holding every state ``rho`` acts on.
+    ``system`` is a basis of the modes before doubling, and sets the row and
+    column order of ``rho``. It must hold every state ``rho`` touches. If
+    ``basis`` has permutation or on-site symmetries, call ``expand_state``
+    first.
     """
     if len(basis.group) > 1:
         msg = "Expand the state with expand_state first."
         raise ValueError(msg)
     rows, columns = _row_and_column_modes(basis)
-    if closed.modes != tuple(basis.modes[k] for k in rows):
-        msg = "closed must have the modes that basis was doubled from."
+    if system.modes != tuple(basis.modes[k] for k in rows):
+        msg = "system must have the modes that basis was doubled from."
         raise ValueError(msg)
-    rho = np.zeros((closed.dim, closed.dim), dtype=complex)
-    m = state_index(closed, basis.levels[:, rows])
-    n = state_index(closed, basis.levels[:, columns])
+    rho = np.zeros((system.dim, system.dim), dtype=complex)
+    m = state_index(system, basis.levels[:, rows])
+    n = state_index(system, basis.levels[:, columns])
     rho[m, n] = np.asarray(state)
     return rho
 
@@ -442,7 +441,7 @@ def _charge_tables(
 
 
 def _row_and_column_modes(basis: Basis) -> tuple[IntArray, IntArray]:
-    """Positions of the original modes, and of their conjugate copies."""
+    """Return the positions of the unwrapped modes and of their ``Conjugate``s."""
     rows = [
         k
         for k, (rules, _) in enumerate(basis.modes)

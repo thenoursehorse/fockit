@@ -66,11 +66,7 @@ def to_matrix(op: OpSum | complex, basis: Basis) -> SparseMatrix:
 
 
 def check_hermitian(H: SparseMatrix) -> None:
-    """Raise ValueError unless ``H`` is Hermitian, up to round-off.
-
-    For solvers that assume it, so a Lindblad generator isn't silently
-    treated as a Hamiltonian.
-    """
+    """Raise ValueError if ``H`` isn't Hermitian, allowing for round-off."""
     scale = max(abs(H).max(), 1.0)
     if H.shape[0] and abs(H - H.conj().T).max() > _HERMITIAN_TOL * scale:
         msg = (
