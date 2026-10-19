@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Callable, Hashable, Sequence
 
 from fockit._types import Coefficient
 from fockit.algebra.operators import Monomial, Op, OpSum, as_opsum, format_mode
@@ -14,6 +14,7 @@ from fockit.algebra.rules import (
     PauliRules,
     mode_sort_key,
 )
+from fockit.algebra.superoperators import ConjugateRules
 
 # operators of other algebras show their kind as the symbol
 _TEXT_SYMBOLS: dict[tuple[type, Hashable], str] = {
@@ -50,7 +51,7 @@ def to_text(op: OpSum | complex) -> str:
 
     """
     op = as_opsum(op)
-    return _join_terms(op, _op_text)
+    return _join_terms(op, _op_text, "right({})")
 
 
 def to_latex(op: OpSum | complex) -> str:
@@ -66,10 +67,10 @@ def to_latex(op: OpSum | complex) -> str:
 
     """
     op = as_opsum(op)
-    return _join_terms(op, _op_latex)
+    return _join_terms(op, _op_latex, r"\mathcal{{R}}({})")
 
 
-def _join_terms(op: OpSum, format_op: Callable[[Op], str]) -> str:
+def _join_terms(op: OpSum, format_op: Callable[[Op], str], right_template: str) -> str:
     """Write the terms in display order, joined with + and -."""
     if not op.terms:
         return "0"
@@ -85,7 +86,7 @@ def _join_terms(op: OpSum, format_op: Callable[[Op], str]) -> str:
             parts.append(str(coeff))
             continue
 
-        ops_str = " ".join(format_op(single_op) for single_op in mono.ops)
+        ops_str = _format_ops(mono.ops, format_op, right_template)
 
         coeff_str = _format_coeff(coeff)
         if coeff_str == "":
@@ -102,6 +103,30 @@ def _join_terms(op: OpSum, format_op: Callable[[Op], str]) -> str:
         else:
             result += f" + {part}"
     return result
+
+
+def _format_ops(
+    ops: Sequence[Op], format_op: Callable[[Op], str], right_template: str
+) -> str:
+    """Write the operators, showing those made by ``right`` as ``right(...)``.
+
+    They commute with the others, so they go last. ``right`` stores its
+    argument reversed and daggered, so undo that to show what was passed in.
+    """
+    plain: list[Op] = []
+    written: list[Op] = []
+    for single_op in ops:
+        if isinstance(single_op.rules, ConjugateRules):
+            unwrapped = Op(
+                single_op.mode, single_op.kind, single_op.rules.wrapped_rules
+            )
+            written.insert(0, unwrapped.rules.dagger(unwrapped))
+        else:
+            plain.append(single_op)
+    parts = [format_op(single_op) for single_op in plain]
+    if written:
+        parts.append(right_template.format(" ".join(map(format_op, written))))
+    return " ".join(parts)
 
 
 def _op_text(op: Op) -> str:

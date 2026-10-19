@@ -14,6 +14,7 @@ from fockit.algebra import (
     cdag,
     mode_sort_key,
     normal_order,
+    right,
     sigma_x,
     sigma_z,
     sm,
@@ -71,6 +72,12 @@ def test_new_algebra_displays_without_display_code() -> None:
     op = normal_order(gamma(1) * gamma(0) + 2 * gamma(2) * gamma(2))
     assert to_text(op) == "2 - gamma(0) gamma(1)"
     assert to_latex(op) == "2 - gamma_{0} gamma_{1}"
+
+
+def test_right_multiplication_displays_as_written() -> None:
+    # right(A) right(B) multiplies by B A, and commutes with c(1)
+    assert to_text(right(c(0)) * c(1) * right(cdag(1))) == "c(1) right(c†(1) c(0))"
+    assert to_latex(right(cdag(0) * c(1))) == r"\mathcal{R}(c^{\dagger}_{0} c_{1})"
 
 
 def test_latex_spin_labels() -> None:
