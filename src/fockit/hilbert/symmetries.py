@@ -120,9 +120,11 @@ def symmetry_components(
         functools.partial(_conjugate, factors=factors)
         for factors, _ in basis.onsite_symmetries
     ]
+    # no single symmetry can need more steps than the whole group has elements
+    limit = max(len(basis.group), _MAX_ORDER)
     parts = [normal_order(as_opsum(op))]
     for action in actions:
-        parts = [piece for part in parts for piece in _split(part, action)]
+        parts = [piece for part in parts for piece in _split(part, action, limit)]
 
     eigenvalues = [
         complex(e) for _, e in (*basis.permutation_symmetries, *basis.onsite_symmetries)
@@ -473,7 +475,7 @@ def _conjugate(op: OpSum, factors: Sequence[OpSum]) -> OpSum:
     return result
 
 
-def _split(op: OpSum, action: Callable[[OpSum], OpSum]) -> list[OpSum]:
+def _split(op: OpSum, action: Callable[[OpSum], OpSum], limit: int) -> list[OpSum]:
     """Split ``op`` into parts that ``action`` multiplies by one phase each.
 
     Applies ``action`` until ``op`` comes back, after ``p`` steps; the part
@@ -485,6 +487,12 @@ def _split(op: OpSum, action: Callable[[OpSum], OpSum]) -> list[OpSum]:
         if drop_zeros(image - op, tol=1e-10) == zero():
             break
         images.append(image)
+        if len(images) > limit:
+            msg = (
+                f"A symmetry applied {limit} times never gave the operator back. "
+                "Its algebra's rules may not reduce products to one normal form."
+            )
+            raise ValueError(msg)
     period = len(images)
     parts = []
     for n in range(period):
