@@ -14,14 +14,15 @@ Particles must have abelian statistics.
 
 ## Where to start?
 
-The example below builds a model and solves it; the section after it adds your
-own algebra. More examples are in `examples/` and in the tests:
+The example below builds a model and solves it; the sections after it add your
+own algebra and open systems. More examples are in `examples/` and in the tests:
 
 - `tests/algebra/` for the operator algebra.
 - `tests/hilbert/` for Hilbert spaces and matrices; `test_symmetries.py` there
   for symmetry sectors (momentum, reflection, spin flip, spin inversion,
   particle-hole, point groups).
 - `tests/solve/` for the solvers.
+- `examples/lindblad.py` for open systems, with weak and strong symmetries.
 
 ## Example
 
@@ -92,6 +93,58 @@ normal_order((gamma(0) + gamma(1)) ** 2)  # 2
 
 `examples/majorana.py` solves a Majorana model with it, and `examples/anyons.py`
 also gives anyons their own Hilbert space.
+
+## Open systems
+
+Lindblad master equations work the same way. `left(A)` multiplies the density
+matrix rho from the left (rho -> A rho) and `right(B)` from the right
+(rho -> rho B), so the generator is an ordinary operator expression.
+
+To get a matrix, rho is vectorized: written as a vector of its elements rho_mn,
+in Liouville space. `doubled` adds a copy of every mode to hold the column index
+n, so each basis state is a pair (m, n) and stands for the matrix |m><n|. The
+generator, a superoperator, then becomes a sparse matrix acting on that
+vector. Symmetries and your own algebras work as
+before.
+
+```python
+import numpy as np
+
+from fockit.algebra import c, cdag, left, liouvillian, nc, right
+from fockit.hilbert import FermionSpace, build_basis, doubled, to_matrix, trace_vector
+from fockit.solve import slowest_modes, steady_state
+
+sites = range(6)
+H = -sum(cdag((i + 1) % 6) * c(i) + cdag(i) * c((i + 1) % 6) for i in sites)
+N = sum(nc(i) for i in sites)
+
+# particles leak out of every site and are pumped back in
+jumps = [np.sqrt(0.6) * c(i) for i in sites] + [np.sqrt(0.3) * cdag(i) for i in sites]
+generator = liouvillian(H, jumps)
+
+# a basis for the density matrix rho, with symmetries as before
+basis = build_basis(
+    doubled({FermionSpace(): sites}),
+    diagonal_symmetries={left(N) - right(N): 0},
+    permutation_symmetries=[({i: (i + 1) % 6 for i in sites}, 1)],
+)
+L = to_matrix(generator, basis)
+
+# the identity matrix as a vector: trace @ rho is Tr(rho)
+trace = trace_vector(basis)
+# the steady state, normalized to Tr(rho) = 1
+rho = steady_state(L, trace)
+# Tr(N rho), which is 2
+filling = trace @ (to_matrix(left(N), basis) @ rho)
+# the 3 slowest-decaying modes; their decay rates are -rates.real
+rates, _ = slowest_modes(L, k=3)
+```
+
+The jumps here change N, but on both sides of rho at once, so only
+`left(N) - right(N)` is conserved (a weak symmetry). Jumps that commute with N,
+like dephasing, also conserve `left(N)` and `right(N)` separately (a strong
+symmetry). `expm_multiply_evolve(1j * L, rho, times)` evolves rho in time, and
+`density_matrix` turns the vector back into a matrix.
 
 ## Dependencies
 

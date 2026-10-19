@@ -1,7 +1,10 @@
 """Open fermion ring: weak and strong symmetries of a Lindblad master equation.
 
-``left(A)`` is rho -> A rho and ``right(B)`` is rho -> rho B. ``doubled`` gives a
-basis for rho, and symmetries work as they do for states.
+``left(A)`` is rho -> A rho and ``right(B)`` is rho -> rho B. rho is vectorized
+(written as a vector of its elements rho_mn, in Liouville space): ``doubled``
+adds a copy of every mode to hold the column index n, so each basis state
+stands for the matrix |m><n|.
+Symmetries work as they do for states.
 
 Weak symmetry: the jumps change the particle number N on both sides of rho
 (c rho c†), so only ``left(N) - right(N)`` is conserved. Strong symmetry: the
@@ -77,6 +80,7 @@ basis = build_basis(
     permutation_symmetries=[(shift, 1)],
 )
 generator = to_matrix(weak, basis)
+# the identity matrix as a vector: trace @ rho is Tr(rho)
 trace = trace_vector(basis)
 number = to_matrix(left(N), basis)
 rho = steady_state(generator, trace)

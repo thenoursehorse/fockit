@@ -194,9 +194,11 @@ class Conjugate(LocalSpace):
 def doubled[S: LocalSpace](
     spaces: Mapping[S, Sequence[Hashable]],
 ) -> dict[LocalSpace, Sequence[Hashable]]:
-    """Add a ``Conjugate`` of each space, to build a basis for density matrices.
+    """Add a ``Conjugate`` copy of each space, for vectorized density matrices.
 
-    For example ``build_basis(doubled({FermionSpace(): sites}))``.
+    The copy holds the column index, so a basis state ``(m, n)`` stands for
+    the matrix ``|m⟩⟨n|``: a basis of Liouville space. For example
+    ``build_basis(doubled({FermionSpace(): sites}))``.
     """
     out: dict[LocalSpace, Sequence[Hashable]] = dict(spaces.items())
     out.update({Conjugate(space): labels for space, labels in spaces.items()})
