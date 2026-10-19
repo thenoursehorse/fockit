@@ -64,22 +64,41 @@ def representatives(
     return codes[element, np.arange(len(levels))], phase, element
 
 
-def check_symmetric(
+def symmetry_phases(
     op: OpSum,
     permutation_symmetries: Sequence[PermutationSymmetry],
     onsite_symmetries: Sequence[OnsiteSymmetry] = (),
-) -> None:
-    """Raise ValueError if ``op`` changes under any of the symmetries."""
-    for label_map, _ in permutation_symmetries:
-        change = normal_order(substitute_modes(op, label_map) - op)
-        if drop_zeros(change, tol=1e-10) != zero():
-            msg = f"Operator is not symmetric under the relabelling {label_map!r}."
+) -> list[complex]:
+    """Return the phase each symmetry multiplies ``op`` by: ``g op g† = phase op``.
+
+    Permutation symmetries come first, then on-site ones. Raises ValueError
+    if a symmetry turns ``op`` into something other than a multiple of
+    itself, e.g. translation and the single-site ``c(0)``.
+    """
+    images = [
+        (substitute_modes(op, label_map), f"the relabelling {label_map!r}")
+        for label_map, _ in permutation_symmetries
+    ]
+    images += [
+        (_conjugate(op, factors), "an on-site symmetry")
+        for factors, _ in onsite_symmetries
+    ]
+    op = normal_order(op)
+    phases = []
+    for raw_image, name in images:
+        image = normal_order(raw_image)
+        phase = 1 + 0j
+        if op.terms:
+            mono, coeff = next(iter(op.terms.items()))
+            phase = as_complex(image.terms.get(mono, 0)) / as_complex(coeff)
+        if drop_zeros(image - phase * op, tol=1e-10) != zero():
+            msg = (
+                f"Operator doesn't just pick up a phase under {name}. Split it "
+                "into parts that do, e.g. c_k = Σ_j e^(-ikj) c(j) for translation."
+            )
             raise ValueError(msg)
-    for factors, _ in onsite_symmetries:
-        change = normal_order(_conjugate(op, factors) - op)
-        if drop_zeros(change, tol=1e-10) != zero():
-            msg = "Operator is not symmetric under an on-site symmetry."
-            raise ValueError(msg)
+        phases.append(phase)
+    return phases
 
 
 def permutation_group(

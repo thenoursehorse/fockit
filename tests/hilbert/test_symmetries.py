@@ -216,7 +216,7 @@ def test_non_symmetric_operator_is_rejected_in_a_momentum_sector() -> None:
         {FermionSpace(): range(sites)},
         permutation_symmetries=[(shift(sites), momentum(1, sites))],
     )
-    with pytest.raises(ValueError, match="not symmetric"):
+    with pytest.raises(ValueError, match="phase"):
         to_matrix(nc(0), basis)
 
 
@@ -595,5 +595,5 @@ def test_onsite_symmetry_that_is_not_a_symmetry_is_rejected() -> None:
     # a longitudinal field breaks spin inversion
     basis = build_basis(space, onsite_symmetries=[(spin_inversion(sites), 1)])
     field = 0.1 * sum(sigma_z(i) for i in range(sites))
-    with pytest.raises(ValueError, match="not symmetric"):
+    with pytest.raises(ValueError, match="phase"):
         to_matrix(tfim_ring(sites, 0.5) + field, basis)
