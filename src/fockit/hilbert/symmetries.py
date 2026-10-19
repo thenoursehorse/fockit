@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from fockit._types import as_complex
-from fockit.algebra.operators import Monomial, Op, OpSum, identity, zero
+from fockit.algebra.operators import Monomial, Op, OpSum, as_opsum, identity, zero
 from fockit.algebra.ordering import normal_order
 from fockit.algebra.rules import AlgebraRules
 from fockit.algebra.simplify import drop_zeros
@@ -99,6 +99,52 @@ def symmetry_phases(
             raise ValueError(msg)
         phases.append(phase)
     return phases
+
+
+def symmetry_components(
+    op: OpSum | complex, basis: Basis
+) -> dict[tuple[complex, ...], OpSum]:
+    """Split ``op`` into parts that each take ``basis`` to one symmetry sector.
+
+    Each key holds the eigenvalues of the sector that part leads to, in the
+    order ``basis`` lists its permutation and then on-site symmetries. Build
+    that sector with ``build_basis`` and use ``to_matrix(part, target,
+    source=basis)``. The parts add up to ``op``, so under translation
+    ``c(0)`` splits into ``c_k / √L``.
+    """
+    actions: list[Callable[[OpSum], OpSum]] = [
+        functools.partial(substitute_modes, mapping=label_map)
+        for label_map, _ in basis.permutation_symmetries
+    ]
+    actions += [
+        functools.partial(_conjugate, factors=factors)
+        for factors, _ in basis.onsite_symmetries
+    ]
+    parts = [normal_order(as_opsum(op))]
+    for action in actions:
+        parts = [piece for part in parts for piece in _split(part, action)]
+
+    eigenvalues = [
+        complex(e) for _, e in (*basis.permutation_symmetries, *basis.onsite_symmetries)
+    ]
+    out: dict[tuple[complex, ...], OpSum] = {}
+    for part in parts:
+        try:
+            phases = symmetry_phases(
+                part, basis.permutation_symmetries, basis.onsite_symmetries
+            )
+        except ValueError:
+            msg = (
+                "The symmetries don't commute on this operator, so it has no "
+                "parts with one eigenvalue each. Split it with fewer symmetries, "
+                "e.g. translation alone."
+            )
+            raise ValueError(msg) from None
+        key = tuple(
+            _round(e * phase) for e, phase in zip(eigenvalues, phases, strict=True)
+        )
+        out[key] = out.get(key, zero()) + part
+    return out
 
 
 def permutation_group(
@@ -425,3 +471,33 @@ def _conjugate(op: OpSum, factors: Sequence[OpSum]) -> OpSum:
             term = term * images[single]
         result = result + term
     return result
+
+
+def _split(op: OpSum, action: Callable[[OpSum], OpSum]) -> list[OpSum]:
+    """Split ``op`` into parts that ``action`` multiplies by one phase each.
+
+    Applies ``action`` until ``op`` comes back, after ``p`` steps; the part
+    with phase ``λ = e^(2πin/p)`` is the average of ``λ^-m action^m(op)``.
+    """
+    images = [op]
+    while True:
+        image = normal_order(action(images[-1]))
+        if drop_zeros(image - op, tol=1e-10) == zero():
+            break
+        images.append(image)
+    period = len(images)
+    parts = []
+    for n in range(period):
+        phase = np.exp(2j * np.pi * n / period)
+        part = zero()
+        for m, image in enumerate(images):
+            part += complex(phase**-m / period) * image
+        part = drop_zeros(part, tol=1e-12)
+        if part != zero():
+            parts.append(part)
+    return parts
+
+
+def _round(value: complex) -> complex:
+    """Round to 10 decimals, without negative zeros, so equal keys match."""
+    return complex(round(value.real, 10) + 0.0, round(value.imag, 10) + 0.0)

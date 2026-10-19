@@ -17,6 +17,7 @@ from fockit.hilbert.spaces import (
     PauliSpace,
     doubled,
 )
+from fockit.hilbert.symmetries import symmetry_components
 
 __all__ = [
     "Basis",
@@ -32,6 +33,7 @@ __all__ = [
     "expectation",
     "matrix_elements",
     "state_index",
+    "symmetry_components",
     "to_matrix",
     "trace_vector",
 ]

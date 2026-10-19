@@ -10,13 +10,24 @@ from typing import Any
 import numpy as np
 import pytest
 
-from fockit.algebra import OpSum, c, cdag, nc, sigma_x, sigma_z, zero
+from fockit.algebra import (
+    OpSum,
+    c,
+    cdag,
+    drop_zeros,
+    nc,
+    normal_order,
+    sigma_x,
+    sigma_z,
+    zero,
+)
 from fockit.hilbert import (
     Basis,
     FermionSpace,
     PauliSpace,
     build_basis,
     expand_state,
+    symmetry_components,
     to_matrix,
 )
 from fockit.solve import groundstate
@@ -143,3 +154,45 @@ def test_operators_that_cannot_reach_the_basis_are_rejected() -> None:
     same_number = spinless(3, permutation_symmetries=[(shift(), momentum(1))])
     with pytest.raises(ValueError, match="outside the basis"):
         to_matrix(fourier(c, 1), same_number, source=source)
+
+
+def test_one_site_splits_into_momentum_parts_that_add_up_to_its_density() -> None:
+    H: OpSum | complex = -sum(
+        cdag((i + 1) % SITES) * c(i) + cdag(i) * c((i + 1) % SITES)
+        for i in range(SITES)
+    )
+    H += 0.7 * sum(nc(i) * nc((i + 1) % SITES) for i in range(SITES))
+    source = spinless(3, permutation_symmetries=[(shift(), momentum(1))])
+    _, psi = groundstate(to_matrix(H, source))
+
+    parts = symmetry_components(c(0), source)
+    assert len(parts) == SITES
+    assert drop_zeros(normal_order(sum(parts.values(), zero()) - c(0)), 1e-12) == zero()
+    removed = 0.0
+    for (eigenvalue,), part in parts.items():
+        target = spinless(2, permutation_symmetries=[(shift(), eigenvalue)])
+        out = to_matrix(part, target, source=source) @ psi
+        removed += float(np.vdot(out, out).real)
+    # translation invariance: <n_0> = N / L
+    assert removed == pytest.approx(3 / SITES)
+
+
+def test_spin_parts_flip_spin_inversion_parity() -> None:
+    Sz = sum(sigma_z(i) for i in range(SITES))
+    source = build_basis(
+        {PauliSpace(): range(SITES)},
+        diagonal_symmetries={Sz: 0},
+        permutation_symmetries=[(shift(), momentum(0))],
+        onsite_symmetries=[([sigma_x(i) for i in range(SITES)], -1)],
+    )
+    parts = symmetry_components(sigma_z(0), source)
+    assert len(parts) == SITES
+    assert all(parity == 1 for _, parity in parts)
+
+
+def test_symmetries_that_do_not_commute_on_the_operator_are_rejected() -> None:
+    # reflection swaps c_k and c_-k, so no part has one eigenvalue of both
+    reflection = {i: (-i) % SITES for i in range(SITES)}
+    source = spinless(3, permutation_symmetries=[(shift(), 1), (reflection, 1)])
+    with pytest.raises(ValueError, match="don't commute"):
+        symmetry_components(c(0), source)
