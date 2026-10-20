@@ -16,6 +16,7 @@ type SparseMatrix = sp.csr_matrix
 type ComplexArray = NDArray[np.complex128]
 
 _HERMITIAN_TOL = 1e-10
+_REAL_TOL = 1e-14
 
 
 def to_matrix(
@@ -33,7 +34,7 @@ def to_matrix(
     Returns
     -------
     scipy.sparse.csr_matrix
-        Real if every matrix element is real, complex otherwise.
+        Real if every matrix element is real up to round-off, complex otherwise.
 
     """
     op = as_opsum(op)
@@ -78,7 +79,7 @@ def to_matrix(
         shape=(basis.dim, source.dim),
     ).tocsr()
     mat.sum_duplicates()
-    if not np.any(mat.data.imag):
+    if abs(mat.data.imag).max(initial=0) <= _REAL_TOL * abs(mat.data).max(initial=0):
         return mat.real
     return mat
 

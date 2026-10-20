@@ -207,6 +207,16 @@ def test_spin_parts_flip_spin_inversion_parity() -> None:
     assert all(parity == 1 for _, parity in parts)
 
 
+def test_reflection_parts_have_real_matrices() -> None:
+    reflection = {i: SITES - 1 - i for i in range(SITES)}
+    source = spinless(3, permutation_symmetries=[(reflection, 1)])
+    parts = symmetry_components(c(0), source)
+    assert len(parts) == 2
+    for (eigenvalue,), part in parts.items():
+        target = spinless(2, permutation_symmetries=[(reflection, eigenvalue)])
+        assert not np.iscomplexobj(to_matrix(part, target, source=source).data)
+
+
 def test_symmetries_that_do_not_commute_on_the_operator_are_rejected() -> None:
     # reflection swaps c_k and c_-k, so no part has one eigenvalue of both
     reflection = {i: (-i) % SITES for i in range(SITES)}
