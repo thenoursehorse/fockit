@@ -285,6 +285,29 @@ def test_symmetry_eigenvalues_that_do_not_fit_are_rejected() -> None:
         build_basis(space, permutation_symmetries=[(shift(sites), np.exp(0.3j))])
 
 
+def test_onsite_sectors_of_every_eigenvalue_split_each_particle_number() -> None:
+    # U multiplies a state by i for each particle on sites 0-3, so U^4 = 1
+    sites = 6
+    space = {FermionSpace(): range(sites)}
+    N = sum(nc(i) for i in range(sites))
+    phases = [c(i) * cdag(i) + 1j * cdag(i) * c(i) for i in range(4)]
+
+    def dims(particles: int) -> list[int]:
+        return [
+            build_basis(
+                space,
+                diagonal_symmetries={N: particles},
+                onsite_symmetries=[(phases, 1j**k)],
+            ).dim
+            for k in range(4)
+        ]
+
+    assert dims(0) == [1, 0, 0, 0]
+    assert dims(1) == [2, 4, 0, 0]
+    with pytest.raises(ValueError, match="not allowed"):
+        build_basis(space, onsite_symmetries=[(phases, np.exp(0.3j))])
+
+
 def hubbard_bases(sites: int, n_up: int, n_dn: int, k: int) -> tuple[Basis, Basis]:
     modes = [(i, s) for i in range(sites) for s in SPINS]
     diagonal = {

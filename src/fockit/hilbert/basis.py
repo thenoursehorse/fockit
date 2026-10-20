@@ -216,7 +216,7 @@ def build_basis[S: LocalSpace, Q: OpSum | complex](
         levels = np.concatenate(kept)
 
     onsite_powers = tuple((0,) * len(onsite_tables) for _ in group)
-    if onsite_symmetries and len(levels):
+    if onsite_symmetries:
         group, characters, onsite_powers = add_onsite(
             levels,
             group,

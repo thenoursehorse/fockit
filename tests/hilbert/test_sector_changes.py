@@ -73,6 +73,23 @@ def test_c_k_between_momentum_sectors_matches_the_plain_basis() -> None:
         assert reduced == pytest.approx(out_of.conj().T @ plain @ into)
 
 
+def test_c_between_onsite_sectors_matches_the_plain_basis() -> None:
+    # U multiplies a state by i for each particle on sites 0-3
+    phases = [c(i) * cdag(i) + 1j * cdag(i) * c(i) for i in range(4)]
+    for particles in (1, 2):
+        plain_source, plain_target = spinless(particles), spinless(particles - 1)
+        for eigenvalue in (1, 1j, -1, -1j):
+            source = spinless(particles, onsite_symmetries=[(phases, eigenvalue)])
+            for site in (0, 5):
+                [(moved,)] = symmetry_components(c(site), source)
+                target = spinless(particles - 1, onsite_symmetries=[(phases, moved)])
+                reduced = to_matrix(c(site), target, source=source).toarray()
+                plain = to_matrix(c(site), plain_target, source=plain_source)
+                into = expand_state(np.eye(source.dim), source, plain_source)
+                out_of = expand_state(np.eye(target.dim), target, plain_target)
+                assert reduced == pytest.approx(out_of.conj().T @ plain @ into)
+
+
 def test_products_of_sector_changes_give_the_operator_in_one_sector() -> None:
     # c†(0) c(0) through N - 1, and c_k† c_k through momentum K + k
     three, two = spinless(3), spinless(2)

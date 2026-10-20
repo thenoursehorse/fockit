@@ -258,7 +258,14 @@ def add_onsite(
     spaces: Sequence[LocalSpace],
     starts: Sequence[int],
 ) -> tuple[tuple[IntArray, ...], ComplexArray, tuple[tuple[int, ...], ...]]:
-    """Add the on-site symmetries to the group, checked on ``levels``."""
+    """Add the on-site symmetries to the group, checking they commute on ``levels``."""
+    # a power of U is a constant on every state once it is on these rows, one
+    # per level of each mode: it then multiplies a state by one phase per mode
+    probes = np.zeros((sum(s.dim for s in spaces), len(spaces)), dtype=np.int64)
+    row = 0
+    for k, space in enumerate(spaces):
+        probes[row : row + space.dim, k] = np.arange(space.dim)
+        row += space.dim
     actions = [
         functools.partial(_apply_onsite, tables=tables, starts=starts)
         for tables in onsite_tables
@@ -284,7 +291,7 @@ def add_onsite(
         for perm, character in zip(group, characters, strict=True)
     ]
     for action, (_, eigenvalue) in zip(actions, onsite_symmetries, strict=True):
-        order, constant = _order_on(action, levels)
+        order, constant = _order_on(action, probes)
         if not np.isclose(complex(eigenvalue) ** order, constant):
             msg = (
                 f"Eigenvalue {eigenvalue} is not allowed: the on-site symmetry "
@@ -417,7 +424,10 @@ def _order_on(action: Action, levels: Levels) -> tuple[int, complex]:
         phase = phase * step
         if np.array_equal(moved, levels) and np.allclose(phase, phase[0]):
             return n, complex(phase[0])
-    msg = "An on-site symmetry has no finite order on the selected states."
+    msg = (
+        "An on-site symmetry has no finite order. If it is diagonal, use "
+        "diagonal_symmetries instead."
+    )
     raise ValueError(msg)
 
 
