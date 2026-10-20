@@ -582,6 +582,34 @@ def test_c3_charge_sectors_rebuild_spectrum() -> None:
     assert np.sort(np.concatenate(parts)) == pytest.approx(full)
 
 
+def test_particle_hole_and_reflection_explain_why_they_cannot_be_combined() -> None:
+    sites = 4
+    space = {FermionSpace(): range(sites)}
+    particle_hole = [c(i) + (-1) ** i * cdag(i) for i in range(sites)]
+    # reflecting through a site reorders the fermionic factors: R U R† = -U
+    through_site = {i: (-i) % sites for i in range(sites)}
+    with pytest.raises(ValueError, match="anticommute"):
+        build_basis(
+            space,
+            permutation_symmetries=[(through_site, 1)],
+            onsite_symmetries=[(particle_hole, 1)],
+        )
+    # reflecting through a bond commutes only at some particle numbers
+    with pytest.raises(ValueError, match="fix the particle number"):
+        build_basis(
+            space,
+            permutation_symmetries=[(reflection(sites), 1)],
+            onsite_symmetries=[(particle_hole, 1)],
+        )
+    half = {sum(nc(i) for i in range(sites)): sites // 2}
+    build_basis(
+        space,
+        diagonal_symmetries=half,
+        permutation_symmetries=[(reflection(sites), 1)],
+        onsite_symmetries=[(particle_hole, 1)],
+    )
+
+
 def test_onsite_symmetry_that_is_not_a_symmetry_is_rejected() -> None:
     sites = 4
     space = {PauliSpace(): range(sites)}

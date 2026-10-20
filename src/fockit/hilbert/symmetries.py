@@ -273,9 +273,10 @@ def add_onsite(
         for perm in generators
     ]
     for action in actions:
-        if not all(_commute(action, other, levels) for other in others):
-            msg = "Symmetries must commute with each other."
-            raise ValueError(msg)
+        for other in others:
+            problem = _commutation_problem(action, other, levels)
+            if problem:
+                raise ValueError(problem)
         others.append(action)
 
     elements: list[tuple[IntArray, complex, tuple[int, ...]]] = [
@@ -420,14 +421,36 @@ def _order_on(action: Action, levels: Levels) -> tuple[int, complex]:
     raise ValueError(msg)
 
 
-def _commute(a: Action, b: Action, levels: Levels) -> bool:
-    """Whether applying ``a`` then ``b`` agrees with ``b`` then ``a``."""
+def _commutation_problem(a: Action, b: Action, levels: Levels) -> str | None:
+    """Explain how applying ``a`` then ``b`` differs from ``b`` then ``a``.
+
+    Returns None if they agree on every row of ``levels``.
+    """
     ab, ab_first = a(levels)
     ab, ab_second = b(ab)
     ba, ba_first = b(levels)
     ba, ba_second = a(ba)
-    same_levels = np.array_equal(ab, ba)
-    return same_levels and np.allclose(ab_first * ab_second, ba_first * ba_second)
+    if not np.array_equal(ab, ba):
+        return "Symmetries must commute with each other."
+    ratio = (ab_first * ab_second) / (ba_first * ba_second)
+    if np.allclose(ratio, 1):
+        return None
+    if np.allclose(ratio, -1):
+        return (
+            "These symmetries anticommute, so no state has an eigenvalue of both. "
+            "Use one of them: the other maps its sectors onto each other, so "
+            "their spectra are equal."
+        )
+    if np.allclose(ratio, ratio[0]):
+        return (
+            f"Swapping these symmetries multiplies every state by {ratio[0]:.3g}, "
+            "so no state has an eigenvalue of both. Use one of them."
+        )
+    return (
+        "These symmetries commute on some states but not others, e.g. only at "
+        "some particle numbers. Restrict the states with diagonal_symmetries, "
+        "e.g. fix the particle number."
+    )
 
 
 def _apply_onsite(
