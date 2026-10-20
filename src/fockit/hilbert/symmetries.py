@@ -241,6 +241,12 @@ def tabulate_onsite(
         if np.any(hits != 1) or not one_to_one or not np.allclose(abs(amplitude), 1):
             msg = "An on-site factor must send each level to one level with a phase."
             raise ValueError(msg)
+        if not np.allclose(strings, strings[0]):
+            msg = (
+                "An on-site factor's terms must pick up the same string factor "
+                "from earlier modes, e.g. not a + a† for anyons."
+            )
+            raise ValueError(msg)
         tables.append((k, new_level, amplitude, strings))
     if len({k for k, _, _, _ in tables}) < len(tables):
         msg = "An on-site symmetry has more than one factor on a mode."

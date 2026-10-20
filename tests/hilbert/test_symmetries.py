@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import cmath
 from collections.abc import Hashable, Mapping, Sequence
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, override
 
 import numpy as np
 import pytest
 from numpy.typing import NDArray
 
 from fockit.algebra import (
+    Ladder,
+    Op,
     OpSum,
     b,
     bdag,
@@ -631,6 +634,34 @@ def test_particle_hole_and_reflection_explain_why_they_cannot_be_combined() -> N
         permutation_symmetries=[(reflection(sites), 1)],
         onsite_symmetries=[(particle_hole, 1)],
     )
+
+
+@dataclass(frozen=True)
+class HardcoreAnyonSpace(FermionSpace):
+    """c and c† pick up e^(∓iθ) from each occupied earlier mode; θ = π is fermions."""
+
+    theta: float = np.pi
+
+    @override
+    def string_factor(self, op: Op) -> NDArray[np.complex128]:
+        sign = 1 if op.kind is Ladder.ANNIHILATE else -1
+        return np.array([1, cmath.exp(-sign * 1j * self.theta)])
+
+
+def test_onsite_factor_mixing_string_factors_is_rejected() -> None:
+    sites = 4
+    flip = [c(i) + cdag(i) for i in range(sites)]
+    # with c and c† picking up different phases, U^2 depends on the state in
+    # a way states with one particle don't show
+    with pytest.raises(ValueError, match="same string factor"):
+        build_basis(
+            {HardcoreAnyonSpace(theta=np.pi / 3): range(sites)},
+            onsite_symmetries=[(flip, 1)],
+        )
+    fermions = build_basis(
+        {HardcoreAnyonSpace(): range(sites)}, onsite_symmetries=[(flip, 1)]
+    )
+    assert fermions.dim == 2 ** (sites - 1)
 
 
 def test_onsite_symmetry_that_is_not_a_symmetry_is_rejected() -> None:
